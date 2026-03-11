@@ -11,7 +11,7 @@ import {
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '@navigation/AuthNavigator';
 import {styles} from './styles/TwoFactorScreen.styles';
-import {useTwoFactor} from '@modules/auth/services/useTwoFactor';
+import {useTwoFactor} from '@hooks/useTwoFactor';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'TwoFactor'>;
 

@@ -1,53 +1,41 @@
-// src/modules/auth/screens/LoginScreen.tsx
-import React, {useMemo, useState} from 'react';
-import {Alert, Pressable, Text, View} from 'react-native';
+import React from 'react';
+import {Pressable, Text, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '@navigation/AuthNavigator';
 import {AppTextField} from '@components/common/AppTextField';
-import {AppButton} from '@components/common/AppButton';
-import {login} from '@services/api/auth';
-import {styles} from './styles/LoginScreen.styles';
+import {AppButton}    from '@components/common/AppButton';
+import {registerService} from '@services/registerService';
+import {styles} from './styles/LoginRegisterScreen.styles';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
-export default function LoginScreen({navigation}: Props) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const canSubmit = useMemo(() => {
-    return email.trim().length > 0 && password.trim().length >= 6;
-  }, [email, password]);
-
-  async function handleLogin() {
-    if (!canSubmit || loading) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setErrorMessage('');
-
-      const result = await login({
-        email: email.trim(),
-        password,
-      });
-
-      Alert.alert('Login realizado', `Access token: ${result.accessToken.slice(0, 14)}...`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Não foi possível entrar';
-      setErrorMessage(message);
-    } finally {
-      setLoading(false);
-    }
-  }
+export default function RegisterScreen({navigation}: Props) {
+  const {
+    name,         setName,
+    email,        setEmail,
+    password,     setPassword,
+    confirmPassword, setConfirmPassword,
+    errorMessage,
+    loading,
+    canSubmit,
+    handleRegister,
+  } = registerService(() => navigation.replace('Login'));
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Registre-se</Text>
-        <Text style={styles.subtitle}>Acesse sua conta para ver cartões, metas e transações.</Text>
+        <Text style={styles.title}>Criar conta</Text>
+        <Text style={styles.subtitle}>
+          Cadastre-se para começar a organizar sua vida financeira.
+        </Text>
+
+        <AppTextField
+          label="Nome"
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+          editable={!loading}
+        />
 
         <AppTextField
           label="E-mail"
@@ -68,18 +56,30 @@ export default function LoginScreen({navigation}: Props) {
           autoComplete="password"
           textContentType="password"
           editable={!loading}
+        />
+
+        <AppTextField
+          label="Confirmar senha"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          autoComplete="password"
+          textContentType="password"
+          editable={!loading}
           error={errorMessage || undefined}
         />
 
         <AppButton
-          title="Entrar"
-          onPress={handleLogin}
+          title="Cadastrar"
+          onPress={handleRegister}
           disabled={!canSubmit}
           loading={loading}
         />
 
-        <Pressable onPress={() => navigation.navigate('Register')} style={styles.linkWrapper}>
-          <Text style={styles.linkText}>Ainda não tem conta? Cadastre-se</Text>
+        <Pressable
+          onPress={() => navigation.navigate('Login')}
+          style={styles.linkWrapper}>
+          <Text style={styles.linkText}>Já tem conta? Entrar</Text>
         </Pressable>
       </View>
     </View>

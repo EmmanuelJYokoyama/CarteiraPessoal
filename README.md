@@ -1,97 +1,250 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 💳 Carteira Pessoal
 
-# Getting Started
+Aplicativo mobile de finanças pessoais desenvolvido como projeto acadêmico da disciplina **Programação para Dispositivo Móvel I**.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+<img src="https://cdn.discordapp.com/attachments/1398144855754014811/1483092553283797173/image.png?ex=69b95513&is=69b80393&hm=8cb3cdaf685258016412246529005cf5e79b79645593a3238b16c4379fda41fd&" width="900" height="600">
 
-## Step 1: Start Metro
+---
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## 👨‍💻 Autor
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+**Emmanuel Jun de Noronha Yokoyama**
 
-```sh
-# Using npm
-npm start
+---
 
-# OR using Yarn
-yarn start
+## 📱 Sobre o Projeto
+
+O **Carteira Pessoal** permite que usuários controlem suas finanças pessoais de forma simples e offline-first, com funcionalidades como registro de despesas, gestão de cartões de crédito, orçamentos por período e metas de economia.
+
+---
+
+## 🏗️ Arquitetura
+
+O projeto é organizado como um **monorepo** com dois subprojetos independentes:
+
+```
+CarteiraPessoal/
+├── mobile/   → aplicativo React Native (TypeScript)
+└── api/      → backend Fastify (TypeScript)
 ```
 
-## Step 2: Build and run your app
+### Mobile — MVVM
+| Camada | Responsabilidade |
+|---|---|
+| **View** | Screens e componentes — apenas JSX, zero lógica |
+| **ViewModel** | Hooks customizados — estado, validação, chamadas de serviço |
+| **Model** | WatermelonDB (SQLite local) + chamadas à API REST |
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+### API — MVC
+| Camada | Responsabilidade |
+|---|---|
+| **Model** | Schemas Drizzle ORM — mapeamento das tabelas PostgreSQL |
+| **Controller** | Recebe request, valida com Zod, chama service, retorna response |
+| **Service** | Lógica de negócio — independente de req/res |
 
-### Android
+---
 
-```sh
-# Using npm
-npm run android
+## 🛠️ Stack Tecnológica
 
-# OR using Yarn
-yarn android
+### Mobile
+| Tecnologia | Uso |
+|---|---|
+| React Native 0.84 | Framework mobile |
+| TypeScript | Linguagem |
+| React Navigation | Navegação entre telas |
+| WatermelonDB | Banco de dados local (offline-first) |
+| AsyncStorage | Armazenamento do JWT |
+| Zustand | Gerenciamento de estado global |
+| React Native Reusables | Biblioteca de componentes UI |
+| Axios | Cliente HTTP |
+
+### API
+| Tecnologia | Uso |
+|---|---|
+| Fastify | Framework web |
+| TypeScript | Linguagem |
+| Drizzle ORM | ORM para PostgreSQL |
+| PostgreSQL | Banco de dados relacional |
+| JWT (@fastify/jwt) | Autenticação com access + refresh tokens |
+| Zod | Validação de schemas |
+| bcrypt | Hash de senhas e PIN |
+
+---
+
+## 📋 Funcionalidades
+
+### ✅ Sprint 1 — Autenticação
+- [x] Cadastro com verificação de e-mail (SendGrid)
+- [x] Login com autenticação JWT (access token 15min + refresh token 7 dias)
+- [x] Login 2FA via SMS (Twilio)
+- [x] PIN de acesso rápido (4-6 dígitos, bcrypt)
+
+### 🔄 Sprint 2 — Cartões e Despesas
+- [ ] Cadastro de múltiplos cartões de crédito
+- [ ] Registro de despesas com parcelamento automático
+- [ ] Funcionalidade offline com WatermelonDB
+- [ ] Documentação Swagger/OpenAPI
+
+### 🔄 Sprint 3 — Geolocalização e Fatura
+- [ ] Cálculo automático da fatura atual
+- [ ] Alerta de proximidade do limite
+- [ ] Captura de GPS ao registrar despesa
+- [ ] Integração com react-native-maps
+
+### 🔄 Sprint 4 — Orçamentos e Metas
+- [ ] Orçamentos flexíveis por período
+- [ ] Metas de economia com aportes manuais
+- [ ] Simulação de investimento com juros compostos
+- [ ] Sugestão automática de categoria
+
+### 🔄 Sprint 5 — Relatórios e Notificações
+- [ ] Relatório de gastos por categoria (gráfico pizza)
+- [ ] Fluxo de caixa mensal (gráfico barras)
+- [ ] Notificações push para metas e orçamentos
+- [ ] WorkManager para notificações persistentes
+
+### 🔄 Sprint 6 — Integrações
+- [ ] Exportação de relatório para PDF
+- [ ] Integração com API Banco Central (cotações)
+- [ ] Scanner de código de barras de boletos (ZXing)
+
+---
+
+## 🚀 Como Rodar
+
+### Pré-requisitos
+- Node.js 18+
+- PostgreSQL 15+
+- Android Studio ou Xcode
+- JDK 17
+
+### API (Backend)
+
+```bash
+# entrar na pasta
+cd api
+
+# instalar dependências
+npm install
+
+# configurar variáveis de ambiente
+cp .env.example .env
+# editar .env com suas credenciais
+
+# rodar migrations
+npm run db:generate
+npm run db:migrate
+
+# iniciar servidor de desenvolvimento
+npm run dev
 ```
 
-### iOS
+O servidor sobe em `http://localhost:3000`.
+Documentação Swagger disponível em `http://localhost:3000/docs`.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+### Mobile
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+```bash
+# entrar na pasta
+cd mobile
 
-```sh
-bundle install
-```
+# instalar dependências (legacy-peer-deps necessário por WatermelonDB)
+npm install --legacy-peer-deps
 
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+# iOS
+cd ios && pod install && cd ..
 npm run ios
 
-# OR using Yarn
-yarn ios
+# Android
+npm run android
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+---
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## 🗄️ Banco de Dados
 
-## Step 3: Modify your app
+### Variáveis de ambiente (api/.env)
 
-Now that you have successfully run the app, let's make changes!
+```env
+DATABASE_URL=postgresql://postgres:suasenha@localhost:5432/carteira
+JWT_SECRET=sua_chave_secreta_longa
+PORT=3000
+```
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### Comandos Drizzle
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+```bash
+npm run db:generate   # gera arquivos de migration
+npm run db:migrate    # aplica migrations no banco
+npm run db:studio     # abre Drizzle Studio no browser
+```
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+---
 
-## Congratulations! :tada:
+## 📁 Estrutura de Pastas
 
-You've successfully run and modified your React Native App. :partying_face:
+### Mobile
+```
+mobile/src/
+├── modules/
+│   └── auth/
+│       ├── screens/        # View — apenas JSX
+│       ├── viewmodels/     # ViewModel — lógica e estado
+│       ├── services/       # chamadas à API
+│       └── types.ts
+├── components/
+│   ├── common/             # Button, Input, Card...
+│   └── charts/             # PieChart, BarChart...
+├── navigation/
+│   ├── AuthNavigator.tsx   # rotas públicas
+│   └── AppNavigator.tsx    # rotas autenticadas
+├── services/
+│   └── api/
+│       ├── client.ts       # axios configurado com JWT
+│       └── auth.ts         # endpoints de autenticação
+├── store/                  # Zustand
+├── utils/
+└── App.tsx
+```
 
-### Now what?
+### API
+```
+api/src/
+├── db/
+│   ├── index.ts            # conexão Drizzle + PostgreSQL
+│   └── schema/             # Model — tabelas do banco
+├── modules/
+│   └── auth/
+│       ├── auth.routes.ts      # entry point das rotas
+│       ├── auth.controller.ts  # Controller
+│       ├── auth.service.ts     # lógica de negócio
+│       ├── auth.schema.ts      # validação Zod
+│       └── auth.types.ts       # tipos TypeScript
+├── plugins/
+│   └── jwt.ts              # @fastify/jwt configurado
+├── utils/
+│   ├── hash.ts             # bcrypt helpers
+│   └── errors.ts           # erros padronizados
+└── server.ts               # bootstrap
+```
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+---
 
-# Troubleshooting
+## 🔐 Autenticação
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+O fluxo de autenticação usa **JWT com refresh tokens**:
 
-# Learn More
+```
+1. POST /auth/register  → cria usuário inativo + envia e-mail
+2. GET  /auth/confirm/:token → ativa a conta
+3. POST /auth/login     → retorna accessToken (15min) + refreshToken (7d)
+4. Rotas protegidas     → Bearer token no header Authorization
+```
 
-To learn more about React Native, take a look at the following resources:
+O `accessToken` é armazenado no `AsyncStorage` do dispositivo e enviado em todas as requisições autenticadas via interceptor do Axios.
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+---
+
+## 📄 Licença
+
+Projeto acadêmico — uso educacional.

@@ -11,18 +11,23 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
 export default function RegisterScreen({navigation}: Props) {
   const {
-    name,         setName,
-    email,        setEmail,
-    password,     setPassword,
+    name,            setName,
+    email,           setEmail,
+    password,        setPassword,
     confirmPassword, setConfirmPassword,
     errorMessage,
     loading,
     canSubmit,
     handleRegister,
-  } = registerService(() => navigation.replace('Login'));
+  } = registerService(() => navigation.navigate('Login'));
 
   return (
     <View style={styles.container}>
+      <View style={styles.logoWrapper}>
+        <Text style={styles.logoTitle}>CARTEIRA PESSOAL</Text>
+        <Text style={styles.logoSubtitle}>Finanças Simples e Seguras</Text>
+      </View>
+
       <View style={styles.card}>
         <Text style={styles.title}>Criar conta</Text>
         <Text style={styles.subtitle}>

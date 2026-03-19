@@ -1,24 +1,30 @@
-import {db} from '@db/index';
-import {users} from '../../db/schema/users';
-import {eq} from 'drizzle-orm';
+import { db } from '@db/index';
+import { users } from '../../db/schema/users';
+import { refreshTokens } from '../../db/schema/tokens';
+import { eq, and, isNull, lt } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { hashPassword, comparePassword } from '@plugins/hash';
-import type {RegisterInput, LoginInput} from './auth.schema';
+import type { RegisterInput, LoginInput } from './auth.schema';
+import type { AuthTokenPayload } from './auth.types';
+import { FastifyInstance } from 'fastify';
+
+const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutos em segundos
+const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 dias em segundos
 
 export async function registerUser(input: RegisterInput) {
-    const userExists = await db.query.users.findFirst({
-        where: eq(users.email, input.email),
-    });
+  const userExists = await db.query.users.findFirst({
+    where: eq(users.email, input.email),
+  });
 
-    if (userExists) throw new Error('EMAIL_EXISTS');
-    const passwordHash = await hashPassword(input.password);
-    const confirmToken = randomUUID();
+  if (userExists) throw new Error('EMAIL_EXISTS');
+  const passwordHash = await hashPassword(input.password);
+  const confirmToken = randomUUID();
 
-    const [user] = await db
-        .insert(users)
-        .values({name: input.name, email: input.email, passwordHash, confirmToken,})
-        .returning({id: users.id, email: users.email});
-    return {user, confirmToken};
+  const [user] = await db
+    .insert(users)
+    .values({ name: input.name, email: input.email, passwordHash, confirmToken, })
+    .returning({ id: users.id, email: users.email });
+  return { user, confirmToken };
 }
 
 export async function loginUser(data: LoginInput) {
@@ -44,6 +50,94 @@ export async function confirmUser(token: string) {
 
   await db
     .update(users)
-    .set({isActive: true, confirmToken: null})
+    .set({ isActive: true, confirmToken: null })
     .where(eq(users.id, user.id));
+}
+
+export async function generateTokens(app: FastifyInstance, userId: string, email: string) {
+  const accessPayload: AuthTokenPayload = { userId, email, type: 'access' };
+  const refreshPayload: AuthTokenPayload = { userId, email, type: 'refresh' };
+
+  const accessToken = app.jwt.sign(accessPayload, { expiresIn: `${ACCESS_TOKEN_EXPIRY}s` });
+  const refreshToken = app.jwt.sign(refreshPayload, { expiresIn: `${REFRESH_TOKEN_EXPIRY}s` });
+
+  // Armazena refresh token no banco com expiração
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000);
+  await db.insert(refreshTokens).values({
+    userId,
+    token: refreshToken,
+    expiresAt,
+  });
+
+  return {
+    accessToken,
+    refreshToken,
+    expiresIn: ACCESS_TOKEN_EXPIRY,
+  };
+}
+
+export async function refreshUserTokens(app: FastifyInstance, userId: string, oldRefreshToken: string) {
+  const storedToken = await db.query.refreshTokens.findFirst({
+    where: and(
+      eq(refreshTokens.userId, userId),
+      eq(refreshTokens.token, oldRefreshToken),
+      isNull(refreshTokens.revokedAt)
+    ),
+  });
+
+  if (!storedToken) throw new Error('INVALID_REFRESH_TOKEN');
+
+  if (new Date() > storedToken.expiresAt) {
+    throw new Error('REFRESH_TOKEN_EXPIRED');
+  }
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(eq(refreshTokens.id, storedToken.id));
+
+  return generateTokens(app, userId, user.email);
+}
+
+export async function revokeRefreshToken(userId: string, refreshToken: string) {
+  const token = await db.query.refreshTokens.findFirst({
+    where: and(
+      eq(refreshTokens.userId, userId),
+      eq(refreshTokens.token, refreshToken),
+      isNull(refreshTokens.revokedAt)
+    ),
+  });
+
+  if (!token) throw new Error('INVALID_TOKEN');
+
+  await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(eq(refreshTokens.id, token.id));
+}
+
+export async function revokeAllUserTokens(userId: string) {
+  await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(and(
+      eq(refreshTokens.userId, userId),
+      isNull(refreshTokens.revokedAt)
+    ));
+}
+
+export async function cleanupExpiredTokens() {
+  const now = new Date();
+  await db.delete(refreshTokens).where(
+    and(
+      lt(refreshTokens.expiresAt, now),
+      isNull(refreshTokens.revokedAt)
+    )
+  );
 }

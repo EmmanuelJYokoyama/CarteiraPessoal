@@ -14,6 +14,19 @@ app.register(authRoutes);
 
 app.get('/health', async () => ({status: 'ok'}));
 
+app.get('/api/protected', async (req, res) => {
+  try {
+    await req.jwtVerify();
+    return res.send({
+      message: 'Acesso permitido!',
+      user: req.user,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(401).send({error: 'Não autorizado'});
+  }
+});
+
 const start = async () => {
   try {
     await app.listen({port: Number(process.env.PORT) || 3000});

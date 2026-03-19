@@ -11,6 +11,7 @@
     "noImplicitReturns": true,
     "baseUrl": ".",
     "paths": {
+      "@contexts/*": ["src/contexts/*"],
       "@modules/*": ["src/modules/*"],
       "@components/*": ["src/components/*"],
       "@navigation/*": ["src/navigation/*"],

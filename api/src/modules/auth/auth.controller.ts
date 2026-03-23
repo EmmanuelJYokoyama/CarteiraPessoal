@@ -1,8 +1,9 @@
 import {FastifyRequest, FastifyReply} from 'fastify';
-import {registerSchema, loginSchema} from './auth.schema';
-import {registerUser, loginUser, confirmUser, deleteUserById} from './auth.service';
+import {registerSchema, loginSchema, refreshSchema, initiateTwoFactorSchema, validateOtpSchema} from './auth.schema';
+import {registerUser, loginUser, confirmUser, deleteUserById, generateTokens, refreshUserTokens, revokeRefreshToken, revokeAllUserTokens} from './auth.service';
+import {initiateTwoFactor, validateOtp} from '../twoFactor/twoFactor.service';
 import type {AuthTokenPayload, EmailConfirmTokenPayload} from './auth.types';
-import {sendConfirmationEmail} from '@plugins/sendgrid';
+import {sendConfirmationEmail} from '@plugins/mailersend';
 
 export async function register(req: FastifyRequest, reply: FastifyReply) {
   const parsed = registerSchema.safeParse(req.body);
@@ -132,7 +133,7 @@ export async function refresh(
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
   try {
     // Requer autenticação
-    await (req.server as any).authenticate(req, reply);
+    await req.jwtVerify();
     
     const payload = req.user as AuthTokenPayload;
     const body = req.body as {refreshToken?: string};
@@ -144,30 +145,93 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
     await revokeRefreshToken(payload.userId, body.refreshToken);
     return reply.send({message: 'Logout realizado com sucesso'});
   } catch (err: any) {
-    if (err.message === 'INVALID_TOKEN') {
+    if (err.message?.includes('jwt')) {
       return reply.status(401).send({error: 'Token inválido'});
     }
     return reply.status(500).send({error: 'Erro ao fazer logout'});
   }
 }
 
-/**
- * Endpoint para logout em todos os dispositivos
- * Revoga todos os refresh tokens do usuário
- */
 export async function logoutAll(req: FastifyRequest, reply: FastifyReply) {
   try {
     // Requer autenticação
-    await (req.server as any).authenticate(req, reply);
+    await req.jwtVerify();
     
     const payload = req.user as AuthTokenPayload;
     await revokeAllUserTokens(payload.userId);
     
     return reply.send({message: 'Logout em todos os dispositivos realizado com sucesso'});
   } catch (err: any) {
-    if (err.message === 'Não autorizado') {
+    if (err.message?.includes('jwt')) {
       return reply.status(401).send({error: 'Não autorizado'});
     }
     return reply.status(500).send({error: 'Erro ao fazer logout'});
+  }
+}
+
+/**
+ * Inicia o processo de autenticação em duas etapas
+ */
+export async function initiateTwoFactorHandler(req: FastifyRequest, reply: FastifyReply) {
+  try {
+    // Requer autenticação
+    await req.jwtVerify();
+    
+    const parsed = initiateTwoFactorSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({error: parsed.error.flatten()});
+    }
+
+    const payload = req.user as AuthTokenPayload;
+    const result = await initiateTwoFactor(payload.userId, parsed.data.phoneNumber);
+
+    return reply.send(result);
+  } catch (err: any) {
+    if (err.message?.includes('jwt')) {
+      return reply.status(401).send({error: 'Token inválido'});
+    }
+    if (err.message === 'USER_NOT_FOUND') {
+      return reply.status(404).send({error: 'Usuário não encontrado'});
+    }
+    if (err.message === 'FAILED_TO_SEND_SMS') {
+      return reply.status(502).send({error: 'Falha ao enviar SMS'});
+    }
+    if (typeof err.message === 'string' && err.message.startsWith('TWILIO_ERROR_')) {
+      return reply.status(502).send({error: 'Erro ao enviar SMS via Twilio'});
+    }
+    console.error('Erro ao iniciar 2FA:', err);
+    return reply.status(500).send({error: 'Erro ao iniciar 2FA'});
+  }
+}
+
+/**
+ * Valida o código OTP do 2FA
+ */
+export async function validateOtpHandler(req: FastifyRequest, reply: FastifyReply) {
+  try {
+    // Requer autenticação
+    await req.jwtVerify();
+    
+    const parsed = validateOtpSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({error: parsed.error.flatten()});
+    }
+
+    const payload = req.user as AuthTokenPayload;
+    const result = await validateOtp(payload.userId, parsed.data.code);
+
+    return reply.send(result);
+  } catch (err: any) {
+    if (err.message?.includes('jwt')) {
+      return reply.status(401).send({error: 'Token inválido'});
+    }
+    if (err.message === 'INVALID_OTP') {
+      return reply.status(401).send({error: 'Código OTP inválido'});
+    }
+    if (err.message === 'OTP_EXPIRED') {
+      return reply.status(401).send({error: 'Código OTP expirado'});
+    }
+    console.error('Erro ao validar OTP:', err);
+    return reply.status(500).send({error: 'Erro ao validar OTP'});
   }
 }

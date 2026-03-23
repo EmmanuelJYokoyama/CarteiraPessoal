@@ -3,8 +3,10 @@ import {Pool} from 'pg';
 import * as dotenv from 'dotenv';
 import {users} from './schema/users';
 import {userSettings} from './schema/userSettings';
+import {refreshTokens} from './schema/tokens';
+import {otpCodes} from './schema/otpCodes';
 
-const schema = {users, userSettings};
+const schema = {users, userSettings, refreshTokens, otpCodes};
 
 dotenv.config();
 
@@ -12,4 +14,4 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-export const db = drizzle(pool, {schema: {...usersSchema, ...tokensSchema}});
+export const db = drizzle(pool, {schema});

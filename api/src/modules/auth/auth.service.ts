@@ -1,7 +1,8 @@
 import {db} from '@db/index';
 import {users} from '../../db/schema/users';
 import {userSettings} from '../../db/schema/userSettings';
-import {and, eq} from 'drizzle-orm';
+import {refreshTokens} from '../../db/schema/tokens';
+import {and, eq, isNull, lt} from 'drizzle-orm';
 import { hashPassword, comparePassword } from '@plugins/hash';
 import type { RegisterInput, LoginInput } from './auth.schema';
 import type { AuthTokenPayload } from './auth.types';

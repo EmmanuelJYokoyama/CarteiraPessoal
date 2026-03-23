@@ -9,7 +9,7 @@ export interface EmailConfirmTokenPayload {
   purpose: 'email-confirmation';
 }
 
-export interface LoginResponse {
+export interface TokenResponse {
   accessToken:  string;
   refreshToken: string;
   expiresIn:    number; // em segundos

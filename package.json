@@ -3,10 +3,13 @@
   "private": true,
   "scripts": {
     "mobile": "cd mobile && npm run android",
-    "api":    "cd api && npm run dev",
-    "dev":    "concurrently \"npm run api\" \"npm run mobile\""
+    "api": "cd api && npm run dev",
+    "dev": "concurrently \"npm run api\" \"npm run mobile\""
   },
   "devDependencies": {
     "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "twilio": "^5.13.0"
   }
 }

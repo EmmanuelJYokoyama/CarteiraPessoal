@@ -5,6 +5,8 @@ import {initiateTwoFactor, validateOtp} from '../twoFactor/twoFactor.service';
 import type {AuthTokenPayload, EmailConfirmTokenPayload} from './auth.types';
 import {sendConfirmationEmail} from '@plugins/mailersend';
 
+//registro de usuario
+
 export async function register(req: FastifyRequest, reply: FastifyReply) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -40,6 +42,7 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
       userId: user.id,
       message: 'Cadastro realizado. Verifique seu e-mail para ativar a conta.',
     });
+    
   } catch (err: any) {
     if (err.message === 'EMAIL_EXISTS') {
       return reply.status(409).send({error: 'E-mail já cadastrado'});
@@ -54,6 +57,8 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+// login
+
 export async function login(req: FastifyRequest, reply: FastifyReply) {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -66,7 +71,7 @@ export async function login(req: FastifyRequest, reply: FastifyReply) {
 
     return reply.send(tokens);
   } catch (err: any) {
-    console.error('Erro no login:', err); // Log do erro real
+    console.error('Erro no login:', err); 
     if (err.message === 'INVALID_CREDENTIALS') {
       return reply.status(401).send({error: 'E-mail ou senha inválidos'});
     }
@@ -76,6 +81,8 @@ export async function login(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(500).send({error: err.message || 'Erro interno'});
   }
 }
+
+// confirmacao de email
 
 export async function confirm(
   req: FastifyRequest<{Params: {token: string}}>,
@@ -98,6 +105,8 @@ export async function confirm(
   }
 }
 
+//refresh token
+
 export async function refresh(
   req: FastifyRequest<{Body: {refreshToken: string}}>,
   reply: FastifyReply,
@@ -108,7 +117,6 @@ export async function refresh(
   }
 
   try {
-    // Decodifica o refresh token para obter o userId
     const payload = req.server.jwt.verify(parsed.data.refreshToken) as AuthTokenPayload;
     
     const tokens = await refreshUserTokens(req.server, payload.userId, parsed.data.refreshToken);
@@ -127,12 +135,10 @@ export async function refresh(
   }
 }
 
-/**
- * Endpoint para logout (revoga o refresh token)
- */
+//logout
+
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
   try {
-    // Requer autenticação
     await req.jwtVerify();
     
     const payload = req.user as AuthTokenPayload;
@@ -152,9 +158,10 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+//logout em todos os dispositivos
+
 export async function logoutAll(req: FastifyRequest, reply: FastifyReply) {
   try {
-    // Requer autenticação
     await req.jwtVerify();
     
     const payload = req.user as AuthTokenPayload;
@@ -169,12 +176,10 @@ export async function logoutAll(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-/**
- * Inicia o processo de autenticação em duas etapas
- */
+//2fa
+
 export async function initiateTwoFactorHandler(req: FastifyRequest, reply: FastifyReply) {
   try {
-    // Requer autenticação
     await req.jwtVerify();
     
     const parsed = initiateTwoFactorSchema.safeParse(req.body);
@@ -204,12 +209,10 @@ export async function initiateTwoFactorHandler(req: FastifyRequest, reply: Fasti
   }
 }
 
-/**
- * Valida o código OTP do 2FA
- */
+// validacao otp
+
 export async function validateOtpHandler(req: FastifyRequest, reply: FastifyReply) {
   try {
-    // Requer autenticação
     await req.jwtVerify();
     
     const parsed = validateOtpSchema.safeParse(req.body);

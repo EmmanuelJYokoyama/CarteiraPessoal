@@ -1,14 +1,11 @@
-import {db} from '@db/index';
-import {users} from '../../db/schema/users';
-import {otpCodes} from '../../db/schema/otpCodes';
-import {eq, and, isNull, lt} from 'drizzle-orm';
-import {sendOtpSms, generateOtpCode} from '@plugins/twilio';
+import { db } from '@db/index';
+import { users } from '../../db/schema/users';
+import { otpCodes } from '../../db/schema/otpCodes';
+import { eq, and, isNull, lt } from 'drizzle-orm';
+import { sendOtpSms, generateOtpCode } from '@plugins/twilio';
 
 const OTP_EXPIRATION_MINUTES = 10;
 
-/**
- * Inicia o processo de 2FA enviando um código OTP
- */
 export async function initiateTwoFactor(userId: string, phoneNumber: string) {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
@@ -16,7 +13,6 @@ export async function initiateTwoFactor(userId: string, phoneNumber: string) {
 
   if (!user) throw new Error('USER_NOT_FOUND');
 
-  // Revoga códigos anteriores não validados
   await db
     .delete(otpCodes)
     .where(
@@ -30,12 +26,11 @@ export async function initiateTwoFactor(userId: string, phoneNumber: string) {
   const expiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
 
   try {
-    await sendOtpSms({phone: phoneNumber, code});
+    await sendOtpSms({ phone: phoneNumber, code });
   } catch (err) {
     throw new Error('FAILED_TO_SEND_SMS');
   }
 
-  // Armazena o código no banco
   const [otpRecord] = await db
     .insert(otpCodes)
     .values({
@@ -44,7 +39,7 @@ export async function initiateTwoFactor(userId: string, phoneNumber: string) {
       phoneNumber,
       expiresAt,
     })
-    .returning({id: otpCodes.id});
+    .returning({ id: otpCodes.id });
 
   return {
     otpId: otpRecord.id,
@@ -52,9 +47,6 @@ export async function initiateTwoFactor(userId: string, phoneNumber: string) {
   };
 }
 
-/**
- * Valida o código OTP fornecido pelo usuário
- */
 export async function validateOtp(userId: string, code: string) {
   const otpRecord = await db.query.otpCodes.findFirst({
     where: and(
@@ -75,15 +67,12 @@ export async function validateOtp(userId: string, code: string) {
   // Marca o código como validado
   await db
     .update(otpCodes)
-    .set({verifiedAt: new Date()})
+    .set({ verifiedAt: new Date() })
     .where(eq(otpCodes.id, otpRecord.id));
 
-  return {verified: true, message: 'Código validado com sucesso'};
+  return { verified: true, message: 'Código validado com sucesso' };
 }
 
-/**
- * Limpa códigos OTP expirados
- */
 export async function cleanupExpiredOtpCodes() {
   const now = new Date();
   await db
@@ -96,9 +85,6 @@ export async function cleanupExpiredOtpCodes() {
     );
 }
 
-/**
- * Máscara um número de telefone para exibição
- */
 export function maskPhone(phone: string): string {
   return phone.replace(/(\+?\d{2,3})\d+(\d{4})$/, '$1 ••••• $2');
 }

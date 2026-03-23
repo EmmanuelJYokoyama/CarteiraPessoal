@@ -40,9 +40,6 @@ export async function sendOtpSms({phone, code}: SendOtpOptions): Promise<{messag
   }
 }
 
-/**
- * Função auxiliar para gerar um código OTP de 6 dígitos
- */
 export function generateOtpCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }

@@ -80,8 +80,7 @@ export async function generateTokens(app: FastifyInstance, userId: string, email
 
   const accessToken = app.jwt.sign(accessPayload, { expiresIn: `${ACCESS_TOKEN_EXPIRY}s` });
   const refreshToken = app.jwt.sign(refreshPayload, { expiresIn: `${REFRESH_TOKEN_EXPIRY}s` });
-
-  // Armazena refresh token no banco com expiração
+  
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000);
   await db.insert(refreshTokens).values({
     userId,

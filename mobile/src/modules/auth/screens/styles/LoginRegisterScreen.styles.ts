@@ -5,14 +5,14 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 22,
-    backgroundColor: '#ecfeff',
+    backgroundColor: '#F3F3F4',
   },
   card: {
     borderWidth: 1,
-    borderColor: '#99f6e4',
+    borderColor: '#E5E7EB',
     borderRadius: 16,
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#666666',
   },
   title: {
     fontSize: 24,

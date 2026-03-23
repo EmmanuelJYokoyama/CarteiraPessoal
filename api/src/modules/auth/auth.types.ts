@@ -3,6 +3,11 @@ export interface AuthTokenPayload {
   email:  string;
 }
 
+export interface EmailConfirmTokenPayload {
+  email: string;
+  purpose: 'email-confirmation';
+}
+
 export interface LoginResponse {
   accessToken:  string;
   refreshToken: string;

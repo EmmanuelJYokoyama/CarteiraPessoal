@@ -1,24 +1,44 @@
 import {db} from '@db/index';
 import {users} from '../../db/schema/users';
-import {eq} from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
+import {userSettings} from '../../db/schema/userSettings';
+import {and, eq} from 'drizzle-orm';
 import { hashPassword, comparePassword } from '@plugins/hash';
 import type {RegisterInput, LoginInput} from './auth.schema';
 
-export async function registerUser(input: RegisterInput) {
-    const userExists = await db.query.users.findFirst({
-        where: eq(users.email, input.email),
+export async function registerUser(input: RegisterInput, confirmToken: string) {
+  const userExists = await db.query.users.findFirst({
+    where: eq(users.email, input.email),
+  });
+
+  if (userExists) throw new Error('EMAIL_EXISTS');
+
+  const passwordHash = await hashPassword(input.password);
+
+  const user = await db.transaction(async (tx) => {
+    const [createdUser] = await tx
+      .insert(users)
+      .values({
+        name: input.name,
+        email: input.email,
+        passwordHash,
+        confirmToken,
+      })
+      .returning({id: users.id, email: users.email});
+
+    await tx.insert(userSettings).values({
+      userId: createdUser.id,
+      currency: 'BRL',
+      locale: 'pt-BR',
     });
 
-    if (userExists) throw new Error('EMAIL_EXISTS');
-    const passwordHash = await hashPassword(input.password);
-    const confirmToken = randomUUID();
+    return createdUser;
+  });
 
-    const [user] = await db
-        .insert(users)
-        .values({name: input.name, email: input.email, passwordHash, confirmToken,})
-        .returning({id: users.id, email: users.email});
-    return {user, confirmToken};
+  return {user, confirmToken};
+}
+
+export async function deleteUserById(userId: string) {
+  await db.delete(users).where(eq(users.id, userId));
 }
 
 export async function loginUser(data: LoginInput) {
@@ -35,9 +55,9 @@ export async function loginUser(data: LoginInput) {
   return user;
 }
 
-export async function confirmUser(token: string) {
+export async function confirmUser(email: string, token: string) {
   const user = await db.query.users.findFirst({
-    where: eq(users.confirmToken, token),
+    where: and(eq(users.email, email), eq(users.confirmToken, token)),
   });
 
   if (!user) throw new Error('INVALID_TOKEN');

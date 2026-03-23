@@ -1,8 +1,13 @@
-type SendConfirmationEmailInput = {
+/**
+ * Plugin MailerSend
+ * Serviço para envio de emails com confirmação de conta
+ */
+
+export interface SendConfirmationEmailInput {
   to: string;
   name: string;
   confirmLink: string;
-};
+}
 
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
@@ -51,27 +56,45 @@ export async function sendConfirmationEmail({
   name,
   confirmLink,
 }: SendConfirmationEmailInput): Promise<void> {
-  const apiKey = getRequiredEnv('SENDGRID_API_KEY');
-  const fromEmail = getRequiredEnv('SENDGRID_FROM_EMAIL');
+  const apiKey = getRequiredEnv('MAILERSEND_API_KEY');
+  const fromEmail = getRequiredEnv('MAILERSEND_FROM_EMAIL');
 
   const html = buildConfirmationHtml(name, confirmLink);
 
-  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+  const payload = {
+    from: {
+      email: fromEmail,
+      name: 'Carteira Pessoal',
     },
-    body: JSON.stringify({
-      personalizations: [{to: [{email: to}]}],
-      from: {email: fromEmail, name: 'Carteira Pessoal'},
-      subject: 'Confirme seu cadastro',
-      content: [{type: 'text/html', value: html}],
-    }),
-  });
+    to: [
+      {
+        email: to,
+        name: name,
+      },
+    ],
+    subject: 'Confirme seu cadastro',
+    html: html,
+  };
 
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`SENDGRID_ERROR_${response.status}_${details}`);
+  try {
+    const response = await fetch('https://api.mailersend.com/v1/email', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`MAILERSEND_ERROR_${response.status}_${errorBody}`);
+    }
+  } catch (err: any) {
+    if (typeof err.message === 'string' && err.message.startsWith('MAILERSEND_ERROR_')) {
+      throw err;
+    }
+    console.error('Erro ao enviar email:', err.message);
+    throw new Error(`MAILERSEND_ERROR_NETWORK_${err.message}`);
   }
 }

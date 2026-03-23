@@ -4,7 +4,12 @@ export interface AuthTokenPayload {
   type?: 'access' | 'refresh';
 }
 
-export interface TokenResponse {
+export interface EmailConfirmTokenPayload {
+  email: string;
+  purpose: 'email-confirmation';
+}
+
+export interface LoginResponse {
   accessToken:  string;
   refreshToken: string;
   expiresIn:    number; // em segundos

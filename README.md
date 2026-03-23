@@ -169,6 +169,9 @@ npm run android
 DATABASE_URL=postgresql://postgres:suasenha@localhost:5432/carteira
 JWT_SECRET=sua_chave_secreta_longa
 PORT=3000
+APP_BASE_URL=http://localhost:3000
+SENDGRID_API_KEY=sua_chave_sendgrid
+SENDGRID_FROM_EMAIL=no-reply@seu-dominio.com
 ```
 
 ### Comandos Drizzle

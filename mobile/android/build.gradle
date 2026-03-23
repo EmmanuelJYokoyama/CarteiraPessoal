@@ -18,4 +18,25 @@ buildscript {
     }
 }
 
+allprojects {
+    repositories {
+        // AsyncStorage v3 ships storage-android in a local Maven repo within node_modules.
+        maven {
+            url("$rootDir/../node_modules/@react-native-async-storage/async-storage/android/local_repo")
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    allprojects { project ->
+        def reposToRemove = project.repositories.findAll { repo ->
+            repo instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository &&
+                repo.url.toString().contains("central.sonatype.com/repository/maven-snapshots")
+        }
+        reposToRemove.each { repo ->
+            project.repositories.remove(repo)
+        }
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"

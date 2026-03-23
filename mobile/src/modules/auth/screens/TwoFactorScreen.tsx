@@ -22,6 +22,11 @@ export default function TwoFactorScreen({route, navigation}: Props) {
     inputs,
     maskedPhone,
     isFilled,
+    timerLabel,
+    isVerifying,
+    isResending,
+    canResend,
+    errorMessage,
     handleChange,
     handleKeyPress,
     handleVerify,
@@ -60,18 +65,24 @@ export default function TwoFactorScreen({route, navigation}: Props) {
           ))}
         </View>
 
+        <Text style={styles.timerText}>Expira em {timerLabel}</Text>
+
+        {!!errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
         <TouchableOpacity
           style={[styles.button, !isFilled && styles.buttonDisabled]}
           onPress={handleVerify}
-          disabled={!isFilled}
+          disabled={!isFilled || isVerifying}
           activeOpacity={0.8}>
-          <Text style={styles.buttonText}>Verificar</Text>
+          <Text style={styles.buttonText}>{isVerifying ? 'Validando...' : 'Verificar'}</Text>
         </TouchableOpacity>
 
         <View style={styles.resendRow}>
           <Text style={styles.resendLabel}>Não recebeu o código? </Text>
-          <TouchableOpacity onPress={handleResend}>
-            <Text style={styles.resendLink}>Reenviar</Text>
+          <TouchableOpacity onPress={handleResend} disabled={!canResend || isResending}>
+            <Text style={[styles.resendLink, (!canResend || isResending) && styles.resendDisabled]}>
+              {isResending ? 'Reenviando...' : 'Reenviar'}
+            </Text>
           </TouchableOpacity>
         </View>
 

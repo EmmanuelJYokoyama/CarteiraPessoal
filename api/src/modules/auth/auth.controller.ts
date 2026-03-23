@@ -1,7 +1,8 @@
 import {FastifyRequest, FastifyReply} from 'fastify';
-import {registerSchema, loginSchema, refreshSchema} from './auth.schema';
-import {registerUser, loginUser, confirmUser, generateTokens, refreshUserTokens, revokeRefreshToken, revokeAllUserTokens} from './auth.service';
-import type {AuthTokenPayload} from './auth.types';
+import {registerSchema, loginSchema} from './auth.schema';
+import {registerUser, loginUser, confirmUser, deleteUserById} from './auth.service';
+import type {AuthTokenPayload, EmailConfirmTokenPayload} from './auth.types';
+import {sendConfirmationEmail} from '@plugins/sendgrid';
 
 export async function register(req: FastifyRequest, reply: FastifyReply) {
   const parsed = registerSchema.safeParse(req.body);
@@ -9,13 +10,44 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(400).send({error: parsed.error.flatten()});
   }
 
+  const confirmToken = req.server.jwt.sign(
+    {
+      email: parsed.data.email,
+      purpose: 'email-confirmation',
+    } as EmailConfirmTokenPayload,
+    {expiresIn: '24h'},
+  );
+
   try {
-    const {user, confirmToken} = await registerUser(parsed.data);
-    //sendgrid entra aqui
-    return reply.status(201).send({userId: user.id, confirmToken});
+    const {user} = await registerUser(parsed.data, confirmToken);
+
+    const appBaseUrl = process.env.APP_BASE_URL ?? `http://localhost:${process.env.PORT ?? '3000'}`;
+    const confirmLink = `${appBaseUrl}/auth/confirm/${confirmToken}`;
+
+    try {
+      await sendConfirmationEmail({
+        to: parsed.data.email,
+        name: parsed.data.name,
+        confirmLink,
+      });
+    } catch (emailErr) {
+      await deleteUserById(user.id);
+      throw emailErr;
+    }
+
+    return reply.status(201).send({
+      userId: user.id,
+      message: 'Cadastro realizado. Verifique seu e-mail para ativar a conta.',
+    });
   } catch (err: any) {
     if (err.message === 'EMAIL_EXISTS') {
       return reply.status(409).send({error: 'E-mail já cadastrado'});
+    }
+    if (typeof err.message === 'string' && err.message.startsWith('MISSING_ENV_')) {
+      return reply.status(500).send({error: 'Configuração de e-mail incompleta no servidor'});
+    }
+    if (typeof err.message === 'string' && err.message.startsWith('SENDGRID_ERROR_')) {
+      return reply.status(502).send({error: 'Falha ao enviar e-mail de confirmação'});
     }
     return reply.status(500).send({error: err.message});
   }
@@ -49,10 +81,15 @@ export async function confirm(
   reply: FastifyReply,
 ) {
   try {
-    await confirmUser(req.params.token);
+    const payload = await req.server.jwt.verify<EmailConfirmTokenPayload>(req.params.token);
+    if (payload.purpose !== 'email-confirmation') {
+      throw new Error('INVALID_TOKEN');
+    }
+
+    await confirmUser(payload.email, req.params.token);
     return reply.send({message: 'Conta confirmada com sucesso'});
   } catch (err: any) {
-    if (err.message === 'INVALID_TOKEN') {
+    if (err.message === 'INVALID_TOKEN' || err.code === 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED') {
       return reply.status(400).send({error: 'Token inválido ou expirado'});
     }
     console.error('Erro ao confirmar conta:', err);

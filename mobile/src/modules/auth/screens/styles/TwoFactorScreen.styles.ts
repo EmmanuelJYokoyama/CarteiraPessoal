@@ -31,7 +31,17 @@ export const styles = StyleSheet.create({
   codeRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 40,
+    marginBottom: 14,
+  },
+  timerText: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 24,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#b91c1c',
+    marginBottom: 12,
   },
   digitBox: {
     width: 46,
@@ -79,6 +89,9 @@ export const styles = StyleSheet.create({
     color: '#4f46e5',
     fontSize: 14,
     fontWeight: '600',
+  },
+  resendDisabled: {
+    color: '#9ca3af',
   },
   backButton: {
     position: 'absolute',

@@ -1,8 +1,10 @@
 import {drizzle} from 'drizzle-orm/node-postgres';
 import {Pool} from 'pg';
 import * as dotenv from 'dotenv';
-import * as usersSchema from './schema/users';
-import * as tokensSchema from './schema/tokens';
+import {users} from './schema/users';
+import {userSettings} from './schema/userSettings';
+
+const schema = {users, userSettings};
 
 dotenv.config();
 

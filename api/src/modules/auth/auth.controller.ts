@@ -3,7 +3,7 @@ import {registerSchema, loginSchema, refreshSchema, initiateTwoFactorSchema, val
 import {registerUser, loginUser, confirmUser, deleteUserById, generateTokens, refreshUserTokens, revokeRefreshToken, revokeAllUserTokens} from './auth.service';
 import {initiateTwoFactor, validateOtp} from '../twoFactor/twoFactor.service';
 import type {AuthTokenPayload, EmailConfirmTokenPayload} from './auth.types';
-import {sendConfirmationEmail} from '@plugins/mailersend';
+import {sendConfirmationEmail} from '@plugins/resend';
 
 //registro de usuario
 
@@ -42,7 +42,7 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
       userId: user.id,
       message: 'Cadastro realizado. Verifique seu e-mail para ativar a conta.',
     });
-    
+
   } catch (err: any) {
     if (err.message === 'EMAIL_EXISTS') {
       return reply.status(409).send({error: 'E-mail já cadastrado'});
@@ -50,7 +50,7 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
     if (typeof err.message === 'string' && err.message.startsWith('MISSING_ENV_')) {
       return reply.status(500).send({error: 'Configuração de e-mail incompleta no servidor'});
     }
-    if (typeof err.message === 'string' && err.message.startsWith('SENDGRID_ERROR_')) {
+    if (typeof err.message === 'string' && err.message.startsWith('RESEND_ERROR_')) {
       return reply.status(502).send({error: 'Falha ao enviar e-mail de confirmação'});
     }
     return reply.status(500).send({error: err.message});

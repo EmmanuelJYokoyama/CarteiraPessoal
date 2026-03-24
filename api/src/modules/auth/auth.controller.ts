@@ -1,9 +1,8 @@
 import {FastifyRequest, FastifyReply} from 'fastify';
-import {registerSchema, loginSchema, refreshSchema, initiateTwoFactorSchema, validateOtpSchema} from './auth.schema';
-import {registerUser, loginUser, confirmUser, deleteUserById, generateTokens, refreshUserTokens, revokeRefreshToken, revokeAllUserTokens} from './auth.service';
+import {registerSchema, loginSchema, refreshSchema, initiateTwoFactorSchema, validateOtpSchema, confirmSmsSchema} from './auth.schema';
+import {registerUser, loginUser, confirmUserViaSms, deleteUserById, generateTokens, refreshUserTokens, revokeRefreshToken, revokeAllUserTokens, initiateAccountConfirmation} from './auth.service';
 import {initiateTwoFactor, validateOtp} from '../twoFactor/twoFactor.service';
-import type {AuthTokenPayload, EmailConfirmTokenPayload} from './auth.types';
-import {sendConfirmationEmail} from '@plugins/resend';
+import type {AuthTokenPayload} from './auth.types';
 
 //registro de usuario
 
@@ -13,46 +12,29 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(400).send({error: parsed.error.flatten()});
   }
 
-  const confirmToken = req.server.jwt.sign(
-    {
-      email: parsed.data.email,
-      purpose: 'email-confirmation',
-    } as EmailConfirmTokenPayload,
-    {expiresIn: '24h'},
-  );
-
   try {
-    const {user} = await registerUser(parsed.data, confirmToken);
+    const user = await registerUser(parsed.data);
 
-    const appBaseUrl = process.env.APP_BASE_URL ?? `http://localhost:${process.env.PORT ?? '3000'}`;
-    const confirmLink = `${appBaseUrl}/auth/confirm/${confirmToken}`;
-
-    try {
-      await sendConfirmationEmail({
-        to: parsed.data.email,
-        name: parsed.data.name,
-        confirmLink,
-      });
-    } catch (emailErr) {
-      await deleteUserById(user.id);
-      throw emailErr;
-    }
+    // Inicia o envio do código de confirmação via SMS
+    await initiateAccountConfirmation(user.id, parsed.data.phoneNumber);
 
     return reply.status(201).send({
       userId: user.id,
-      message: 'Cadastro realizado. Verifique seu e-mail para ativar a conta.',
+      email: user.email,
+      message: 'E-mail registrado. Verifique o SMS para o código de confirmação.',
     });
 
   } catch (err: any) {
     if (err.message === 'EMAIL_EXISTS') {
       return reply.status(409).send({error: 'E-mail já cadastrado'});
     }
-    if (typeof err.message === 'string' && err.message.startsWith('MISSING_ENV_')) {
-      return reply.status(500).send({error: 'Configuração de e-mail incompleta no servidor'});
+    if (err.message === 'FAILED_TO_SEND_SMS') {
+      return reply.status(502).send({error: 'Falha ao enviar SMS'});
     }
-    if (typeof err.message === 'string' && err.message.startsWith('RESEND_ERROR_')) {
-      return reply.status(502).send({error: 'Falha ao enviar e-mail de confirmação'});
+    if (typeof err.message === 'string' && err.message.startsWith('TWILIO_ERROR_')) {
+      return reply.status(502).send({error: 'Erro ao enviar SMS'});
     }
+    console.error('Erro no registro:', err);
     return reply.status(500).send({error: err.message});
   }
 }
@@ -82,26 +64,80 @@ export async function login(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-// confirmacao de email
+// confirmacao de SMS
 
-export async function confirm(
-  req: FastifyRequest<{Params: {token: string}}>,
+export async function confirmSms(req: FastifyRequest, reply: FastifyReply) {
+  const parsed = confirmSmsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return reply.status(400).send({error: parsed.error.flatten()});
+  }
+
+  try {
+    const user = await confirmUserViaSms(parsed.data.email, parsed.data.code);
+    const tokens = await generateTokens(req.server, user.id, user.email);
+    
+    return reply.status(200).send({
+      message: 'Conta confirmada com sucesso',
+      ...tokens,
+    });
+  } catch (err: any) {
+    if (err.message === 'USER_NOT_FOUND') {
+      return reply.status(404).send({error: 'Usuário não encontrado'});
+    }
+    if (err.message === 'INVALID_CODE') {
+      return reply.status(400).send({error: 'Código inválido'});
+    }
+    if (err.message === 'CODE_EXPIRED') {
+      return reply.status(400).send({error: 'Código expirado'});
+    }
+    console.error('Erro ao confirmar via SMS:', err);
+    return reply.status(500).send({error: 'Erro ao confirmar conta'});
+  }
+}
+
+// reenviar codigo SMS
+
+export async function resendConfirmationSms(
+  req: FastifyRequest<{Body: {email: string}}>,
   reply: FastifyReply,
 ) {
+  const body = req.body as {email?: string};
+  
+  if (!body.email) {
+    return reply.status(400).send({error: 'E-mail é obrigatório'});
+  }
+
   try {
-    const payload = await req.server.jwt.verify<EmailConfirmTokenPayload>(req.params.token);
-    if (payload.purpose !== 'email-confirmation') {
-      throw new Error('INVALID_TOKEN');
+    const user = await (await import('@db/index')).db.query.users.findFirst({
+      where: (await import('drizzle-orm')).eq((await import('../../db/schema/users')).users.email, body.email),
+    });
+
+    if (!user) {
+      return reply.status(404).send({error: 'Usuário não encontrado'});
     }
 
-    await confirmUser(payload.email, req.params.token);
-    return reply.send({message: 'Conta confirmada com sucesso'});
-  } catch (err: any) {
-    if (err.message === 'INVALID_TOKEN' || err.code === 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED') {
-      return reply.status(400).send({error: 'Token inválido ou expirado'});
+    if (!user.phoneNumber) {
+      return reply.status(400).send({error: 'Telefone não cadastrado'});
     }
-    console.error('Erro ao confirmar conta:', err);
-    return reply.status(500).send({error: 'Erro interno'});
+
+    if (user.isActive) {
+      return reply.status(400).send({error: 'Conta já está ativada'});
+    }
+
+    await initiateAccountConfirmation(user.id, user.phoneNumber);
+
+    return reply.status(200).send({
+      message: 'Código reenviado com sucesso',
+    });
+  } catch (err: any) {
+    if (err.message === 'FAILED_TO_SEND_SMS') {
+      return reply.status(502).send({error: 'Falha ao enviar SMS'});
+    }
+    if (typeof err.message === 'string' && err.message.startsWith('TWILIO_ERROR_')) {
+      return reply.status(502).send({error: 'Erro ao enviar SMS'});
+    }
+    console.error('Erro ao reenviar código:', err);
+    return reply.status(500).send({error: 'Erro ao reenviar código'});
   }
 }
 

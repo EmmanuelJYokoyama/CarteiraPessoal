@@ -1,9 +1,10 @@
 import {z} from 'zod';
 
 export const registerSchema = z.object({
-  name:     z.string().min(2,  'Nome muito curto'),
-  email:    z.string().email(  'E-mail inválido'),
-  password: z.string().min(6,  'Senha mínima 6 caracteres'),
+  name:        z.string().min(2,  'Nome muito curto'),
+  email:       z.string().email(  'E-mail inválido'),
+  password:    z.string().min(6,  'Senha mínima 6 caracteres'),
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Telefone inválido'),
 });
 
 export const loginSchema = z.object({
@@ -23,8 +24,14 @@ export const validateOtpSchema = z.object({
   code: z.string().length(6, 'Código deve ter 6 dígitos'),
 });
 
+export const confirmSmsSchema = z.object({
+  email: z.string().email('E-mail inválido'),
+  code:  z.string().length(6, 'Código deve ter 6 dígitos'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput    = z.infer<typeof loginSchema>;
 export type RefreshInput  = z.infer<typeof refreshSchema>;
 export type InitiateTwoFactorInput = z.infer<typeof initiateTwoFactorSchema>;
 export type ValidateOtpInput = z.infer<typeof validateOtpSchema>;
+export type ConfirmSmsInput = z.infer<typeof confirmSmsSchema>;

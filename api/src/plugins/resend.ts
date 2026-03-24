@@ -70,13 +70,16 @@ export async function sendConfirmationEmail({
     });
 
     if (response.error) {
+      console.error('Erro do Resend:', response.error);
       throw new Error(`RESEND_ERROR_${response.error.message}`);
     }
+    
+    console.log('Email enviado com sucesso:', response.data?.id);
   } catch (err: any) {
     if (typeof err.message === 'string' && err.message.startsWith('RESEND_ERROR_')) {
       throw err;
     }
-    console.error('Erro ao enviar email:', err.message);
+    console.error('Erro ao enviar email:', err);
     throw new Error(`RESEND_ERROR_${err.message}`);
   }
 }

@@ -2,6 +2,7 @@ import {db} from '@db/index';
 import {users} from '../../db/schema/users';
 import {userSettings} from '../../db/schema/userSettings';
 import {refreshTokens} from '../../db/schema/tokens';
+import {otpCodes} from '../../db/schema/otpCodes';
 import {and, eq, isNull, lt} from 'drizzle-orm';
 import { hashPassword, comparePassword } from '@plugins/hash';
 import type { RegisterInput, LoginInput } from './auth.schema';
@@ -11,7 +12,7 @@ import { FastifyInstance } from 'fastify';
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutos em segundos
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 dias em segundos
 
-export async function registerUser(input: RegisterInput, confirmToken: string) {
+export async function registerUser(input: RegisterInput) {
   const userExists = await db.query.users.findFirst({
     where: eq(users.email, input.email),
   });
@@ -26,10 +27,10 @@ export async function registerUser(input: RegisterInput, confirmToken: string) {
       .values({
         name: input.name,
         email: input.email,
+        phoneNumber: input.phoneNumber,
         passwordHash,
-        confirmToken,
       })
-      .returning({id: users.id, email: users.email});
+      .returning({id: users.id, email: users.email, phoneNumber: users.phoneNumber});
 
     await tx.insert(userSettings).values({
       userId: createdUser.id,
@@ -40,7 +41,7 @@ export async function registerUser(input: RegisterInput, confirmToken: string) {
     return createdUser;
   });
 
-  return {user, confirmToken};
+  return user;
 }
 
 export async function deleteUserById(userId: string) {
@@ -61,17 +62,89 @@ export async function loginUser(data: LoginInput) {
   return user;
 }
 
-export async function confirmUser(email: string, token: string) {
+export async function confirmUserViaSms(email: string, code: string) {
   const user = await db.query.users.findFirst({
-    where: and(eq(users.email, email), eq(users.confirmToken, token)),
+    where: eq(users.email, email),
   });
 
-  if (!user) throw new Error('INVALID_TOKEN');
+  if (!user) throw new Error('USER_NOT_FOUND');
 
+  const otpRecord = await db.query.otpCodes.findFirst({
+    where: and(
+      eq(otpCodes.userId, user.id),
+      eq(otpCodes.code, code),
+      isNull(otpCodes.verifiedAt),
+    ),
+  });
+
+  if (!otpRecord) throw new Error('INVALID_CODE');
+
+  if (new Date() > otpRecord.expiresAt) {
+    throw new Error('CODE_EXPIRED');
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(otpCodes)
+      .set({ verifiedAt: new Date() })
+      .where(eq(otpCodes.id, otpRecord.id));
+
+    await tx
+      .update(users)
+      .set({ isActive: true })
+      .where(eq(users.id, user.id));
+  });
+
+  return user;
+}
+
+export async function initiateAccountConfirmation(userId: string, phoneNumber: string) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  // Remove códigos anteriores não verificados
   await db
-    .update(users)
-    .set({ isActive: true, confirmToken: null })
-    .where(eq(users.id, user.id));
+    .delete(otpCodes)
+    .where(
+      and(
+        eq(otpCodes.userId, userId),
+        isNull(otpCodes.verifiedAt),
+      )
+    );
+
+  const code = generateConfirmationCode();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+
+  // Importamos sendOtpSms do Twilio
+  const { sendOtpSms } = await import('@plugins/twilio');
+
+  try {
+    await sendOtpSms({ phone: phoneNumber, code });
+  } catch (err) {
+    throw new Error('FAILED_TO_SEND_SMS');
+  }
+
+  await db.insert(otpCodes).values({
+    userId,
+    code,
+    phoneNumber,
+    expiresAt,
+  });
+
+  return {
+    message: `Código de confirmação enviado para ${maskPhoneNumber(phoneNumber)}`,
+  };
+}
+
+export function generateConfirmationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+export function maskPhoneNumber(phone: string): string {
+  return phone.replace(/(\+?\d{2,3})\d+(\d{4})$/, '$1 ••••• $2');
 }
 
 export async function generateTokens(app: FastifyInstance, userId: string, email: string) {

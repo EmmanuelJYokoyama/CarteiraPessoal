@@ -1,7 +1,4 @@
-/**
- * Plugin MailerSend
- * Serviço para envio de emails com confirmação de conta
- */
+import { Resend } from 'resend';
 
 export interface SendConfirmationEmailInput {
   to: string;
@@ -15,6 +12,11 @@ function getRequiredEnv(name: string): string {
     throw new Error(`MISSING_ENV_${name}`);
   }
   return value;
+}
+
+function getResendClient(): Resend {
+  const apiKey = getRequiredEnv('RESEND_API_KEY');
+  return new Resend(apiKey);
 }
 
 function buildConfirmationHtml(name: string, confirmLink: string): string {
@@ -56,45 +58,25 @@ export async function sendConfirmationEmail({
   name,
   confirmLink,
 }: SendConfirmationEmailInput): Promise<void> {
-  const apiKey = getRequiredEnv('MAILERSEND_API_KEY');
-  const fromEmail = getRequiredEnv('MAILERSEND_FROM_EMAIL');
-
+  const resend = getResendClient();
   const html = buildConfirmationHtml(name, confirmLink);
 
-  const payload = {
-    from: {
-      email: fromEmail,
-      name: 'Carteira Pessoal',
-    },
-    to: [
-      {
-        email: to,
-        name: name,
-      },
-    ],
-    subject: 'Confirme seu cadastro',
-    html: html,
-  };
-
   try {
-    const response = await fetch('https://api.mailersend.com/v1/email', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+    const response = await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: to,
+      subject: 'Confirme seu cadastro',
+      html: html,
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`MAILERSEND_ERROR_${response.status}_${errorBody}`);
+    if (response.error) {
+      throw new Error(`RESEND_ERROR_${response.error.message}`);
     }
   } catch (err: any) {
-    if (typeof err.message === 'string' && err.message.startsWith('MAILERSEND_ERROR_')) {
+    if (typeof err.message === 'string' && err.message.startsWith('RESEND_ERROR_')) {
       throw err;
     }
     console.error('Erro ao enviar email:', err.message);
-    throw new Error(`MAILERSEND_ERROR_NETWORK_${err.message}`);
+    throw new Error(`RESEND_ERROR_${err.message}`);
   }
 }

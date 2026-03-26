@@ -8,17 +8,42 @@ export type LoginPayload = {
 export type LoginResponse = {
   accessToken:  string;
   refreshToken: string;
+  name: string;
+  email: string;
 };
 
 export type RegisterPayload = {
-  name:     string;
-  email:    string;
-  password: string;
+  name:        string;
+  email:       string;
+  password:    string;
+  phoneNumber: string;
 };
 
 export type RegisterResponse = {
   userId:  string;
-  confirmToken: string;
+  email:   string;
+  message: string;
+};
+
+export type ConfirmSmsPayload = {
+  email: string;
+  code:  string;
+};
+
+export type ConfirmSmsResponse = {
+  message:     string;
+  accessToken: string;
+  refreshToken: string;
+  name: string;
+  email: string;
+};
+
+export type ResendSmsPayload = {
+  email: string;
+};
+
+export type ResendSmsResponse = {
+  message: string;
 };
 
 export async function login(payload: LoginPayload) {
@@ -30,6 +55,20 @@ export async function login(payload: LoginPayload) {
 
 export async function register(payload: RegisterPayload) {
   return apiRequest<RegisterResponse>('/auth/register', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function confirmSms(payload: ConfirmSmsPayload) {
+  return apiRequest<ConfirmSmsResponse>('/sms/confirm', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function resendSms(payload: ResendSmsPayload) {
+  return apiRequest<ResendSmsResponse>('/sms/resend', {
     method: 'POST',
     body: payload,
   });

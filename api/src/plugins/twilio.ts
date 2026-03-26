@@ -27,15 +27,23 @@ export interface VerifyOtpOptions {
 
 export async function sendOtpSms({phone, code}: SendOtpOptions): Promise<{messageSid: string}> {
   try {
+    console.log(`📞 Enviando SMS via Twilio`);
+    console.log(`   To: ${phone}`);
+    console.log(`   Code: ${code}`);
+    console.log(`   From: ${phoneNumber}`);
+
     const message = await client.messages.create({
       body: `Seu código de verificação Carteira Pessoal é: ${code}\n\nValidade: 10 minutos`,
       from: phoneNumber,
       to: phone,
     });
 
+    console.log(`✅ SMS enviado com sucesso! SID: ${message.sid}`);
     return {messageSid: message.sid};
   } catch (error: any) {
-    console.error('Erro ao enviar SMS:', error.message);
+    console.error('❌ Erro ao enviar SMS:', error.message);
+    console.error('   Código:', error.code);
+    console.error('   Status:', error.status);
     throw new Error(`TWILIO_ERROR_${error.message}`);
   }
 }

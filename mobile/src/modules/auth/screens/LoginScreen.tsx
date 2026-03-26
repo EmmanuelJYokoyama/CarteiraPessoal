@@ -17,7 +17,8 @@ export default function LoginScreen({navigation}: Props) {
     loading,
     canSubmit,
     handleLogin,
-  } = loginService(() => navigation.replace('TwoFactor', {phone: ''}));
+  } = loginService(() => {
+  });
 
   return (
     <View style={styles.container}>

@@ -13,13 +13,14 @@ export default function RegisterScreen({navigation}: Props) {
   const {
     name,            setName,
     email,           setEmail,
+    phoneNumber,     setPhoneNumber,
     password,        setPassword,
     confirmPassword, setConfirmPassword,
     errorMessage,
     loading,
     canSubmit,
     handleRegister,
-  } = registerService(() => navigation.navigate('Login'));
+  } = registerService((email) => navigation.navigate('ConfirmSms', {email}));
 
   return (
     <View style={styles.container}>
@@ -50,6 +51,15 @@ export default function RegisterScreen({navigation}: Props) {
           keyboardType="email-address"
           autoComplete="email"
           textContentType="emailAddress"
+          editable={!loading}
+        />
+
+        <AppTextField
+          label="Telefone"
+          value={phoneNumber}
+          onChangeText={setPhoneNumber}
+          keyboardType="phone-pad"
+          placeholder="+55 11 99999-9999"
           editable={!loading}
         />
 

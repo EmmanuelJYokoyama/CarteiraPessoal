@@ -3,7 +3,9 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import * as dotenv from 'dotenv';
 import { authRoutes } from '@modules/auth/auth.routes';
-import { registerTwoFactorRoutes } from '@modules/twoFactor/twoFactor.routes';
+import { smsRoutes } from '@modules/sms/sms.routes';
+import { otpRoutes } from '@modules/otp/otp.routes';
+import { pinRoutes } from '@modules/pin/pin.routes';
 
 dotenv.config();
 
@@ -12,7 +14,9 @@ const app = Fastify({logger: true});
 app.register(cors, {origin: true});
 app.register(jwt, {secret: process.env.JWT_SECRET!});
 app.register(authRoutes);
-app.register(registerTwoFactorRoutes);
+app.register(smsRoutes);
+app.register(otpRoutes);
+app.register(pinRoutes);
 
 app.get('/health', async () => ({status: 'ok'}));
 

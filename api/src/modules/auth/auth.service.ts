@@ -2,7 +2,6 @@ import {db} from '@db/index';
 import {users} from '../../db/schema/users';
 import {userSettings} from '../../db/schema/userSettings';
 import {refreshTokens} from '../../db/schema/tokens';
-import {otpCodes} from '../../db/schema/otpCodes';
 import {and, eq, isNull, lt} from 'drizzle-orm';
 import { hashPassword, comparePassword } from '@plugins/hash';
 import type { RegisterInput, LoginInput } from './auth.schema';
@@ -60,91 +59,6 @@ export async function loginUser(data: LoginInput) {
   if (!valid) throw new Error('INVALID_CREDENTIALS');
 
   return user;
-}
-
-export async function confirmUserViaSms(email: string, code: string) {
-  const user = await db.query.users.findFirst({
-    where: eq(users.email, email),
-  });
-
-  if (!user) throw new Error('USER_NOT_FOUND');
-
-  const otpRecord = await db.query.otpCodes.findFirst({
-    where: and(
-      eq(otpCodes.userId, user.id),
-      eq(otpCodes.code, code),
-      isNull(otpCodes.verifiedAt),
-    ),
-  });
-
-  if (!otpRecord) throw new Error('INVALID_CODE');
-
-  if (new Date() > otpRecord.expiresAt) {
-    throw new Error('CODE_EXPIRED');
-  }
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(otpCodes)
-      .set({ verifiedAt: new Date() })
-      .where(eq(otpCodes.id, otpRecord.id));
-
-    await tx
-      .update(users)
-      .set({ isActive: true })
-      .where(eq(users.id, user.id));
-  });
-
-  return user;
-}
-
-export async function initiateAccountConfirmation(userId: string, phoneNumber: string) {
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
-
-  if (!user) throw new Error('USER_NOT_FOUND');
-
-  // Remove códigos anteriores não verificados
-  await db
-    .delete(otpCodes)
-    .where(
-      and(
-        eq(otpCodes.userId, userId),
-        isNull(otpCodes.verifiedAt),
-      )
-    );
-
-  const code = generateConfirmationCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
-
-  // Importamos sendOtpSms do Twilio
-  const { sendOtpSms } = await import('@plugins/twilio');
-
-  try {
-    await sendOtpSms({ phone: phoneNumber, code });
-  } catch (err) {
-    throw new Error('FAILED_TO_SEND_SMS');
-  }
-
-  await db.insert(otpCodes).values({
-    userId,
-    code,
-    phoneNumber,
-    expiresAt,
-  });
-
-  return {
-    message: `Código de confirmação enviado para ${maskPhoneNumber(phoneNumber)}`,
-  };
-}
-
-export function generateConfirmationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-export function maskPhoneNumber(phone: string): string {
-  return phone.replace(/(\+?\d{2,3})\d+(\d{4})$/, '$1 ••••• $2');
 }
 
 export async function generateTokens(app: FastifyInstance, userId: string, email: string) {

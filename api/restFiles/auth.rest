@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:3000
-@email = testando@mail.com
-@password = TestPassword123!
+@email = silva@mail.com
+@password = teste123!
 @phoneNumber = +5512991957161
 
 ###############################################################################
@@ -36,7 +36,7 @@ Content-Type: application/json
 ### 2️⃣ CONFIRMAR COM CÓDIGO SMS
 ###############################################################################
 
-@smsCode = 861941
+@smsCode = 986580
 
 POST {{baseUrl}}/auth/confirm-sms
 Content-Type: application/json
@@ -45,14 +45,6 @@ Content-Type: application/json
   "email": "{{email}}",
   "code": "{{smsCode}}"
 }
-
-### ✅ Response (salve os tokens):
-### {
-###   "message": "Conta confirmada com sucesso",
-###   "accessToken": "eyJ...",
-###   "refreshToken": "eyJ...",
-###   "expiresIn": 900
-### }
 
 ###############################################################################
 ### 3️⃣ FAZER LOGIN

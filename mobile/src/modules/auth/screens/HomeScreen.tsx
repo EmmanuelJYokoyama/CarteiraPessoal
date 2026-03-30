@@ -64,6 +64,15 @@ export default function HomeScreen({navigation}: Props) {
               style={styles.menuItem}
               onPress={() => {
                 setMenuVisible(false);
+                navigation.navigate('Cards');
+              }}>
+              <Text style={styles.menuItemText}>Meus Cartões</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
                 navigation.navigate('Settings');
               }}>
               <Text style={styles.menuItemText}>Configurações</Text>

@@ -34,9 +34,14 @@ export function loginService(onSuccess: () => void) {
 
       onSuccess();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : 'Não foi possível entrar',
-      );
+      const errorMsg = error instanceof Error ? error.message : 'Não foi possível entrar';
+      
+      // Handle offline queue
+      if (errorMsg === 'OFFLINE_REQUEST_QUEUED') {
+        setErrorMessage('Solicitação enfileirada. Sincronizará quando conectar.');
+      } else {
+        setErrorMessage(errorMsg);
+      }
     } finally {
       setLoading(false);
     }

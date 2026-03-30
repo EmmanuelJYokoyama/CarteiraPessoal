@@ -1,6 +1,6 @@
 import {FastifyRequest, FastifyReply} from 'fastify';
-import {setPinSchema, validatePinSchema} from './pin.schema';
-import {setUserPin, validateUserPin} from './pin.service';
+import {setPinSchema, validatePinSchema, loginWithPinSchema} from './pin.schema';
+import {setUserPin, validateUserPin, validateUserPinByEmail} from './pin.service';
 import type {AuthTokenPayload} from '../auth/auth.types';
 
 export async function setPin(req: FastifyRequest, reply: FastifyReply) {
@@ -57,5 +57,46 @@ export async function validatePin(req: FastifyRequest, reply: FastifyReply) {
     }
     console.error('Erro ao validar PIN:', err);
     return reply.status(500).send({error: 'Erro ao validar PIN'});
+  }
+}
+
+export async function loginWithPin(req: FastifyRequest, reply: FastifyReply) {
+  try {
+    const parsed = loginWithPinSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({error: parsed.error.flatten()});
+    }
+
+    const {email, pin} = parsed.data;
+    const user = await validateUserPinByEmail(email, pin);
+
+    // Generate JWT token
+    const token = await reply.jwtSign(
+      {userId: user.userId, email: user.email},
+      {expiresIn: '8h'}
+    );
+
+    return reply.status(200).send({
+      success: true,
+      message: 'Login com PIN realizado com sucesso',
+      token,
+      user: {
+        id: user.userId,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (err: any) {
+    if (err.message === 'USER_NOT_FOUND') {
+      return reply.status(404).send({error: 'Usuário não encontrado'});
+    }
+    if (err.message === 'PIN_NOT_SET') {
+      return reply.status(400).send({error: 'PIN não configurado para este usuário'});
+    }
+    if (err.message === 'PIN_INVALID') {
+      return reply.status(401).send({error: 'PIN incorreto'});
+    }
+    console.error('Erro ao fazer login com PIN:', err);
+    return reply.status(500).send({error: 'Erro ao fazer login com PIN'});
   }
 }

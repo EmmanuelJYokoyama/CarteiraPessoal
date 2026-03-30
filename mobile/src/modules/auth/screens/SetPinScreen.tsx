@@ -59,7 +59,7 @@ export default function SetPinScreen({navigation}: Props) {
       setLoading(true);
       setError('');
 
-      const response = await setPin({pin});
+      await setPin({pin});
 
       Alert.alert('Sucesso', 'PIN definido com sucesso!', [
         {text: 'OK', onPress: () => navigation.navigate('Home' as any)},
@@ -69,15 +69,6 @@ export default function SetPinScreen({navigation}: Props) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleBack = () => {
-    if (stage === 'confirm') {
-      setStage('initial');
-      setConfirmPinValue('');
-      setError('');
-    }
-    // Não permite voltar da tela inicial (SetPin é obrigatório após login)
   };
 
   const currentPin = stage === 'initial' ? pin : confirmPin;
@@ -132,34 +123,34 @@ export default function SetPinScreen({navigation}: Props) {
           />
         ) : (
           <TextInput
-            ref={confirmInputRef}
-            style={styles.pinInput}
-            value={confirmPin}
-            onChangeText={handleConfirmPinChange}
-            keyboardType="numeric"
-            maxLength={4}
-            secureTextEntry={true}
-            placeholder="••••"
-            placeholderTextColor="#999"
-            editable={!loading}
-            autoFocus
-          />
-        )}
+              ref={confirmInputRef}
+              style={styles.pinInput}
+              value={confirmPin}
+              onChangeText={handleConfirmPinChange}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry={true}
+              placeholder="••••"
+              placeholderTextColor="#999"
+              editable={!loading}
+              autoFocus
+            />
+          )}
 
-        {currentPin.length === 4 && (
-          <Pressable
-            style={[styles.actionButton, loading && styles.actionButtonDisabled]}
-            onPress={stage === 'initial' ? handleNext : handleConfirm}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.actionButtonText}>
-                {stage === 'initial' ? 'Próximo' : 'Confirmar PIN'}
-              </Text>
-            )}
-          </Pressable>
-        )}
+          {currentPin.length === 4 && (
+            <Pressable
+              style={[styles.actionButton, loading && styles.actionButtonDisabled]}
+              onPress={stage === 'initial' ? handleNext : handleConfirm}
+              disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.actionButtonText}>
+                  {stage === 'initial' ? 'Próximo' : 'Confirmar PIN'}
+                </Text>
+              )}
+            </Pressable>
+          )}
       </View>
     </View>
   );

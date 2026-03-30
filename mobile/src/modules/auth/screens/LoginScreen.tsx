@@ -58,6 +58,12 @@ export default function LoginScreen({navigation}: Props) {
         />
 
         <Pressable
+          onPress={() => navigation.navigate('PinLogin')}
+          style={styles.linkWrapper}>
+          <Text style={styles.linkText}>Entrar com PIN</Text>
+        </Pressable>
+
+        <Pressable
           onPress={() => navigation.navigate('Register')}
           style={styles.linkWrapper}>
           <Text style={styles.linkText}>Ainda não tem conta? Cadastre-se</Text>

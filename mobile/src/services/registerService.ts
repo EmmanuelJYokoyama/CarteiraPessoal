@@ -26,10 +26,12 @@ export function registerService(onSuccess: (email: string) => void) {
         setLoading(true);
         setErrorMessage('');
 
+        const cleanPhoneNumber = phoneNumber.replace(/[^\d+]/g, '');
+
         await register({
         name: name.trim(),
         email: email.trim(),
-        phoneNumber: phoneNumber.trim(),
+        phoneNumber: cleanPhoneNumber,
         password,
         });
 

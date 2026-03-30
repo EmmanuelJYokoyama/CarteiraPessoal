@@ -30,3 +30,21 @@ export async function validateUserPin(userId: string, pin: string): Promise<bool
 
   return comparePin(pin, user.pinHash);
 }
+
+export async function validateUserPinByEmail(email: string, pin: string): Promise<any> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, email),
+  });
+
+  if (!user) throw new Error('USER_NOT_FOUND');
+  if (!user.pinHash) throw new Error('PIN_NOT_SET');
+
+  const isValid = await comparePin(pin, user.pinHash);
+  if (!isValid) throw new Error('PIN_INVALID');
+
+  return {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+  };
+}

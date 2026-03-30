@@ -30,21 +30,21 @@ export function AppButton({title, onPress, disabled = false, loading = false, st
 const styles = StyleSheet.create({
   button: {
     width: '100%',
-    height: 52,
-    borderRadius: 12,
+    height: 48,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f766e',
+    backgroundColor: '#fff',
   },
   buttonDisabled: {
-    backgroundColor: '#99d7d1',
+    backgroundColor: '#666',
   },
   buttonPressed: {
     transform: [{scale: 0.99}],
     opacity: 0.92,
   },
   buttonText: {
-    color: '#ffffff',
+    color: '#000',
     fontSize: 16,
     fontWeight: '700',
   },

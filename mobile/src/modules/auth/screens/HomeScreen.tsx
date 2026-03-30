@@ -18,7 +18,7 @@ export default function HomeScreen({navigation}: Props) {
     await signOut();
   };
 
-  return (
+  return ( 
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.header}>
         <Text style={styles.appTitle}>CARTEIRA PESSOAL</Text>

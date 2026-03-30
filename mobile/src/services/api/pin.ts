@@ -13,8 +13,24 @@ export type ValidatePinPayload = {
 };
 
 export type ValidatePinResponse = {
+  success: boolean;
   message: string;
-  valid: boolean;
+};
+
+export type LoginWithPinPayload = {
+  email: string;
+  pin: string;
+};
+
+export type LoginWithPinResponse = {
+  success: boolean;
+  message: string;
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+  };
 };
 
 export async function setPin(payload: SetPinPayload) {
@@ -26,6 +42,13 @@ export async function setPin(payload: SetPinPayload) {
 
 export async function validatePin(payload: ValidatePinPayload) {
   return apiRequest<ValidatePinResponse>('/pin/validate', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function loginWithPin(payload: LoginWithPinPayload) {
+  return apiRequest<LoginWithPinResponse>('/pin/login', {
     method: 'POST',
     body: payload,
   });

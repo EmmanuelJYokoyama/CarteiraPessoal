@@ -9,18 +9,18 @@ const Stack = createNativeStackNavigator();
 export function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="SetPin"
+      initialRouteName="Home"
       screenOptions={{
         headerShown: false,
         contentStyle: {backgroundColor: '#fff'},
       }}>
       <Stack.Screen 
-        name="SetPin" 
-        component={SetPinScreen}
-      />
-      <Stack.Screen 
         name="Home" 
         component={HomeScreen}
+      />
+      <Stack.Screen 
+        name="SetPin" 
+        component={SetPinScreen}
       />
       <Stack.Screen 
         name="Settings" 

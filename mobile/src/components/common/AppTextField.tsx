@@ -11,7 +11,7 @@ export function AppTextField({label, error, ...inputProps}: Props) {
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor="#666"
         style={[styles.input, error ? styles.inputError : null]}
         {...inputProps}
       />
@@ -27,26 +27,26 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: '#0f172a',
+    color: '#fff',
     marginBottom: 8,
     fontWeight: '600',
   },
   input: {
     width: '100%',
     height: 50,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#333',
     paddingHorizontal: 14,
     fontSize: 16,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
+    color: '#fff',
+    backgroundColor: '#0f0f0f',
   },
   inputError: {
-    borderColor: '#dc2626',
+    borderColor: '#e74c3c',
   },
   errorText: {
-    color: '#dc2626',
+    color: '#e74c3c',
     marginTop: 6,
     fontSize: 12,
   },

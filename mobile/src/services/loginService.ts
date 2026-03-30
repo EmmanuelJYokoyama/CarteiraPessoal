@@ -20,13 +20,17 @@ export function loginService(onSuccess: () => void) {
       setLoading(true);
       setErrorMessage('');
 
-      const {accessToken, refreshToken} = await login({
+      const response = await login({
         email: email.trim(),
         password,
       });
 
-      await AsyncStorage.setItem('@access_token',  accessToken);
-      await AsyncStorage.setItem('@refresh_token', refreshToken);
+      await AsyncStorage.setItem('@access_token',  response.accessToken);
+      await AsyncStorage.setItem('@refresh_token', response.refreshToken);
+      await AsyncStorage.setItem('@user_data', JSON.stringify({
+        name: response.name,
+        email: response.email,
+      }));
 
       onSuccess();
     } catch (error) {

@@ -17,7 +17,8 @@ export default function LoginScreen({navigation}: Props) {
     loading,
     canSubmit,
     handleLogin,
-  } = loginService(() => navigation.replace('TwoFactor', {phone: ''}));
+  } = loginService(() => {
+  });
 
   return (
     <View style={styles.container}>
@@ -55,6 +56,12 @@ export default function LoginScreen({navigation}: Props) {
           disabled={!canSubmit}
           loading={loading}
         />
+
+        <Pressable
+          onPress={() => navigation.navigate('PinLogin')}
+          style={styles.linkWrapper}>
+          <Text style={styles.linkText}>Entrar com PIN</Text>
+        </Pressable>
 
         <Pressable
           onPress={() => navigation.navigate('Register')}

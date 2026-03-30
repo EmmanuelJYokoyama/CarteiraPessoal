@@ -1,7 +1,9 @@
 import {Platform} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DEFAULT_BASE_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+const DEFAULT_BASE_URL = 'http://localhost:3000';
+
+const REQUEST_TIMEOUT = 30000;
 
 export const API_BASE_URL = DEFAULT_BASE_URL;
 
@@ -11,21 +13,57 @@ type RequestOptions = {
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: options.method,
-    headers: {
+  try {
+    let token: string | null = null;
+    try {
+      token = await AsyncStorage.getItem('@access_token');
+    } catch (e) {
+      console.warn('[API] Failed to get token:', e);
+    }
+
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+    };
 
-  const payload = (await response.json()) as Record<string, unknown>;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
-  if (!response.ok) {
-    const message =
-      typeof payload.error === 'string' ? payload.error : 'Falha ao processar requisição';
-    throw new Error(message);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+      const url = `${API_BASE_URL}${path}`;
+      console.log(`[API] ${options.method} ${url}`);
+
+      const response = await fetch(url, {
+        method: options.method,
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        signal: controller.signal,
+      });
+
+      const data = (await response.json()) as Record<string, unknown>;
+
+      if (!response.ok) {
+        const message =
+          typeof data.error === 'string' ? data.error : `Error ${response.status}`;
+        throw new Error(message);
+      }
+
+      return data as T;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  } catch (error) {
+    console.error('[API] Error:', error);
+
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`Timeout ${REQUEST_TIMEOUT / 1000}s`);
+      }
+      throw error;
+    }
+    throw new Error('Network request failed');
   }
-
-  return payload as T;
 }

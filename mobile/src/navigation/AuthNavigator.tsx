@@ -4,14 +4,16 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import LoginScreen from '@modules/auth/screens/LoginScreen';
 import RegisterScreen from '@modules/auth/screens/RegisterScreen';
+import ConfirmSmsScreen from '@modules/auth/screens/ConfirmSmsScreen';
 import TwoFactorScreen from '@modules/auth/screens/TwoFactorScreen';
-// import PinScreen from '@modules/auth/screens/PinScreen';
+import PinScreen from '@modules/auth/screens/PinScreen';
 
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ConfirmSms: {email: string};
   TwoFactor: {phone: string};
-  Pin: undefined;
+  PinLogin: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -25,10 +27,11 @@ export function AuthNavigator() {
         animation: 'slide_from_right',
         contentStyle: {backgroundColor: '#fff'},
       }}>
-      <Stack.Screen name="Login"     component={LoginScreen} />
-      <Stack.Screen name="Register"  component={RegisterScreen} />
-      <Stack.Screen name="TwoFactor" component={TwoFactorScreen} />
-      {/* <Stack.Screen name="Pin"       component={PinScreen} /> */}
+      <Stack.Screen name="Login"        component={LoginScreen} />
+      <Stack.Screen name="Register"     component={RegisterScreen} />
+      <Stack.Screen name="ConfirmSms"   component={ConfirmSmsScreen} />
+      <Stack.Screen name="TwoFactor"    component={TwoFactorScreen} />
+      <Stack.Screen name="PinLogin"     component={PinScreen} />
     </Stack.Navigator>
   );
 }

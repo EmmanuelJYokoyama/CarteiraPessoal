@@ -1,0 +1,117 @@
+@baseUrl = http://localhost:3000
+@email = silva@mail.com
+@password = teste123!
+@phoneNumber = +5512991957161
+
+###############################################################################
+### 1️⃣ REGISTRAR NOVO USUÁRIO
+###############################################################################
+
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "João Teste",
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "phoneNumber": "{{phoneNumber}}"
+}
+
+### ✅ Response (salve o userId e o email):
+### {
+###   "userId": "uuid...",
+###   "email": "joao-xxx@example.com",
+###   "message": "E-mail registrado. Verifique o SMS para o código de confirmação."
+### }
+
+###############################################################################
+### 📱 COPIAR O CÓDIGO SMS DO CONSOLE DO SERVIDOR
+###############################################################################
+### No console do servidor você verá algo como:
+### "Seu código de verificação Carteira Pessoal é: 123456"
+###
+### Use esse código na próxima requisição
+
+###############################################################################
+### 2️⃣ CONFIRMAR COM CÓDIGO SMS
+###############################################################################
+
+@smsCode = 986580
+
+POST {{baseUrl}}/auth/confirm-sms
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "code": "{{smsCode}}"
+}
+
+###############################################################################
+### 3️⃣ FAZER LOGIN
+###############################################################################
+
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### ✅ Response:
+### {
+###   "accessToken": "eyJ...",
+###   "refreshToken": "eyJ...",
+###   "expiresIn": 900
+### }
+
+###############################################################################
+### 4️⃣ RENOVAR TOKEN (REFRESH)
+###############################################################################
+
+@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3YjRhNzgxZi1jNDgwLTQ1MzQtODJjZi1jNDdlZWJiNTZkZTAiLCJlbWFpbCI6InRlc3RhbmRvQG1haWwuY29tIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzQzOTYzMDMsImV4cCI6MTc3NTAwMTEwM30.4COlc9UN2jPoCgxck0MaHPhyk10huxrb0BCYLEg2Pfs
+
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###############################################################################
+### 5️⃣ REENVIAR CÓDIGO SMS
+###############################################################################
+
+POST {{baseUrl}}/auth/resend-confirmation-sms
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### ✅ Response:
+### {
+###   "message": "Código reenviado com sucesso"
+### }
+
+###############################################################################
+### 6️⃣ LOGOUT (REVOGA UM REFRESH TOKEN)
+###############################################################################
+
+@accessToken = COLE_O_ACCESS_TOKEN_AQUI
+
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###############################################################################
+### 7️⃣ LOGOUT EM TODOS OS DISPOSITIVOS
+###############################################################################
+
+POST {{baseUrl}}/auth/logout-all
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json

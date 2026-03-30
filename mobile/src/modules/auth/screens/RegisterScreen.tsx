@@ -5,6 +5,7 @@ import type {AuthStackParamList} from '@navigation/AuthNavigator';
 import {AppTextField} from '@components/common/AppTextField';
 import {AppButton}    from '@components/common/AppButton';
 import {registerService} from '@services/registerService';
+import {formatPhoneNumber} from '@utils/phoneFormatter';
 import {styles} from './styles/LoginRegisterScreen.styles';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
@@ -13,13 +14,19 @@ export default function RegisterScreen({navigation}: Props) {
   const {
     name,            setName,
     email,           setEmail,
+    phoneNumber,     setPhoneNumber,
     password,        setPassword,
     confirmPassword, setConfirmPassword,
     errorMessage,
     loading,
     canSubmit,
     handleRegister,
-  } = registerService(() => navigation.navigate('Login'));
+  } = registerService((email) => navigation.navigate('ConfirmSms', {email}));
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhoneNumber(value);
+    setPhoneNumber(formatted);
+  };
 
   return (
     <View style={styles.container}>
@@ -50,6 +57,15 @@ export default function RegisterScreen({navigation}: Props) {
           keyboardType="email-address"
           autoComplete="email"
           textContentType="emailAddress"
+          editable={!loading}
+        />
+
+        <AppTextField
+          label="Telefone"
+          value={phoneNumber}
+          onChangeText={handlePhoneChange}
+          keyboardType="phone-pad"
+          placeholder="+55 11 99999-9999"
           editable={!loading}
         />
 

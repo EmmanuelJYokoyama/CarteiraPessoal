@@ -1,0 +1,53 @@
+### PIN Management Test Endpoints
+
+@baseUrl = http://localhost:3000
+
+### 1. Register a user (if not already registered)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "testpin@example.com",
+  "password": "password123",
+  "phoneNumber": "+5511999999999"
+}
+
+### 2. Confirm via SMS (use the code from SMS)
+# First, check the logs for the confirmation code sent
+POST {{baseUrl}}/auth/confirm-sms
+Content-Type: application/json
+
+{
+  "email": "testpin@example.com",
+  "code": "123456"
+}
+
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3YjRhNzgxZi1jNDgwLTQ1MzQtODJjZi1jNDdlZWJiNTZkZTAiLCJlbWFpbCI6InRlc3RhbmRvQG1haWwuY29tIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3NDQ3NTI2NywiZXhwIjoxNzc0NDc2MTY3fQ.J5PttbDm5Dy3Dx2gt6tOsEG3B4P0D5qxbLMoCPLHK_4
+
+### 3. Set PIN (4 digits only, requires JWT token)
+POST {{baseUrl}}/auth/set-pin
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "pin": "1234"
+}
+
+### 4. Validate PIN (requires JWT token)
+POST {{baseUrl}}/auth/validate-pin
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "pin": "1234"
+}
+
+### 5. Validate PIN with wrong code
+POST {{baseUrl}}/auth/validate-pin
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "pin": "9999"
+}

@@ -11,7 +11,7 @@ import { FastifyInstance } from 'fastify';
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutos em segundos
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 dias em segundos
 
-export async function registerUser(input: RegisterInput, confirmToken: string) {
+export async function registerUser(input: RegisterInput) {
   const userExists = await db.query.users.findFirst({
     where: eq(users.email, input.email),
   });
@@ -26,10 +26,10 @@ export async function registerUser(input: RegisterInput, confirmToken: string) {
       .values({
         name: input.name,
         email: input.email,
+        phoneNumber: input.phoneNumber,
         passwordHash,
-        confirmToken,
       })
-      .returning({id: users.id, email: users.email});
+      .returning({id: users.id, email: users.email, phoneNumber: users.phoneNumber});
 
     await tx.insert(userSettings).values({
       userId: createdUser.id,
@@ -40,7 +40,7 @@ export async function registerUser(input: RegisterInput, confirmToken: string) {
     return createdUser;
   });
 
-  return {user, confirmToken};
+  return user;
 }
 
 export async function deleteUserById(userId: string) {
@@ -59,19 +59,6 @@ export async function loginUser(data: LoginInput) {
   if (!valid) throw new Error('INVALID_CREDENTIALS');
 
   return user;
-}
-
-export async function confirmUser(email: string, token: string) {
-  const user = await db.query.users.findFirst({
-    where: and(eq(users.email, email), eq(users.confirmToken, token)),
-  });
-
-  if (!user) throw new Error('INVALID_TOKEN');
-
-  await db
-    .update(users)
-    .set({ isActive: true, confirmToken: null })
-    .where(eq(users.id, user.id));
 }
 
 export async function generateTokens(app: FastifyInstance, userId: string, email: string) {

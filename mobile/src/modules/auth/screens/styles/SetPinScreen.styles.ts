@@ -1,0 +1,137 @@
+import {StyleSheet} from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#000',
+    marginBottom: 0,
+  },
+  backButton: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  headerSpacer: {
+    width: 50,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  description: {
+    fontSize: 14,
+    color: '#999',
+    lineHeight: 20,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  pinDisplay: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 32,
+  },
+  pinDot: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#333',
+    backgroundColor: 'transparent',
+  },
+  pinDotFilled: {
+    backgroundColor: '#fff',
+    borderColor: '#fff',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#e74c3c',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  pinInput: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+    letterSpacing: 6,
+    marginBottom: 24,
+    backgroundColor: '#0f0f0f',
+  },
+  numpad: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 24,
+  },
+  numpadButton: {
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: 8,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  numpadButtonDelete: {
+    backgroundColor: '#330000',
+    borderColor: '#660000',
+  },
+  numpadText: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  numpadDeleteText: {
+    color: '#e74c3c',
+    fontSize: 18,
+  },
+  actionButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionButtonDisabled: {
+    backgroundColor: '#666',
+  },
+  actionButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
+

@@ -5,9 +5,11 @@ import {AuthProvider, useAuth} from '@contexts/AuthContext';
 import {AuthNavigator} from '@navigation/AuthNavigator';
 import {AppNavigator} from '@navigation/AppNavigator';
 import {ActivityIndicator, View} from 'react-native';
+import {useOfflineSync} from '@hooks/useOfflineSync';
 
 function RootNavigator() {
   const {isLoading, isSignedIn} = useAuth();
+  const {isOnline} = useOfflineSync(); // Initialize offline sync
 
   if (isLoading) {
     return (

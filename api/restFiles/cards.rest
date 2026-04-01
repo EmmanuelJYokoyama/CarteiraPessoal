@@ -1,0 +1,77 @@
+@baseUrl = http://localhost:3000
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTIxZWM4Yi1mY2Q2LTQ1NGUtYmJmNy0wMDhjMjcwOTdlY2YiLCJlbWFpbCI6InNpbHZhQG1haWwuY29tIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3NDkwOTEyMCwiZXhwIjoxNzc0OTEwMDIwfQ.HXPtx-R0BKToGHHHjWxBhm66wg8ECm-fY2ryuyS6cso
+
+### Listar todos os cartões
+GET {{baseUrl}}/cards
+Authorization: Bearer {{accessToken}}
+
+### Criar novo cartão - Visa Débito
+POST {{baseUrl}}/cards
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Visa Débito",
+  "cardNumber": "4111111111111111",
+  "lastFourDigits": "1111",
+  "cardType": "Débito",
+  "expiryDate": "12/25"
+}
+
+### Criar novo cartão - Mastercard Crédito
+POST {{baseUrl}}/cards
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Mastercard Crédito",
+  "cardNumber": "5555555555554444",
+  "lastFourDigits": "4444",
+  "cardType": "credit",
+  "expiryDate": "06/26"
+}
+
+### Criar novo cartão - Amex
+POST {{baseUrl}}/cards
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Amex",
+  "cardNumber": "378282246310005",
+  "lastFourDigits": "0005",
+  "cardType": "credit",
+  "expiryDate": "08/27"
+}
+
+### Criar novo cartão - Elo Débito
+POST {{baseUrl}}/cards
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Elo Débito",
+  "cardNumber": "6362625014123456",
+  "lastFourDigits": "3456",
+  "cardType": "debit",
+  "expiryDate": "03/25"
+}
+
+@cardId = b7812a1a-f703-4fb0-809c-0c4066dacd9c
+### Buscar cartão por ID
+GET {{baseUrl}}/cards/{{cardId}}
+Authorization: Bearer {{accessToken}}
+
+### Atualizar cartão
+PUT {{baseUrl}}/cards/{{cardId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Visa Crédito - Atualizado",
+  "expiryDate": "01/26"
+}
+
+### Deletar cartão
+DELETE {{baseUrl}}/cards/{{cardId}}
+Authorization: Bearer {{accessToken}}

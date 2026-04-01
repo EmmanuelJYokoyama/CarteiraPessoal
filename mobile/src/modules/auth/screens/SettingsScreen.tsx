@@ -2,7 +2,7 @@ import React from 'react';
 import {View, Text, Pressable, FlatList} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Icon, type IconName} from '@components/common/Icon';
+import {Lock, Info, Package, ChevronRight} from 'lucide-react-native';
 import {styles} from './styles/SettingsScreen.styles';
 
 type Props = NativeStackScreenProps<any, 'Settings'>;
@@ -10,14 +10,14 @@ type Props = NativeStackScreenProps<any, 'Settings'>;
 interface SettingsItem {
   id: string;
   title: string;
-  icon: IconName;
+  icon: React.ComponentType<{size: number; color: string}>;
   screen: string | null;
 }
 
 const SETTINGS_ITEMS: SettingsItem[] = [
-  {id: '1', title: 'Configurar PIN', icon: 'lock', screen: 'SetPin'},
-  {id: '2', title: 'Sobre', icon: 'info', screen: null},
-  {id: '3', title: 'Versão', icon: 'package', screen: null},
+  {id: '1', title: 'Configurar PIN', icon: Lock, screen: 'SetPin'},
+  {id: '2', title: 'Sobre', icon: Info, screen: null},
+  {id: '3', title: 'Versão', icon: Package, screen: null},
 ];
 
 export default function SettingsScreen({navigation}: Props) {
@@ -45,14 +45,11 @@ export default function SettingsScreen({navigation}: Props) {
           <Pressable
             style={styles.settingItem}
             onPress={() => handleItemPress(item)}>
-            <Icon
-              name={item.icon}
-              size={20}
-              color="#fff"
-              style={styles.settingIcon}
-            />
+            <View style={styles.settingIcon}>
+              <item.icon size={20} color="#fff" />
+            </View>
             <Text style={styles.settingTitle}>{item.title}</Text>
-            {item.screen && <Icon name="chevron-right" size={20} color="#999" />}
+            {item.screen && <ChevronRight size={20} color="#999" />}
           </Pressable>
         )}
       />

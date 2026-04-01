@@ -3,6 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import HomeScreen from '@modules/auth/screens/HomeScreen';
 import SettingsScreen from '@modules/auth/screens/SettingsScreen';
 import SetPinScreen from '@modules/auth/screens/SetPinScreen';
+import CardsScreen from '@modules/cards/screens/CardsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,10 @@ export function AppNavigator() {
       <Stack.Screen 
         name="Settings" 
         component={SettingsScreen}
+      />
+      <Stack.Screen 
+        name="Cards" 
+        component={CardsScreen}
       />
     </Stack.Navigator>
   );

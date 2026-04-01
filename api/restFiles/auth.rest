@@ -17,20 +17,6 @@ Content-Type: application/json
   "phoneNumber": "{{phoneNumber}}"
 }
 
-### ✅ Response (salve o userId e o email):
-### {
-###   "userId": "uuid...",
-###   "email": "joao-xxx@example.com",
-###   "message": "E-mail registrado. Verifique o SMS para o código de confirmação."
-### }
-
-###############################################################################
-### 📱 COPIAR O CÓDIGO SMS DO CONSOLE DO SERVIDOR
-###############################################################################
-### No console do servidor você verá algo como:
-### "Seu código de verificação Carteira Pessoal é: 123456"
-###
-### Use esse código na próxima requisição
 
 ###############################################################################
 ### 2️⃣ CONFIRMAR COM CÓDIGO SMS
@@ -58,13 +44,6 @@ Content-Type: application/json
   "password": "{{password}}"
 }
 
-### ✅ Response:
-### {
-###   "accessToken": "eyJ...",
-###   "refreshToken": "eyJ...",
-###   "expiresIn": 900
-### }
-
 ###############################################################################
 ### 4️⃣ RENOVAR TOKEN (REFRESH)
 ###############################################################################
@@ -88,11 +67,6 @@ Content-Type: application/json
 {
   "email": "{{email}}"
 }
-
-### ✅ Response:
-### {
-###   "message": "Código reenviado com sucesso"
-### }
 
 ###############################################################################
 ### 6️⃣ LOGOUT (REVOGA UM REFRESH TOKEN)

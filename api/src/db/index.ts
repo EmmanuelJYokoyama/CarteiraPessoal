@@ -5,8 +5,9 @@ import {users} from './schema/users';
 import {userSettings} from './schema/userSettings';
 import {refreshTokens} from './schema/tokens';
 import {otpCodes} from './schema/otpCodes';
+import {transactions, installments} from './schema/transactions';
 
-const schema = {users, userSettings, refreshTokens, otpCodes};
+const schema = {users, userSettings, refreshTokens, otpCodes, transactions, installments};
 
 dotenv.config();
 

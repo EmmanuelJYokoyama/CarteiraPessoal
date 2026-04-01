@@ -1,0 +1,73 @@
+@baseUrl = http://localhost:3000
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTIxZWM4Yi1mY2Q2LTQ1NGUtYmJmNy0wMDhjMjcwOTdlY2YiLCJlbWFpbCI6InNpbHZhQG1haWwuY29tIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3NDkwOTEyMCwiZXhwIjoxNzc0OTEwMDIwfQ.HXPtx-R0BKToGHHHjWxBhm66wg8ECm-fY2ryuyS6cso
+
+### Criar transação simples
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "description": "Almoço no restaurante",
+  "amount": "85.50",
+  "category": "Alimentação",
+  "transactionDate": "2026-03-30T12:00:00Z"
+}
+
+### Criar transação com parcelamento
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "description": "Passagem aérea",
+  "amount": "1200.00",
+  "installments": 3,
+  "category": "Viagem",
+  "transactionDate": "2026-03-30T10:00:00Z"
+}
+
+### Criar transação parcelada em 6 vezes
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "description": "Notebook",
+  "amount": "3600.00",
+  "installments": 6,
+  "category": "Eletrônicos",
+  "transactionDate": "2026-03-30T14:00:00Z"
+}
+
+### Listar todas as transações
+GET {{baseUrl}}/transactions
+Authorization: Bearer {{accessToken}}
+
+@transactionId = abc123
+### Buscar transação específica
+GET {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{accessToken}}
+
+### Atualizar transação
+PUT {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "description": "Almoço no novo restaurante",
+  "category": "Alimentação - Atualizado"
+}
+
+### Deletar transação
+DELETE {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{accessToken}}
+
+@installmentId = xyz789
+### Pagar parcela
+POST {{baseUrl}}/installments/pay
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "installmentId": "{{installmentId}}"
+}

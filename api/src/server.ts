@@ -6,6 +6,8 @@ import { authRoutes } from '@modules/auth/auth.routes';
 import { smsRoutes } from '@modules/sms/sms.routes';
 import { otpRoutes } from '@modules/otp/otp.routes';
 import { pinRoutes } from '@modules/pin/pin.routes';
+import { cardsRoutes } from '@modules/cards/cards.routes';
+import { transactionsRoutes } from '@modules/transactions/transactions.routes';
 
 dotenv.config();
 
@@ -17,6 +19,8 @@ app.register(authRoutes);
 app.register(smsRoutes);
 app.register(otpRoutes);
 app.register(pinRoutes);
+app.register(cardsRoutes);
+app.register(transactionsRoutes);
 
 app.get('/health', async () => ({status: 'ok'}));
 

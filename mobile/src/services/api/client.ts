@@ -9,7 +9,8 @@ import {
 } from '@services/cache';
 import {isNetworkOnline} from '@services/connectivity';
 
-const DEFAULT_BASE_URL = 'http://localhost:3000';
+const DEFAULT_BASE_URL =
+  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
 const REQUEST_TIMEOUT = 30000;
 

@@ -4,6 +4,7 @@ import HomeScreen from '@modules/auth/screens/HomeScreen';
 import SettingsScreen from '@modules/auth/screens/SettingsScreen';
 import SetPinScreen from '@modules/auth/screens/SetPinScreen';
 import CardsScreen from '@modules/cards/screens/CardsScreen';
+import TransactionsScreen from '@modules/transactions/screens/TransactionsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,10 @@ export function AppNavigator() {
       <Stack.Screen 
         name="Cards" 
         component={CardsScreen}
+      />
+      <Stack.Screen 
+        name="Transactions" 
+        component={TransactionsScreen}
       />
     </Stack.Navigator>
   );

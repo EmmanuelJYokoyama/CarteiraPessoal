@@ -1,25 +1,20 @@
+import {useState} from 'react';
 import {loginWithPin} from './api/pin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useAuth} from '@contexts/AuthContext';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export interface PinLoginState {
-  attempts: number;
-  isLocked: boolean;
-  lockoutTime: number;
-  error: string;
-}
-
-export interface PinLoginResponse {
-  success: boolean;
-  state?: PinLoginState;
-  error?: string;
-}
-
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+};
+
+export const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
 export const checkLockoutStatus = async (): Promise<{
@@ -48,113 +43,114 @@ export const checkLockoutStatus = async (): Promise<{
   return {isLocked, lockoutTime, attempts};
 };
 
-export const handlePinLogin = async (
-  email: string,
-  pin: string
-): Promise<PinLoginResponse> => {
-  if (!isValidEmail(email)) {
-    return {
-      success: false,
-      error: 'Email inválido',
-    };
-  }
+export function usePinLogin() {
+  const {signIn} = useAuth();
+  const [email, setEmail] = useState('');
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutTime, setLockoutTime] = useState(0);
 
-  if (pin.length !== 4) {
-    return {
-      success: false,
-      error: 'PIN deve ter 4 dígitos',
-    };
-  }
-
-  // Check lockout status
-  const {isLocked, lockoutTime, attempts} = await checkLockoutStatus();
-  if (isLocked) {
-    return {
-      success: false,
-      error: 'Muitas tentativas. Tente novamente em 5 minutos.',
-      state: {attempts, isLocked, lockoutTime, error: ''},
-    };
-  }
-
-  try {
-    const response = await loginWithPin({email, pin});
-
-    if (response.success && response.token) {
-      // Reset attempts on success
-      await AsyncStorage.removeItem('@pin_attempts');
-      await AsyncStorage.removeItem('@pin_lockout');
-
-      // Save token
-      await AsyncStorage.setItem('@access_token', response.token);
-
-      return {
-        success: true,
-        state: {attempts: 0, isLocked: false, lockoutTime: 0, error: ''},
-      };
-    } else {
-      throw new Error('Login com PIN falhou');
+  const handlePinLogin = async () => {
+    if (!isValidEmail(email)) {
+      setError('Email inválido');
+      return;
     }
-  } catch (err: any) {
-    console.error('PIN Login Error:', err);
 
-    const errorMsg = err.message || 'Erro ao fazer login';
-    let displayError = errorMsg;
+    if (pin.length !== 4) {
+      setError('PIN deve ter 4 dígitos');
+      return;
+    }
 
-    if (
-      errorMsg.includes('usuário') ||
-      errorMsg.includes('não encontrado') ||
-      errorMsg.includes('404')
-    ) {
-      displayError = 'Email não registrado';
-    } else if (errorMsg.includes('não configurado')) {
-      displayError = 'PIN não configurado para este usuário';
-    } else if (errorMsg.includes('incorreto') || errorMsg.includes('401')) {
-      const newAttempts = attempts + 1;
-      await AsyncStorage.setItem('@pin_attempts', newAttempts.toString());
+    // Check lockout status
+    const {isLocked: locked, lockoutTime: time, attempts: att} = await checkLockoutStatus();
+    if (locked) {
+      setError('Muitas tentativas. Tente novamente em 5 minutos.');
+      setIsLocked(true);
+      setLockoutTime(time);
+      return;
+    }
 
-      if (newAttempts >= MAX_ATTEMPTS) {
-        const lockoutTimestamp = Date.now() + LOCKOUT_DURATION;
-        await AsyncStorage.setItem('@pin_lockout', lockoutTimestamp.toString());
+    try {
+      setLoading(true);
+      setError('');
 
-        return {
-          success: false,
-          error: 'Muitas tentativas. Tente novamente em 5 minutos.',
-          state: {
-            attempts: newAttempts,
-            isLocked: true,
-            lockoutTime: LOCKOUT_DURATION / 1000,
-            error: '',
-          },
-        };
+      const response = await loginWithPin({email, pin});
+
+      if (response.success && response.token) {
+        // Reset attempts on success
+        await AsyncStorage.removeItem('@pin_attempts');
+        await AsyncStorage.removeItem('@pin_lockout');
+        await signIn(response.token, '', {
+          email: email,
+          name: response.user.name,
+        });
+
+        setEmail('');
+        setPin('');
+        setAttempts(0);
+        setIsLocked(false);
       } else {
-        const remaining = MAX_ATTEMPTS - newAttempts;
-        displayError =
-          remaining === 1
-            ? 'PIN incorreto. Última tentativa antes do bloqueio.'
-            : `PIN incorreto. Tentativas restantes: ${remaining}`;
-
-        return {
-          success: false,
-          error: displayError,
-          state: {attempts: newAttempts, isLocked: false, lockoutTime: 0, error: displayError},
-        };
+        setError('Login com PIN falhou');
       }
+    } catch (err: any) {
+      console.error('PIN Login Error:', err);
+
+      const errorMsg = err.message || 'Erro ao fazer login';
+      let displayError = errorMsg;
+
+      if (
+        errorMsg.includes('usuário') ||
+        errorMsg.includes('não encontrado') ||
+        errorMsg.includes('404')
+      ) {
+        displayError = 'Email não registrado';
+      } else if (errorMsg.includes('não configurado')) {
+        displayError = 'PIN não configurado para este usuário';
+      } else if (errorMsg.includes('incorreto') || errorMsg.includes('401')) {
+        const newAttempts = attempts + 1;
+        await AsyncStorage.setItem('@pin_attempts', newAttempts.toString());
+
+        if (newAttempts >= MAX_ATTEMPTS) {
+          const lockoutTimestamp = Date.now() + LOCKOUT_DURATION;
+          await AsyncStorage.setItem('@pin_lockout', lockoutTimestamp.toString());
+
+          setError('Muitas tentativas. Tente novamente em 5 minutos.');
+          setIsLocked(true);
+          setLockoutTime(LOCKOUT_DURATION / 1000);
+        } else {
+          const remaining = MAX_ATTEMPTS - newAttempts;
+          displayError =
+            remaining === 1
+              ? 'PIN incorreto. Última tentativa antes do bloqueio.'
+              : `PIN incorreto. Tentativas restantes: ${remaining}`;
+
+          setError(displayError);
+          setAttempts(newAttempts);
+        }
+      } else {
+        setError(displayError);
+      }
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return {
-      success: false,
-      error: displayError,
-    };
-  }
-};
-
-export const clearPinLockout = async (): Promise<void> => {
-  await AsyncStorage.removeItem('@pin_lockout');
-  await AsyncStorage.removeItem('@pin_attempts');
-};
-
-export const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
+  return {
+    email,
+    setEmail,
+    pin,
+    setPin,
+    error,
+    setError,
+    loading,
+    attempts,
+    isLocked,
+    lockoutTime,
+    setLockoutTime,
+    setIsLocked,
+    handlePinLogin,
+  };
+}

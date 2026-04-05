@@ -8,6 +8,18 @@ export default function CardsScreen() {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
+  // Formatadores
+  function formatCardDigits(lastFour: string): string {
+    return `•••• •••• •••• ${lastFour}`;
+  }
+
+  function formatExpiryDate(expiryDate: string): string {
+    // Espera formato MM/YY
+    const [month, year] = expiryDate.split('/');
+    if (!month || !year) return expiryDate;
+    return `${month}/20${year}`;
+  }
+
   useEffect(() => {
     loadCards();
   }, []);
@@ -87,12 +99,11 @@ export default function CardsScreen() {
                     <Text style={{fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 4}}>
                       {item.name}
                     </Text>
-                    <Text style={{fontSize: 12, color: '#999', marginBottom: 8}}>
-                      {item.brand?.toUpperCase()} • ••••{' '}
-                      {item.lastFourDigits}
+                    <Text style={{fontSize: 12, color: '#999', marginBottom: 8, fontFamily: 'monospace'}}>
+                      {item.brand?.toUpperCase()} • {formatCardDigits(item.lastFourDigits)}
                     </Text>
                     <Text style={{fontSize: 12, color: '#999'}}>
-                      Vence em: {item.expiryDate}
+                      Vence em: {formatExpiryDate(item.expiryDate)}
                     </Text>
                   </View>
                 )}

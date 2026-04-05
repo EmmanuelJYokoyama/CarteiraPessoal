@@ -1,17 +1,15 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import {confirmSms, resendSms} from '@services/api/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useAuth} from '@contexts/AuthContext';
 
-export function confirmSmsService(email: string, onSuccess: () => void) {
+export function useConfirmSmsService(email: string) {
+  const {signIn} = useAuth();
   const [code, setCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
-  const canSubmit = useMemo(
-    () => code.trim().length === 6,
-    [code],
-  );
+  const canSubmit = code.trim().length === 6;
 
   async function handleConfirmSms() {
     if (!canSubmit || loading) return;
@@ -25,14 +23,10 @@ export function confirmSmsService(email: string, onSuccess: () => void) {
         code: code.trim(),
       });
 
-      await AsyncStorage.setItem('@access_token', response.accessToken);
-      await AsyncStorage.setItem('@refresh_token', response.refreshToken);
-      await AsyncStorage.setItem('@user_data', JSON.stringify({
+      await signIn(response.accessToken, response.refreshToken, {
         name: response.name,
         email: response.email,
-      }));
-
-      onSuccess();
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'Código inválido ou expirado',

@@ -62,6 +62,19 @@ export async function clearCache(key?: string): Promise<void> {
   }
 }
 
+export async function invalidateCache(endpoint: string): Promise<void> {
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const keysToRemove = allKeys.filter(k => 
+      k.startsWith(CACHE_PREFIX) && k.includes(endpoint)
+    );
+    await Promise.all(keysToRemove.map(k => AsyncStorage.removeItem(k)));
+    console.log(`[Cache] Invalidated cache for ${endpoint}`);
+  } catch (error) {
+    console.error('[Cache] Error invalidating cache:', error);
+  }
+}
+
 export interface PendingRequest {
   id: string;
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

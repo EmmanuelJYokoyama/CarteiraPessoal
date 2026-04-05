@@ -1,4 +1,4 @@
-import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator} from 'react-native';
+import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView} from 'react-native';
 import {useCardBrandDetection, getCardBrandColor, getCardBrandLabel} from '@hooks/useCardBrandDetection';
 import {cardsService} from '@services/cardsService';
 import {styles} from './styles/AddCardForm.styles';
@@ -30,7 +30,7 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
   const brandLabel = getCardBrandLabel(brand);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior="padding" enabled={true}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
@@ -123,6 +123,6 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
           )}
         </Pressable>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

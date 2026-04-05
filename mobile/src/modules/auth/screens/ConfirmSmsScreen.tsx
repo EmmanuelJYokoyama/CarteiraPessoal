@@ -3,7 +3,7 @@ import {Pressable, Text, TextInput, View} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '@navigation/AuthNavigator';
 import {AppButton} from '@components/common/AppButton';
-import {confirmSmsService} from '@services/confirmSmsService';
+import {useConfirmSmsService} from '@services/confirmSmsService';
 import {styles} from './styles/ConfirmSmsScreen.styles';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ConfirmSms'>;
@@ -21,8 +21,7 @@ export default function ConfirmSmsScreen({route, navigation}: Props) {
     canSubmit,
     handleConfirmSms,
     handleResendCode,
-  } = confirmSmsService(email, () => {
-  });
+  } = useConfirmSmsService(email);
 
   const handleCodeChange = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '').slice(0, 6);

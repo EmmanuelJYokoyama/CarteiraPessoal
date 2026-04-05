@@ -4,7 +4,7 @@ import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {AuthStackParamList} from '@navigation/AuthNavigator';
 import {AppTextField} from '@components/common/AppTextField';
 import {AppButton}    from '@components/common/AppButton';
-import {loginService} from '@services/loginService';
+import {useLoginService} from '@services/loginService';
 import {styles} from './styles/LoginRegisterScreen.styles';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
@@ -17,8 +17,7 @@ export default function LoginScreen({navigation}: Props) {
     loading,
     canSubmit,
     handleLogin,
-  } = loginService(() => {
-  });
+  } = useLoginService();
 
   return (
     <View style={styles.container}>

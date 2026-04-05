@@ -12,6 +12,7 @@ type AuthContextType = {
   userToken: string | null;
   user: UserData | null;
   signOut: () => void;
+  signIn: (accessToken: string, refreshToken: string, user: UserData) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,6 +85,22 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     isSignedIn: state.isSignedIn,
     userToken: state.userToken,
     user: state.user,
+    signIn: async (accessToken: string, refreshToken: string, user: UserData) => {
+      try {
+        await AsyncStorage.setItem('@access_token', accessToken);
+        await AsyncStorage.setItem('@refresh_token', refreshToken);
+        await AsyncStorage.setItem('@user_data', JSON.stringify(user));
+        dispatch({
+          isLoading: false,
+          isSignedIn: true,
+          userToken: accessToken,
+          user,
+        });
+      } catch (e) {
+        console.error('Failed to sign in', e);
+        throw e;
+      }
+    },
     signOut: async () => {
       try {
         await AsyncStorage.removeItem('@access_token');

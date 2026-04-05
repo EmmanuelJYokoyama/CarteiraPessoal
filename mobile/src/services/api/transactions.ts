@@ -1,4 +1,5 @@
 import {apiRequest} from './client';
+import {clearCache} from '@services/cache';
 
 export type CreateTransactionPayload = {
   cardId?: string;
@@ -7,6 +8,7 @@ export type CreateTransactionPayload = {
   installments?: number;
   category?: string;
   transactionDate: string;
+  status?: 'pending' | 'completed' | 'cancelled';
 };
 
 export type Transaction = {
@@ -43,10 +45,15 @@ export type CreateTransactionResponse = {
 export type ListTransactionsResponse = Transaction[];
 
 export async function createTransaction(payload: CreateTransactionPayload) {
-  return apiRequest<CreateTransactionResponse>('/transactions', {
+  const response = await apiRequest<CreateTransactionResponse>('/transactions', {
     method: 'POST',
     body: payload,
   });
+  
+  // Invalidar cache após criar nova transação
+  await clearCache('GET:/transactions');
+  
+  return response;
 }
 
 export async function listTransactions() {
@@ -69,16 +76,26 @@ export async function updateTransaction(
   transactionId: string,
   payload: Partial<CreateTransactionPayload>
 ) {
-  return apiRequest<{transaction: Transaction}>(`/transactions/${transactionId}`, {
+  const response = await apiRequest<{transaction: Transaction}>(`/transactions/${transactionId}`, {
     method: 'PUT',
     body: payload,
   });
+  
+  // Invalidar cache após atualizar
+  await clearCache('GET:/transactions');
+  
+  return response;
 }
 
 export async function deleteTransaction(transactionId: string) {
-  return apiRequest<{message: string}>(`/transactions/${transactionId}`, {
+  const response = await apiRequest<{message: string}>(`/transactions/${transactionId}`, {
     method: 'DELETE',
   });
+  
+  // Invalidar cache após deletar
+  await clearCache('GET:/transactions');
+  
+  return response;
 }
 
 export async function payInstallment(installmentId: string) {

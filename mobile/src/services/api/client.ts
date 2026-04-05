@@ -10,36 +10,49 @@ import {
 import {isNetworkOnline} from '@services/connectivity';
 
 const DEFAULT_BASE_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+  Platform.OS === 'android' ? 'http://localhost:3000' : 'http://localhost:3000';
 
 const REQUEST_TIMEOUT = 30000;
 
 export const API_BASE_URL = DEFAULT_BASE_URL;
 
+let onTokenExpired: (() => void) | null = null;
+
+export function setTokenExpiredCallback(callback: () => void) {
+  onTokenExpired = callback;
+}
+
+const PUBLIC_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/confirm-sms',
+  '/pin/login',
+  '/pin/set',
+  '/pin/validate',
+];
+
 type RequestOptions = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
-  cacheTTL?: number; // milliseconds
-  skipCache?: boolean; // force fetch regardless of cache
-  skipQueue?: boolean; // skip queueing if offline (throw error instead)
+  cacheTTL?: number;
+  skipCache?: boolean;
+  skipQueue?: boolean;
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions): Promise<T> {
   const isOnline = isNetworkOnline();
   const cacheKey = `${options.method}:${path}`;
 
-  // For GET requests, try cache first if offline or not skipping cache
   if (options.method === 'GET' && !options.skipCache) {
     const cached = await getCachedResponse<T>(cacheKey);
     if (cached) {
-      console.log(`[API] Using cached response for ${path}`);
+      console.log(`[API] Cache hit: ${path}`);
       return cached;
     }
   }
 
-  // If offline and not a GET, queue the request
   if (!isOnline && options.method !== 'GET' && !options.skipQueue) {
-    console.log(`[API] Offline - queueing request: ${options.method} ${path}`);
+    console.log(`[API] Offline - queuing: ${options.method} ${path}`);
     await addPendingRequest({
       method: options.method,
       path,
@@ -48,26 +61,22 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
     throw new Error('OFFLINE_REQUEST_QUEUED');
   }
 
-  // If offline with skipQueue, throw error
   if (!isOnline && options.skipQueue) {
     throw new Error('OFFLINE');
   }
 
-  // Make actual request
   try {
-    let token: string | null = null;
-    try {
-      token = await AsyncStorage.getItem('@access_token');
-    } catch (e) {
-      console.warn('[API] Failed to get token:', e);
-    }
-
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const isPublicEndpoint = PUBLIC_ENDPOINTS.some(ep => path.includes(ep));
+
+    if (!isPublicEndpoint) {
+      const token = await AsyncStorage.getItem('@access_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     const controller = new AbortController();
@@ -77,12 +86,70 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
       const url = `${API_BASE_URL}${path}`;
       console.log(`[API] ${options.method} ${url}`);
 
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         method: options.method,
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
         signal: controller.signal,
       });
+
+      // If token expired, try to refresh
+      if (response.status === 401 && !isPublicEndpoint) {
+        console.log('[API] Token expired, attempting refresh');
+        try {
+          const refreshToken = await AsyncStorage.getItem('@refresh_token');
+          if (refreshToken) {
+            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${refreshToken}`,
+              },
+            });
+
+            if (refreshResponse.ok) {
+              const refreshData = (await refreshResponse.json()) as any;
+              const newToken = refreshData.accessToken;
+              
+              await AsyncStorage.setItem('@access_token', newToken);
+              console.log('[API] Token refreshed');
+
+              headers['Authorization'] = `Bearer ${newToken}`;
+              response = await fetch(url, {
+                method: options.method,
+                headers,
+                body: options.body ? JSON.stringify(options.body) : undefined,
+                signal: controller.signal,
+              });
+            } else {
+              console.log('[API] Refresh failed');
+              await AsyncStorage.removeItem('@access_token');
+              await AsyncStorage.removeItem('@refresh_token');
+              await AsyncStorage.removeItem('@user_data');
+              if (onTokenExpired) {
+                onTokenExpired();
+              }
+              throw new Error('Session expired');
+            }
+          } else {
+            await AsyncStorage.removeItem('@access_token');
+            await AsyncStorage.removeItem('@user_data');
+            if (onTokenExpired) {
+              onTokenExpired();
+            }
+            throw new Error('Session expired');
+          }
+        } catch (refreshError) {
+          console.error('[API] Refresh error:', refreshError);
+          await AsyncStorage.removeItem('@access_token');
+          await AsyncStorage.removeItem('@refresh_token');
+          await AsyncStorage.removeItem('@user_data');
+          if (onTokenExpired) {
+            onTokenExpired();
+          }
+          throw refreshError;
+        }
+      }
 
       const data = (await response.json()) as Record<string, unknown>;
 
@@ -92,7 +159,6 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
         throw new Error(message);
       }
 
-      // Cache successful responses (especially GET)
       if (options.method === 'GET' || options.cacheTTL) {
         await setCachedResponse(cacheKey, data, options.cacheTTL);
       }
@@ -114,14 +180,13 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
   }
 }
 
-// Retry all pending requests
 export async function syncPendingRequests(): Promise<{
   success: number;
   failed: number;
 }> {
   const isOnline = isNetworkOnline();
   if (!isOnline) {
-    console.log('[Sync] Still offline, skipping sync');
+    console.log('[Sync] Offline, skipping');
     return {success: 0, failed: 0};
   }
 
@@ -129,7 +194,7 @@ export async function syncPendingRequests(): Promise<{
   let success = 0;
   let failed = 0;
 
-  console.log(`[Sync] Syncing ${pending.length} pending requests...`);
+  console.log(`[Sync] Syncing ${pending.length} requests`);
 
   for (const request of pending) {
     try {
@@ -148,6 +213,6 @@ export async function syncPendingRequests(): Promise<{
     }
   }
 
-  console.log(`[Sync] Complete: ${success} success, ${failed} failed`);
+  console.log(`[Sync] Done: ${success} ok, ${failed} fail`);
   return {success, failed};
 }

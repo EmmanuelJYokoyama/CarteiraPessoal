@@ -1,17 +1,15 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import {login} from '@services/api/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useAuth} from '@contexts/AuthContext';
 
-export function loginService(onSuccess: () => void) {
-  const [email,        setEmail]        = useState('');
-  const [password,     setPassword]     = useState('');
+export function useLoginService() {
+  const {signIn} = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [loading,      setLoading]      = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.trim().length >= 6,
-    [email, password],
-  );
+  const canSubmit = email.trim().length > 0 && password.trim().length >= 6;
 
   async function handleLogin() {
     if (!canSubmit || loading) return;
@@ -25,18 +23,13 @@ export function loginService(onSuccess: () => void) {
         password,
       });
 
-      await AsyncStorage.setItem('@access_token',  response.accessToken);
-      await AsyncStorage.setItem('@refresh_token', response.refreshToken);
-      await AsyncStorage.setItem('@user_data', JSON.stringify({
+      await signIn(response.accessToken, response.refreshToken, {
         name: response.name,
         email: response.email,
-      }));
-
-      onSuccess();
+      });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Não foi possível entrar';
       
-      // Handle offline queue
       if (errorMsg === 'OFFLINE_REQUEST_QUEUED') {
         setErrorMessage('Solicitação enfileirada. Sincronizará quando conectar.');
       } else {
@@ -48,8 +41,10 @@ export function loginService(onSuccess: () => void) {
   }
 
   return {
-    email,        setEmail,
-    password,     setPassword,
+    email,
+    setEmail,
+    password,
+    setPassword,
     errorMessage,
     loading,
     canSubmit,

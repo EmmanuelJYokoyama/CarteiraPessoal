@@ -27,6 +27,24 @@ export const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: '#0f0f0f',
   },
+  textAreaInput: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 16,
+    color: '#fff',
+    backgroundColor: '#0f0f0f',
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  picker: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 6,
+    backgroundColor: '#0f0f0f',
+    color: '#fff',
+  },
   errorMessage: {
     backgroundColor: 'rgba(231, 76, 60, 0.1)',
     borderWidth: 1,
@@ -41,39 +59,54 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  brandContainer: {
+  rowContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 6,
+    gap: 12,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  dateButton: {
     borderWidth: 1,
     borderColor: '#333',
-  },
-  brandBox: {
-    width: 48,
-    height: 28,
-    borderRadius: 4,
-    marginRight: 12,
+    borderRadius: 6,
+    padding: 12,
+    backgroundColor: '#0f0f0f',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  brandText: {
-    fontSize: 11,
+  dateButtonText: {
     color: '#fff',
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '500',
   },
-  brandLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+  cardPickerContainer: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 6,
+    backgroundColor: '#0f0f0f',
+    paddingVertical: 8,
+  },
+  cardPickerItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  cardPickerItemText: {
     color: '#fff',
+    fontSize: 14,
   },
-  lastFourDigits: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 3,
+  selectedCardContainer: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 6,
+    padding: 12,
+    backgroundColor: '#1a1a1a',
+  },
+  selectedCardText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   submitButton: {
     marginTop: 28,
@@ -90,32 +123,7 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  brandInfo: {
-    flex: 1,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#333',
-    backgroundColor: '#0f0f0f',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    backgroundColor: '#fff',
-    borderColor: '#fff',
-  },
-  typeButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#999',
-    textAlign: 'center',
-  },
-  typeButtonTextActive: {
-    color: '#000',
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
 });
-

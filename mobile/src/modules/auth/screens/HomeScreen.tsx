@@ -73,6 +73,15 @@ export default function HomeScreen({navigation}: Props) {
               style={styles.menuItem}
               onPress={() => {
                 setMenuVisible(false);
+                navigation.navigate('Transactions');
+              }}>
+              <Text style={styles.menuItemText}>Minhas Despesas</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
                 navigation.navigate('Settings');
               }}>
               <Text style={styles.menuItemText}>Configurações</Text>

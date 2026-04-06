@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {AuthProvider, useAuth} from '@contexts/AuthContext';
@@ -6,10 +6,19 @@ import {AuthNavigator} from '@navigation/AuthNavigator';
 import {AppNavigator} from '@navigation/AppNavigator';
 import {ActivityIndicator, View} from 'react-native';
 import {useOfflineSync} from '@hooks/useOfflineSync';
+import {setTokenExpiredCallback} from '@services/api/client';
 
 function RootNavigator() {
-  const {isLoading, isSignedIn} = useAuth();
-  const {isOnline} = useOfflineSync(); // Initialize offline sync
+  const {isLoading, isSignedIn, signOut} = useAuth();
+  const {isOnline} = useOfflineSync();
+
+  // Registrar callback para quando o token expirar
+  useEffect(() => {
+    setTokenExpiredCallback(() => {
+      console.log('[Auth] Token expired, signing out...');
+      signOut();
+    });
+  }, [signOut]);
 
   if (isLoading) {
     return (

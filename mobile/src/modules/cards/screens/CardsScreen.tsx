@@ -8,6 +8,18 @@ export default function CardsScreen() {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
+  // Formatadores
+  function formatCardDigits(lastFour: string): string {
+    return `•••• •••• •••• ${lastFour}`;
+  }
+
+  function formatExpiryDate(expiryDate: string): string {
+    // Espera formato MM/YY
+    const [month, year] = expiryDate.split('/');
+    if (!month || !year) return expiryDate;
+    return `${month}/20${year}`;
+  }
+
   useEffect(() => {
     loadCards();
   }, []);
@@ -30,10 +42,10 @@ export default function CardsScreen() {
   }
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+    <SafeAreaView style={{flex: 1, backgroundColor: '#0a0a0a'}}>
       <View style={{flex: 1}}>
-        <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee'}}>
-          <Text style={{fontSize: 20, fontWeight: '700', color: '#000', marginBottom: 16}}>
+        <View style={{padding: 16, marginTop: 14, borderBottomWidth: 1, borderBottomColor: '#333'}}>
+          <Text style={{fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 16, marginTop: 8}}>
             Meus Cartões
           </Text>
           {!showForm ? (
@@ -41,11 +53,11 @@ export default function CardsScreen() {
               style={{
                 paddingVertical: 12,
                 paddingHorizontal: 16,
-                backgroundColor: '#0066cc',
+                backgroundColor: '#fff',
                 borderRadius: 8,
               }}
               onPress={() => setShowForm(true)}>
-              <Text style={{color: '#fff', textAlign: 'center', fontWeight: '600'}}>
+              <Text style={{color: '#000', textAlign: 'center', fontWeight: '600'}}>
                 Adicionar Cartão
               </Text>
             </Pressable>
@@ -56,7 +68,7 @@ export default function CardsScreen() {
           <View style={{flex: 1}}>
             <View style={{padding: 16, alignItems: 'flex-end'}}>
               <Pressable onPress={() => setShowForm(false)}>
-                <Text style={{color: '#666', fontSize: 16}}>✕</Text>
+                <Text style={{color: '#fff', fontSize: 16}}>✕</Text>
               </Pressable>
             </View>
             <AddCardForm onSuccess={handleCardAdded} />
@@ -65,7 +77,7 @@ export default function CardsScreen() {
           <View style={{flex: 1}}>
             {loading ? (
               <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                <ActivityIndicator size="large" color="#0066cc" />
+                <ActivityIndicator size="large" color="#fff" />
               </View>
             ) : cards.length === 0 ? (
               <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
@@ -82,17 +94,16 @@ export default function CardsScreen() {
                     style={{
                       padding: 16,
                       borderBottomWidth: 1,
-                      borderBottomColor: '#eee',
+                      borderBottomColor: '#333',
                     }}>
-                    <Text style={{fontSize: 16, fontWeight: '600', color: '#000', marginBottom: 4}}>
+                    <Text style={{fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 4}}>
                       {item.name}
                     </Text>
-                    <Text style={{fontSize: 12, color: '#666', marginBottom: 8}}>
-                      {item.brand?.toUpperCase()} • ••••{' '}
-                      {item.lastFourDigits}
+                    <Text style={{fontSize: 12, color: '#999', marginBottom: 8, fontFamily: 'monospace'}}>
+                      {item.brand?.toUpperCase()} • {formatCardDigits(item.lastFourDigits)}
                     </Text>
                     <Text style={{fontSize: 12, color: '#999'}}>
-                      Vence em: {item.expiryDate}
+                      Vence em: {formatExpiryDate(item.expiryDate)}
                     </Text>
                   </View>
                 )}

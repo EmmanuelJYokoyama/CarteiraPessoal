@@ -2,7 +2,7 @@ import {Platform} from 'react-native';
 
 const HEALTH_URL =
   Platform.OS === 'android'
-    ? 'http://10.0.2.2:3000/health'
+    ? 'http://localhost:3000/health'  // with adb reverse tcp:3000 tcp:3000
     : 'http://localhost:3000/health';
 
 let isOnline = true;
@@ -13,19 +13,23 @@ function initConnectivityCheck() {
   const checkConnectivity = async () => {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+      const timeout = setTimeout(() => controller.abort(), 25000); // Aumentado de 15s para 25s
 
+      console.log(`[Connectivity] Checking health at ${HEALTH_URL}`);
       const response = await fetch(HEALTH_URL, {signal: controller.signal});
       clearTimeout(timeout);
 
       const wasOnline = isOnline;
       isOnline = response.ok;
 
+      console.log(`[Connectivity] Health check response: ${response.status}, Online: ${isOnline}`);
+
       if (wasOnline !== isOnline) {
         console.log(`[Connectivity] Online: ${isOnline}`);
         notifyListeners(isOnline);
       }
     } catch (error) {
+      console.log(`[Connectivity] Health check error:`, error);
       if (isOnline) {
         isOnline = false;
         console.log('[Connectivity] Online: false');

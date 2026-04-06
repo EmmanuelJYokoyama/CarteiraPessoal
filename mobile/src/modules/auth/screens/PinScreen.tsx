@@ -3,9 +3,8 @@ import {View, Text, Pressable, TextInput} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {
-  handlePinLogin,
+  usePinLogin,
   checkLockoutStatus,
-  isValidEmail,
   formatTime,
 } from '@services/pinLoginService';
 import {styles} from './styles/PinScreen.styles';
@@ -13,26 +12,34 @@ import {styles} from './styles/PinScreen.styles';
 type Props = NativeStackScreenProps<any, 'PinLogin'>;
 
 export default function PinScreen({navigation}: Props) {
-  const [email, setEmail] = useState('');
-  const [pin, setPin] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [lockoutTime, setLockoutTime] = useState(0);
+  const {
+    email,
+    setEmail,
+    pin,
+    setPin,
+    error,
+    setError,
+    loading,
+    attempts,
+    isLocked,
+    lockoutTime,
+    setLockoutTime,
+    setIsLocked,
+    handlePinLogin,
+  } = usePinLogin();
+
   const emailInputRef = useRef<TextInput>(null);
   const pinInputRef = useRef<TextInput>(null);
 
   // Check for lockout on mount
   useEffect(() => {
     const init = async () => {
-      const {isLocked: locked, lockoutTime: time, attempts: att} = await checkLockoutStatus();
+      const {isLocked: locked, lockoutTime: time} = await checkLockoutStatus();
       setIsLocked(locked);
       setLockoutTime(time);
-      setAttempts(att);
     };
     init();
-  }, []);
+  }, [setIsLocked, setLockoutTime]);
 
   // Countdown timer for lockout
   useEffect(() => {
@@ -49,7 +56,7 @@ export default function PinScreen({navigation}: Props) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isLocked, lockoutTime]);
+  }, [isLocked, lockoutTime, setLockoutTime, setIsLocked]);
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
@@ -64,25 +71,8 @@ export default function PinScreen({navigation}: Props) {
   };
 
   const handleSubmit = async () => {
-    if (loading) return;
-
-    setLoading(true);
-    const result = await handlePinLogin(email, pin);
-
-    if (result.success) {
-      setEmail('');
-      setPin('');
-      navigation.replace('Home' as any);
-    } else {
-      setError(result.error || 'Erro ao fazer login');
-      if (result.state) {
-        setAttempts(result.state.attempts);
-        setIsLocked(result.state.isLocked);
-        setLockoutTime(result.state.lockoutTime);
-      }
-      setPin('');
-    }
-    setLoading(false);
+    if (loading || isLocked) return;
+    await handlePinLogin();
   };
 
   return (

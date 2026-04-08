@@ -103,13 +103,27 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
           <Text style={styles.label}>Validade (MM/YY)</Text>
           <TextInput
             style={styles.input}
-            placeholder="12/25"
+            placeholder="1225"
             placeholderTextColor="#666"
-            value={expiryDate}
-            onChangeText={text => setExpiryDate(text.slice(0, 5))}
+            value={expiryDate.replace(/\D/g, '')}
+            onChangeText={text => {
+              const cleaned = text.replace(/\D/g, '').slice(0, 4);
+              if (cleaned.length <= 2) {
+                setExpiryDate(cleaned);
+              } else {
+                const formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
+                setExpiryDate(formatted);
+              }
+            }}
             keyboardType="numeric"
             editable={!loading}
+            maxLength={5}
           />
+          {expiryDate && expiryDate.length >= 2 && (
+            <Text style={{fontSize: 12, color: '#888', marginTop: 4}}>
+              Formato: {expiryDate.includes('/') ? expiryDate : expiryDate.replace(/(\d{2})(\d*)/, '$1/$2')}
+            </Text>
+          )}
         </View>
 
         <Pressable

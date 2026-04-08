@@ -32,18 +32,23 @@ export function TransactionDetailsModal({
     isLoading,
     syncState,
     handleComplete,
+    handlePaySpecificInstallment,
     handleSaveEdit,
     handleDelete,
-  } = useTransactionModal(transaction, onUpdate, onClose);
+    installments,
+    showInstallmentPicker,
+    setShowInstallmentPicker,
+  } = useTransactionModal(transaction, onUpdate, onClose, visible);
 
   React.useEffect(() => {
     syncState();
   }, [transaction, syncState]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.container}>
-        <View style={styles.content}>
+    <>
+      <Modal visible={visible} transparent animationType="slide">
+        <View style={styles.container}>
+          <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.title}>Detalhes da Despesa</Text>
             <Pressable onPress={onClose} disabled={isLoading}>
@@ -82,12 +87,80 @@ export function TransactionDetailsModal({
                 </View>
 
                 {transaction.installments > 1 && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.label}>Parcelas</Text>
-                    <Text style={styles.value}>
-                      {transaction.installmentsPaid}/{transaction.installments}
-                    </Text>
-                  </View>
+                  <>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.label}>Parcelas</Text>
+                      <Text style={styles.value}>
+                        {transaction.installmentsPaid}/{transaction.installments}
+                      </Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                      <Text style={styles.label}>Detalhes das Parcelas</Text>
+                      <View style={{marginTop: 8}}>
+                        {installments.map((installment) => (
+                          <View
+                            key={installment.id}
+                            style={{
+                              paddingVertical: 10,
+                              paddingHorizontal: 10,
+                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              borderRadius: 6,
+                              marginBottom: 8,
+                              borderLeftWidth: 3,
+                              borderLeftColor:
+                                installment.status === 'completed'
+                                  ? '#2ed573'
+                                  : '#f1c40f',
+                            }}>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}>
+                              <Text style={{color: '#e8e8e8', fontWeight: '600'}}>
+                                Parcela {installment.installmentNumber}
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  color:
+                                    installment.status === 'completed'
+                                      ? '#2ed573'
+                                      : '#f1c40f',
+                                  fontWeight: '600',
+                                }}>
+                                {installment.status === 'completed'
+                                  ? 'Paga'
+                                  : 'Pendente'}
+                              </Text>
+                            </View>
+                            <Text
+                              style={{
+                                color: '#999',
+                                fontSize: 12,
+                                marginTop: 4,
+                              }}>
+                              Valor: R${' '}
+                              {parseFloat(installment.amount).toFixed(2)}
+                            </Text>
+                            <Text
+                              style={{
+                                color: '#999',
+                                fontSize: 12,
+                                marginTop: 2,
+                              }}>
+                              Vencimento:{' '}
+                              {new Date(
+                                installment.dueDate,
+                              ).toLocaleDateString('pt-BR')}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </>
                 )}
 
                 <View style={styles.detailRow}>
@@ -159,14 +232,22 @@ export function TransactionDetailsModal({
                 {transaction.status !== 'completed' && (
                   <Pressable
                     style={[styles.button, styles.completeButton]}
-                    onPress={handleComplete}
+                    onPress={
+                      transaction.installments > 1
+                        ? () => setShowInstallmentPicker(true)
+                        : handleComplete
+                    }
                     disabled={isLoading}>
                     {isLoading ? (
                       <ActivityIndicator size="small" color="#0a0a0a" />
                     ) : (
                       <>
                         <CheckCircle size={18} color="#0a0a0a" />
-                        <Text style={styles.buttonText}>Concluir</Text>
+                        <Text style={styles.buttonText}>
+                          {transaction.installments > 1
+                            ? 'Pagar Parcela'
+                            : 'Concluir'}
+                        </Text>
                       </>
                     )}
                   </Pressable>
@@ -213,5 +294,70 @@ export function TransactionDetailsModal({
         </View>
       </View>
     </Modal>
+
+    <Modal visible={showInstallmentPicker} transparent animationType="slide">
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Selecione a Parcela</Text>
+            <Pressable
+              onPress={() => setShowInstallmentPicker(false)}
+              disabled={isLoading}>
+              <X size={24} color="#e8e8e8" />
+            </Pressable>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={{padding: 16, paddingBottom: 120}}>
+              {installments
+                .filter((inst) => inst.status === 'pending')
+                .map((installment) => (
+                  <Pressable
+                    key={installment.id}
+                    onPress={() =>
+                      handlePaySpecificInstallment(installment.id)
+                    }
+                    disabled={isLoading}
+                    style={{
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      borderRadius: 8,
+                      marginBottom: 10,
+                      borderWidth: 1,
+                      borderColor: '#f1c40f',
+                    }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}>
+                      <View>
+                        <Text style={{color: '#e8e8e8', fontWeight: '600'}}>
+                          Parcela {installment.installmentNumber}
+                        </Text>
+                        <Text style={{color: '#999', fontSize: 12}}>
+                          R$ {parseFloat(installment.amount).toFixed(2)}
+                        </Text>
+                        <Text style={{color: '#999', fontSize: 12}}>
+                          Vencimento:{' '}
+                          {new Date(
+                            installment.dueDate,
+                          ).toLocaleDateString('pt-BR')}
+                        </Text>
+                      </View>
+                      {isLoading ? (
+                        <ActivityIndicator size="small" color="#f1c40f" />
+                      ) : null}
+                    </View>
+                  </Pressable>
+                ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }

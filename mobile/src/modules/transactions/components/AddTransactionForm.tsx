@@ -148,14 +148,44 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
           <Text style={styles.label}>Cartão (Opcional)</Text>
           {cards.length > 0 ? (
             <Pressable
-              style={styles.selectedCardContainer}
+              style={[
+                styles.selectedCardContainer,
+                {
+                  backgroundColor: selectedCard
+                    ? 'rgba(46, 213, 115, 0.1)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  borderColor: selectedCard ? '#2ed573' : '#444',
+                  borderWidth: 1,
+                },
+              ]}
               onPress={() => setShowCardPicker(true)}>
-              <Text style={styles.selectedCardText}>
-                {selectedCard ? `${selectedCard.name} (${selectedCard.brand.toUpperCase()})` : 'Nenhum cartão'}
-              </Text>
+              {selectedCard ? (
+                <View>
+                  <Text
+                    style={{
+                      color: '#2ed573',
+                      fontSize: 12,
+                      fontWeight: '600',
+                      marginBottom: 4,
+                      textTransform: 'uppercase',
+                    }}>
+                    {selectedCard.brand.toUpperCase()}
+                  </Text>
+                  <Text style={styles.selectedCardText}>
+                    {selectedCard.name}
+                  </Text>
+                  <Text style={{color: '#999', fontSize: 11, marginTop: 4}}>
+                    •••• {selectedCard.lastFourDigits}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.selectedCardText}>Nenhum cartão</Text>
+              )}
             </Pressable>
           ) : (
-            <Text style={{color: '#999', fontSize: 14}}>Nenhum cartão disponível</Text>
+            <Text style={{color: '#999', fontSize: 14}}>
+              Nenhum cartão disponível
+            </Text>
           )}
         </View>
 
@@ -227,11 +257,16 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
               <Text style={{color: '#fff', fontSize: 18, fontWeight: '700'}}>Selecionar Cartão</Text>
             </View>
             <FlatList
-              data={[{id: 'none', name: 'Nenhum cartão'} as any, ...cards]}
+              data={[{id: 'none', name: 'Nenhum cartão', brand: ''} as any, ...cards]}
               keyExtractor={(item) => item.id}
               renderItem={({item}) => (
                 <Pressable
-                  style={styles.cardPickerItem}
+                  style={{
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#2a2a2a',
+                  }}
                   onPress={() => {
                     if (item.id === 'none') {
                       setSelectedCard(null);
@@ -240,10 +275,41 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
                     }
                     setShowCardPicker(false);
                   }}>
-                  <Text style={styles.cardPickerItemText}>
-                    {item.name}
-                    {item.id !== 'none' && ` (${item.brand.toUpperCase()})`}
-                  </Text>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}>
+                    <View style={{flex: 1}}>
+                      <Text
+                        style={{
+                          color: '#fff',
+                          fontSize: 16,
+                          fontWeight: '600',
+                          marginBottom: 4,
+                        }}>
+                        {item.name}
+                      </Text>
+                      {item.brand && (
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                          <Text
+                            style={{
+                              color: '#999',
+                              fontSize: 12,
+                            }}>
+                            {item.brand.toUpperCase()}
+                          </Text>
+                          <Text style={{color: '#666', fontSize: 12}}>
+                            •••• {item.lastFourDigits}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    {selectedCard?.id === item.id && (
+                      <Text style={{color: '#2ed573', fontSize: 16}}>✓</Text>
+                    )}
+                  </View>
                 </Pressable>
               )}
               scrollEnabled={cards.length > 5}

@@ -1,14 +1,16 @@
-import {useState, useCallback} from 'react';
+import {useState, useCallback, useEffect} from 'react';
 import {Alert} from 'react-native';
-import {updateTransaction, deleteTransaction, payInstallment, Transaction} from '@services/api/transactions';
+import {updateTransaction, deleteTransaction, payInstallment, getTransaction, Transaction, Installment} from '@services/api/transactions';
 import {invalidateCache} from '@services/cache';
 
-export function useTransactionModal(transaction: Transaction, onUpdate: () => void, onClose: () => void) {
+export function useTransactionModal(transaction: Transaction, onUpdate: () => void, onClose: () => void, isVisible: boolean = true) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedDescription, setEditedDescription] = useState('');
   const [editedAmount, setEditedAmount] = useState('');
   const [editedCategory, setEditedCategory] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [installments, setInstallments] = useState<Installment[]>([]);
+  const [showInstallmentPicker, setShowInstallmentPicker] = useState(false);
 
   const syncState = useCallback(() => {
     setEditedDescription(transaction.description);
@@ -16,11 +18,38 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     setEditedCategory(transaction.category || '');
   }, [transaction]);
 
+  // Carrega as parcelas quando a transação tem mais de 1 parcela
+  useEffect(() => {
+    if (transaction.installments > 1 && isVisible) {
+      loadInstallments();
+    }
+  }, [transaction.id, isVisible]);
+
+  const loadInstallments = useCallback(async () => {
+    try {
+      const response = await getTransaction(transaction.id);
+      if (response.installments) {
+        setInstallments(response.installments);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar parcelas:', error);
+    }
+  }, [transaction.id]);
+
   const handleComplete = useCallback(async () => {
     try {
       setIsLoading(true);
       if (transaction.installments > 1) {
-        await payInstallment(transaction.id);
+        // Encontra a primeira parcela pendente
+        const nextPendingInstallment = installments.find(inst => inst.status === 'pending');
+        if (nextPendingInstallment) {
+          await payInstallment(nextPendingInstallment.id);
+          // Recarrega as parcelas para atualizar o status
+          await loadInstallments();
+        } else {
+          Alert.alert('Aviso', 'Todas as parcelas já foram pagas');
+          return;
+        }
       } else {
         await updateTransaction(transaction.id, {status: 'completed'});
       }
@@ -33,7 +62,25 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     } finally {
       setIsLoading(false);
     }
-  }, [transaction, onUpdate, onClose]);
+  }, [transaction, installments, onUpdate, onClose, loadInstallments]);
+
+  const handlePaySpecificInstallment = useCallback(async (installmentId: string) => {
+    try {
+      setIsLoading(true);
+      await payInstallment(installmentId);
+      // Recarrega as parcelas para atualizar o status
+      await loadInstallments();
+      await invalidateCache('transactions');
+      setShowInstallmentPicker(false);
+      onUpdate();
+      onClose();
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao pagar parcela');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onUpdate, onClose, loadInstallments]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editedDescription.trim() || !editedAmount) {
@@ -100,7 +147,11 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     isLoading,
     syncState,
     handleComplete,
+    handlePaySpecificInstallment,
     handleSaveEdit,
     handleDelete,
+    installments,
+    showInstallmentPicker,
+    setShowInstallmentPicker,
   };
 }

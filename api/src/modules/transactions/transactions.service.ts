@@ -13,7 +13,8 @@ export async function createTransaction(userId: string, input: CreateTransaction
   const amountPerInstallment = (amount / installmentCount).toFixed(2);
 
   return await db.transaction(async (tx) => {
-    const [newTransaction] = await tx
+    // Criar a transação principal (primeira parcela)
+    const newTransactionResult = await tx
       .insert(transactions)
       .values({
         userId,
@@ -28,6 +29,11 @@ export async function createTransaction(userId: string, input: CreateTransaction
       })
       .returning();
 
+    const newTransaction = Array.isArray(newTransactionResult) 
+      ? newTransactionResult[0] 
+      : newTransactionResult;
+
+    // Criar registros de parcelas
     const installmentsToCreate = Array.from({length: installmentCount}, (_, i) => {
       const dueDate = new Date(transactionDate);
       dueDate.setMonth(dueDate.getMonth() + i);
@@ -42,10 +48,32 @@ export async function createTransaction(userId: string, input: CreateTransaction
       };
     });
 
-    const createdInstallments = await tx
+    const createdInstallmentsResult = await tx
       .insert(installments)
       .values(installmentsToCreate)
       .returning();
+
+    const createdInstallments = Array.isArray(createdInstallmentsResult) 
+      ? createdInstallmentsResult 
+      : [createdInstallmentsResult];
+
+    // Gerar lançamentos futuros para as parcelas (a partir da 2ª parcela)
+    if (installmentCount > 1) {
+      const futureTransactions = createdInstallments.slice(1).map((inst) => ({
+        userId,
+        cardId: input.cardId,
+        parentTransactionId: newTransaction.id,
+        description: `${input.description} (Parcela ${inst.installmentNumber}/${installmentCount})`,
+        amount: amountPerInstallment,
+        installments: 1,
+        installmentsPaid: 0,
+        category: input.category,
+        status: 'pending' as const,
+        transactionDate: inst.dueDate,
+      }));
+
+      await tx.insert(transactions).values(futureTransactions);
+    }
 
     return {
       transaction: newTransaction,
@@ -92,7 +120,7 @@ export async function updateTransaction(transactionId: string, userId: string, i
 
   if (!transaction) throw new Error('TRANSACTION_NOT_FOUND');
 
-  const [updated] = await db
+  const updatedResult = await db
     .update(transactions)
     .set({
       ...input,
@@ -100,6 +128,10 @@ export async function updateTransaction(transactionId: string, userId: string, i
     })
     .where(eq(transactions.id, transactionId))
     .returning();
+
+  const updated = Array.isArray(updatedResult) 
+    ? updatedResult[0] 
+    : updatedResult;
 
   return updated;
 }
@@ -114,6 +146,7 @@ export async function deleteTransaction(transactionId: string, userId: string) {
 
   if (!transaction) throw new Error('TRANSACTION_NOT_FOUND');
 
+  // Deletar a transação (vai deletar lançamentos futuros automaticamente através da foreign key cascade)
   await db.delete(transactions).where(eq(transactions.id, transactionId));
 }
 
@@ -133,7 +166,7 @@ export async function payInstallment(installmentId: string, userId: string) {
   }
 
   const now = new Date();
-  const [updated] = await db
+  const updatedInstallmentResult = await db
     .update(installments)
     .set({
       status: 'completed',
@@ -141,6 +174,26 @@ export async function payInstallment(installmentId: string, userId: string) {
     })
     .where(eq(installments.id, installmentId))
     .returning();
+
+  const updated = Array.isArray(updatedInstallmentResult) 
+    ? updatedInstallmentResult[0] 
+    : updatedInstallmentResult;
+
+  // Se for uma parcela que não é a primeira, marcar o lançamento futuro como concluído
+  if (installment.installmentNumber > 1) {
+    await db
+      .update(transactions)
+      .set({
+        status: 'completed',
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(transactions.parentTransactionId, transaction.id),
+          eq(transactions.status, 'pending')
+        )
+      );
+  }
 
   const remainingInstallments = await db.query.installments.findMany({
     where: and(

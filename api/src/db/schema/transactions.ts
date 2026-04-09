@@ -5,6 +5,7 @@ export const transactions = pgTable('transactions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, {onDelete: 'cascade'}),
   cardId: uuid('card_id'),
+  parentTransactionId: uuid('parent_transaction_id').references(() => transactions.id, {onDelete: 'cascade'}),
   description: varchar('description', {length: 255}).notNull(),
   amount: numeric('amount', {precision: 15, scale: 2}).notNull(),
   installments: integer('installments').default(1).notNull(),

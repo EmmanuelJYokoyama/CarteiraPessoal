@@ -1,6 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Permissões de Rede -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Permissões de Localização (GPS) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Permissão de SMS -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
+    <!-- Permissão de Câmera -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Permissão de Leitura de Contatos (opcional, útil para SMS) -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
       android:name=".MainApplication"

@@ -1,6 +1,6 @@
 import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
-import {eq, and} from 'drizzle-orm';
+import {eq, and, isNull} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput} from './transactions.schema';
 
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
@@ -66,7 +66,10 @@ export async function createTransaction(userId: string, input: CreateTransaction
 
 export async function getTransactionsByUserId(userId: string) {
   const userTransactions = await db.query.transactions.findMany({
-    where: eq(transactions.userId, userId),
+    where: and(
+      eq(transactions.userId, userId),
+      isNull(transactions.parentTransactionId)
+    ),
   });
 
   return userTransactions;

@@ -12,11 +12,11 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
     name,
     setName,
     cardNumber,
-    setCardNumber,
+    handleCardNumberChange,
     cardType,
     setCardType,
     expiryDate,
-    setExpiryDate,
+    handleExpiryDateChange,
     errorMessage,
     loading,
     canSubmit,
@@ -82,8 +82,10 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
             placeholder="1234 5678 9012 3456"
             placeholderTextColor="#666"
             value={cardNumber}
-            onChangeText={text => setCardNumber(text.replace(/\D/g, '').slice(0, 19))}
+            onChangeText={handleCardNumberChange}
             keyboardType="numeric"
+            editable={!loading}
+            maxLength={23}
           />
 
           {cardNumber.length >= 4 && (
@@ -103,27 +105,14 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
           <Text style={styles.label}>Validade (MM/YY)</Text>
           <TextInput
             style={styles.input}
-            placeholder="1225"
+            placeholder="12/25"
             placeholderTextColor="#666"
-            value={expiryDate.replace(/\D/g, '')}
-            onChangeText={text => {
-              const cleaned = text.replace(/\D/g, '').slice(0, 4);
-              if (cleaned.length <= 2) {
-                setExpiryDate(cleaned);
-              } else {
-                const formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
-                setExpiryDate(formatted);
-              }
-            }}
+            value={expiryDate}
+            onChangeText={handleExpiryDateChange}
             keyboardType="numeric"
             editable={!loading}
             maxLength={5}
           />
-          {expiryDate && expiryDate.length >= 2 && (
-            <Text style={{fontSize: 12, color: '#888', marginTop: 4}}>
-              Formato: {expiryDate.includes('/') ? expiryDate : expiryDate.replace(/(\d{2})(\d*)/, '$1/$2')}
-            </Text>
-          )}
         </View>
 
         <Pressable

@@ -1,6 +1,17 @@
 import {useState, useMemo} from 'react';
 import {createCard} from '@services/api/cards';
 
+function formatCardNumber(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 19);
+  return digits.replace(/(.{4})/g, '$1 ').trim();
+}
+
+function formatExpiryDate(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
 export function cardsService(onSuccess: (cardId: string) => void) {
   const [name, setName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -9,16 +20,25 @@ export function cardsService(onSuccess: (cardId: string) => void) {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const lastFourDigits = cardNumber.slice(-4);
+  const cardNumberDigits = cardNumber.replace(/\D/g, '');
+  const lastFourDigits = cardNumberDigits.slice(-4);
 
   const canSubmit = useMemo(
     () =>
       name.trim().length > 0 &&
-      cardNumber.length >= 13 &&
+      cardNumberDigits.length >= 13 &&
       expiryDate.length === 5 &&
       cardType.length > 0,
-    [name, cardNumber, expiryDate, cardType],
+    [name, cardNumberDigits, expiryDate, cardType],
   );
+
+  function handleCardNumberChange(value: string) {
+    setCardNumber(formatCardNumber(value));
+  }
+
+  function handleExpiryDateChange(value: string) {
+    setExpiryDate(formatExpiryDate(value));
+  }
 
   async function handleAddCard() {
     if (!canSubmit || loading) return;
@@ -29,7 +49,7 @@ export function cardsService(onSuccess: (cardId: string) => void) {
 
       const response = await createCard({
         name: name.trim(),
-        cardNumber,
+        cardNumber: cardNumberDigits,
         lastFourDigits,
         cardType,
         expiryDate,
@@ -58,11 +78,11 @@ export function cardsService(onSuccess: (cardId: string) => void) {
     name,
     setName,
     cardNumber,
-    setCardNumber,
+    handleCardNumberChange,
     cardType,
     setCardType,
     expiryDate,
-    setExpiryDate,
+    handleExpiryDateChange,
     errorMessage,
     loading,
     canSubmit,

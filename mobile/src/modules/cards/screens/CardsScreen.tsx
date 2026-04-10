@@ -1,7 +1,8 @@
-import React, {useEffect, useState, useRef} from 'react';
-import {View, Text, FlatList, Pressable, SafeAreaView, ActivityIndicator} from 'react-native';
+import React, {useState, useRef, useCallback} from 'react';
+import {View, Text, FlatList, Pressable, SafeAreaView, ActivityIndicator, Alert} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {AddCardForm} from '../components/AddCardForm';
-import {listCards, Card} from '@services/api/cards';
+import {listCards, Card, deleteCard} from '@services/api/cards';
 
 export default function CardsScreen() {
   const [cards, setCards] = useState<Card[]>([]);
@@ -37,9 +38,11 @@ export default function CardsScreen() {
     return {bg: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%)', accent: '#6c5ce7'};
   }
 
-  useEffect(() => {
-    loadCards();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadCards();
+    }, []),
+  );
 
   async function loadCards() {
     try {
@@ -51,6 +54,32 @@ export default function CardsScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function confirmDeleteCard(card: Card) {
+    Alert.alert(
+      'Excluir cartão',
+      `Deseja excluir o cartão ${card.name}?`,
+      [
+        {text: 'Cancelar', style: 'cancel'},
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await deleteCard(card.id);
+              await loadCards();
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'Não foi possível excluir o cartão';
+              Alert.alert('Erro', message);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
   }
 
   function handleCardAdded(cardId: string) {
@@ -251,6 +280,17 @@ export default function CardsScreen() {
                           </View>
                         </View>
                       </View>
+                      <Pressable
+                        onPress={() => confirmDeleteCard(item)}
+                        style={{
+                          backgroundColor: '#141414',
+                          borderTopWidth: 1,
+                          borderTopColor: 'rgba(255, 255, 255, 0.12)',
+                          paddingVertical: 12,
+                          alignItems: 'center',
+                        }}>
+                        <Text style={{color: '#ff6b6b', fontSize: 13, fontWeight: '700'}}>Excluir Cartão</Text>
+                      </Pressable>
                     </View>
                   );
                 }}

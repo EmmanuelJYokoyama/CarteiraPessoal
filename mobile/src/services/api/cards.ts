@@ -1,4 +1,5 @@
 import {apiRequest} from './client';
+import {clearCache} from '@services/cache';
 
 export type CreateCardPayload = {
   name: string;
@@ -33,10 +34,14 @@ export type UpdateCardPayload = {
 };
 
 export async function createCard(payload: CreateCardPayload) {
-  return apiRequest<CreateCardResponse>('/cards', {
+  const response = await apiRequest<CreateCardResponse>('/cards', {
     method: 'POST',
     body: payload,
   });
+
+  await clearCache('GET:/cards');
+
+  return response;
 }
 
 export async function listCards() {
@@ -53,14 +58,22 @@ export async function getCard(cardId: string) {
 }
 
 export async function updateCard(cardId: string, payload: UpdateCardPayload) {
-  return apiRequest<Card>(`/cards/${cardId}`, {
+  const response = await apiRequest<Card>(`/cards/${cardId}`, {
     method: 'PUT',
     body: payload,
   });
+
+  await clearCache('GET:/cards');
+
+  return response;
 }
 
 export async function deleteCard(cardId: string) {
-  return apiRequest<{message: string}>(`/cards/${cardId}`, {
+  const response = await apiRequest<{message: string}>(`/cards/${cardId}`, {
     method: 'DELETE',
   });
+
+  await clearCache('GET:/cards');
+
+  return response;
 }

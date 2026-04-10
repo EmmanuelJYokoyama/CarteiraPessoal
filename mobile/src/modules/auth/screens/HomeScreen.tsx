@@ -1,6 +1,7 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useCallback} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useFocusEffect} from '@react-navigation/native';
 import {useAuth} from '@contexts/AuthContext';
 import {listTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
@@ -19,9 +20,11 @@ export default function HomeScreen({navigation}: Props) {
 
   const initials = user?.name?.charAt(0)?.toUpperCase() || '👤';
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboardData();
+    }, []),
+  );
 
   const loadDashboardData = async () => {
     try {

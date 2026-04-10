@@ -1,5 +1,6 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {View, Text, FlatList, Pressable, SafeAreaView, ActivityIndicator} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {AddTransactionForm} from '../components/AddTransactionForm';
 import {TransactionDetailsModal} from '../components/TransactionDetailsModal';
 import {listTransactions, Transaction} from '@services/api/transactions';
@@ -34,9 +35,11 @@ export default function TransactionsScreen() {
     }
   }
 
-  useEffect(() => {
-    loadTransactions();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadTransactions();
+    }, []),
+  );
 
   async function loadTransactions() {
     try {

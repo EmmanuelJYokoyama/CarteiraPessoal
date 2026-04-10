@@ -1,6 +1,6 @@
 import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
-import {eq, and} from 'drizzle-orm';
+import {eq, and, isNull} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput} from './transactions.schema';
 
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
@@ -57,24 +57,6 @@ export async function createTransaction(userId: string, input: CreateTransaction
       ? createdInstallmentsResult 
       : [createdInstallmentsResult];
 
-    // Gerar lançamentos futuros para as parcelas (a partir da 2ª parcela)
-    if (installmentCount > 1) {
-      const futureTransactions = createdInstallments.slice(1).map((inst) => ({
-        userId,
-        cardId: input.cardId,
-        parentTransactionId: newTransaction.id,
-        description: `${input.description} (Parcela ${inst.installmentNumber}/${installmentCount})`,
-        amount: amountPerInstallment,
-        installments: 1,
-        installmentsPaid: 0,
-        category: input.category,
-        status: 'pending' as const,
-        transactionDate: inst.dueDate,
-      }));
-
-      await tx.insert(transactions).values(futureTransactions);
-    }
-
     return {
       transaction: newTransaction,
       installments: createdInstallments,
@@ -84,7 +66,10 @@ export async function createTransaction(userId: string, input: CreateTransaction
 
 export async function getTransactionsByUserId(userId: string) {
   const userTransactions = await db.query.transactions.findMany({
-    where: eq(transactions.userId, userId),
+    where: and(
+      eq(transactions.userId, userId),
+      isNull(transactions.parentTransactionId)
+    ),
   });
 
   return userTransactions;
@@ -178,22 +163,6 @@ export async function payInstallment(installmentId: string, userId: string) {
   const updated = Array.isArray(updatedInstallmentResult) 
     ? updatedInstallmentResult[0] 
     : updatedInstallmentResult;
-
-  // Se for uma parcela que não é a primeira, marcar o lançamento futuro como concluído
-  if (installment.installmentNumber > 1) {
-    await db
-      .update(transactions)
-      .set({
-        status: 'completed',
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(transactions.parentTransactionId, transaction.id),
-          eq(transactions.status, 'pending')
-        )
-      );
-  }
 
   const remainingInstallments = await db.query.installments.findMany({
     where: and(

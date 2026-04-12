@@ -49,10 +49,9 @@ export async function createTransaction(payload: CreateTransactionPayload) {
     method: 'POST',
     body: payload,
   });
-  
-  // Invalidar cache após criar nova transação
+
   await clearCache('GET:/transactions');
-  
+
   return response;
 }
 
@@ -80,10 +79,9 @@ export async function updateTransaction(
     method: 'PUT',
     body: payload,
   });
-  
-  // Invalidar cache após atualizar
+
   await clearCache('GET:/transactions');
-  
+
   return response;
 }
 
@@ -91,10 +89,9 @@ export async function deleteTransaction(transactionId: string) {
   const response = await apiRequest<{message: string}>(`/transactions/${transactionId}`, {
     method: 'DELETE',
   });
-  
-  // Invalidar cache após deletar
+
   await clearCache('GET:/transactions');
-  
+
   return response;
 }
 

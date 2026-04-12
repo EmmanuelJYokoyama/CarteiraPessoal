@@ -12,6 +12,8 @@
   "dependencies": {
     "@fastify/cors": "^9.0.0",
     "@fastify/jwt": "^8.0.0",
+    "@fastify/swagger": "^8.1.0",
+    "@fastify/swagger-ui": "^1.10.0",
     "bcrypt": "^5.1.0",
     "dotenv": "^16.0.0",
     "drizzle-orm": "^0.30.0",

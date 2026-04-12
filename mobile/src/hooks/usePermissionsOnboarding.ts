@@ -9,7 +9,6 @@ export function usePermissionsOnboarding() {
   >(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Carrega o status do onboarding ao inicializar
   useEffect(() => {
     checkOnboardingStatus();
   }, []);

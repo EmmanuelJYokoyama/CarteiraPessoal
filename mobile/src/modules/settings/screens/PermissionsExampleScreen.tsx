@@ -4,12 +4,6 @@ import {PermissionType} from '@services/permissions';
 import {usePermissionsContext} from '@contexts/PermissionsContext';
 import {PermissionRequestModal} from '@components/common/PermissionRequestModal';
 
-/**
- * Exemplo de uso do sistema de permissões
- * 
- * Este componente demonstra como usar o sistema de permissões
- * para solicitar GPS, SMS e câmera do usuário.
- */
 export function PermissionsExampleScreen() {
   const {requestPermission, checkPermission} = usePermissionsContext();
   const [showPermissionModal, setShowPermissionModal] =
@@ -23,14 +17,12 @@ export function PermissionsExampleScreen() {
   const handleRequestPermission = async (
     permissionType: PermissionType,
   ) => {
-    // Abre o modal de permissão
     setShowPermissionModal(permissionType);
   };
 
   const handlePermissionGranted = async (
     permissionType: PermissionType,
   ) => {
-    // Atualiza o status
     setPermissionStatuses((prev) => ({
       ...prev,
       [permissionType]: true,
@@ -51,7 +43,6 @@ export function PermissionsExampleScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Gerenciar Permissões</Text>
 
-      {/* GPS/Localização */}
       <PermissionCard
         title="Localização (GPS)"
         description="Para encontrar serviços próximos e personalizar ofertas"
@@ -60,7 +51,6 @@ export function PermissionsExampleScreen() {
         onCheck={() => handleCheckPermission(PermissionType.LOCATION)}
       />
 
-      {/* SMS */}
       <PermissionCard
         title="SMS"
         description="Para notificações de segurança e confirmações"
@@ -69,7 +59,6 @@ export function PermissionsExampleScreen() {
         onCheck={() => handleCheckPermission(PermissionType.SMS)}
       />
 
-      {/* Câmera */}
       <PermissionCard
         title="Câmera"
         description="Para capturar fotos e digitalizar documentos"

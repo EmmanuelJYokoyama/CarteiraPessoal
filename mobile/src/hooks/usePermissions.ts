@@ -14,33 +14,25 @@ export interface PermissionState {
 }
 
 export interface UsePermissionsReturn {
-  // Estados
   permissions: PermissionState;
   isLoading: boolean;
-  
-  // Métodos
+
   request: (permissionType: PermissionType) => Promise<PermissionResult>;
   requestWithDialog: (permissionType: PermissionType) => Promise<boolean>;
   check: (permissionType: PermissionType) => Promise<boolean>;
   checkAll: (types: PermissionType[]) => Promise<boolean>;
   getUngranted: (types: PermissionType[]) => Promise<PermissionType[]>;
   hasPermission: (permissionType: PermissionType) => boolean;
-  
-  // Callbacks
+
   refetch: () => Promise<void>;
 }
 
-/**
- * Hook para gerenciar permissões do aplicativo
- * @param initialPermissions - Permissões para verificar ao inicializar
- */
 export function usePermissions(
   initialPermissions: PermissionType[] = [],
 ): UsePermissionsReturn {
   const [permissions, setPermissions] = useState<PermissionState>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Verifica permissões iniciais
   useEffect(() => {
     if (initialPermissions.length > 0) {
       refetch();

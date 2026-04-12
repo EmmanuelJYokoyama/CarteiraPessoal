@@ -16,7 +16,6 @@ function RootNavigator() {
   const {isOnline} = useOfflineSync();
   const {hasCompletedOnboarding, isLoading: onboardingLoading, markOnboardingAsCompleted} = usePermissionsOnboarding();
 
-  // Registrar callback para quando o token expirar
   useEffect(() => {
     setTokenExpiredCallback(() => {
       console.log('[Auth] Token expired, signing out...');
@@ -32,7 +31,6 @@ function RootNavigator() {
     );
   }
 
-  // Se usuário está autenticado mas não completou o onboarding de permissões
   if (isSignedIn && !hasCompletedOnboarding) {
     return (
       <PermissionsOnboardingScreen

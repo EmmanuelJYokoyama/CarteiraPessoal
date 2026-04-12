@@ -25,7 +25,6 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     user: null as UserData | null,
   });
 
-  // Verificar se há token salvo ao iniciar o app
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
@@ -53,7 +52,6 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     bootstrapAsync();
   }, []);
 
-  // Listener para mudanças de token (quando login/logout acontecer)
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -75,7 +73,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
       } catch (e) {
         console.error('Failed to check token', e);
       }
-    }, 500); // Verifica a cada 500ms
+    }, 500);
 
     return () => clearInterval(interval);
   }, []);

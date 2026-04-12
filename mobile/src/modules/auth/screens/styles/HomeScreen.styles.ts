@@ -39,8 +39,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  
-  /* Boas-vindas */
   welcomeCard: {
     marginBottom: 20,
   },
@@ -66,7 +64,6 @@ export const styles = StyleSheet.create({
     color: '#666',
   },
 
-  /* Cards */
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -100,7 +97,6 @@ export const styles = StyleSheet.create({
     color: '#9ca3af',
   },
 
-  /* Alert Card */
   alertCard: {
     backgroundColor: '#fef3c7',
     borderRadius: 12,
@@ -122,7 +118,6 @@ export const styles = StyleSheet.create({
     color: '#b45309',
   },
 
-  /* Sections */
   section: {
     marginBottom: 20,
   },
@@ -143,7 +138,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  /* Card Preview */
   cardPreview: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -183,7 +177,6 @@ export const styles = StyleSheet.create({
     color: '#9ca3af',
   },
 
-  /* Transaction Item */
   transactionItem: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -221,7 +214,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  /* Quick Actions */
   quickActions: {
     flexDirection: 'row',
     gap: 12,
@@ -241,7 +233,6 @@ export const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  /* Menu */
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

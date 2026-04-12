@@ -242,7 +242,9 @@ export function TransactionDetailsModal({
                       <ActivityIndicator size="small" color="#0a0a0a" />
                     ) : (
                       <>
-                        <CheckCircle size={18} color="#0a0a0a" />
+                        <View style={{ marginLeft: 8 }}>
+                          <CheckCircle size={16} color="#0a0a0a" />
+                        </View>
                         <Text style={styles.buttonText}>
                           {transaction.installments > 1
                             ? 'Pagar Parcela'

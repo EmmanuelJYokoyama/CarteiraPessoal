@@ -12,6 +12,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
+      "@/*":       ["src/*"],
       "@db/*":      ["src/db/*"],
       "@modules/*": ["src/modules/*"],
       "@plugins/*": ["src/plugins/*"],

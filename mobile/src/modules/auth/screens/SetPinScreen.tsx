@@ -19,7 +19,6 @@ export default function SetPinScreen({navigation}: Props) {
   const confirmInputRef = useRef<TextInput>(null);
 
   const handlePinChange = (value: string) => {
-    // Allow only numeric input and max 4 digits
     const numericValue = value.replace(/[^0-9]/g, '').slice(0, 4);
     if (stage === 'initial') {
       setPinValue(numericValue);
@@ -28,7 +27,6 @@ export default function SetPinScreen({navigation}: Props) {
   };
 
   const handleConfirmPinChange = (value: string) => {
-    // Allow only numeric input and max 4 digits
     const numericValue = value.replace(/[^0-9]/g, '').slice(0, 4);
     setConfirmPinValue(numericValue);
     setError('');
@@ -65,6 +63,7 @@ export default function SetPinScreen({navigation}: Props) {
         {text: 'OK', onPress: () => navigation.navigate('Home' as any)},
       ]);
     } catch (error) {
+      console.error('[SetPin] Full error:', error);
       setError(error instanceof Error ? error.message : 'Erro ao definir PIN');
     } finally {
       setLoading(false);
@@ -76,14 +75,12 @@ export default function SetPinScreen({navigation}: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <SafeAreaView edges={['top']} style={styles.header}>
         <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>Configurar PIN</Text>
         <View style={styles.headerSpacer} />
       </SafeAreaView>
 
-      {/* Content */}
       <View style={styles.content}>
         <Text style={styles.description}>
           O PIN é uma camada extra de segurança para suas transações. Use 4 dígitos.
@@ -91,7 +88,6 @@ export default function SetPinScreen({navigation}: Props) {
 
         <Text style={styles.label}>{currentLabel}</Text>
 
-        {/* PIN Display */}
         <View style={styles.pinDisplay}>
           {[0, 1, 2, 3].map(i => (
             <View

@@ -11,19 +11,16 @@ export default function CardsScreen() {
   const [recentlyAddedCardId, setRecentlyAddedCardId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  // Formatadores
   function formatCardDigits(lastFour: string): string {
     return `•••• •••• •••• ${lastFour}`;
   }
 
   function formatExpiryDate(expiryDate: string): string {
-    // Espera formato MM/YY
     const [month, year] = expiryDate.split('/');
     if (!month || !year) return expiryDate;
     return `${month}/20${year}`;
   }
 
-  // Cores baseadas na marca do cartão
   function getCardBrandColor(brand: string): {bg: string; accent: string} {
     const brandLower = brand?.toLowerCase() || '';
     if (brandLower.includes('visa')) {
@@ -86,8 +83,6 @@ export default function CardsScreen() {
     setShowForm(false);
     setRecentlyAddedCardId(cardId);
     loadCards();
-    
-    // Clear recently added highlight after 5 seconds
     setTimeout(() => setRecentlyAddedCardId(null), 5000);
   }
 

@@ -10,7 +10,7 @@ import {
 import {MapPin, MessageSquare, Camera, Check} from 'lucide-react-native';
 import {PermissionType, getPermissionConfig} from '@services/permissions';
 import {usePermissionsContext} from '@contexts/PermissionsContext';
-import {styles} from './PermissionRequestModal.styles';
+import {styles} from './styles/PermissionRequestModal.styles';
 
 interface PermissionRequestModalProps {
   visible: boolean;

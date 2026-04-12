@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Pressable, Text} from 'react-native';
-import {styles} from './NumericKeyboard.styles';
+import {styles} from './styles/NumericKeyboard.styles';
 
 interface NumericKeyboardProps {
   onNumberPress: (number: string) => void;

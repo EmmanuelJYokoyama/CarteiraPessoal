@@ -1,6 +1,6 @@
 import React from 'react';
 import {Text, TextInput, TextInputProps, View} from 'react-native';
-import {styles} from './AppTextField.styles';
+import {styles} from './styles/AppTextField.styles';
 
 type Props = TextInputProps & {
   label: string;

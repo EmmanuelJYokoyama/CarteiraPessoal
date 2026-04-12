@@ -85,6 +85,12 @@ export const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
   },
+  emailConfirm: {
+    fontSize: 14,
+    color: '#666',
+    marginVertical: 12,
+    fontWeight: '500',
+  },
   pinDisplay: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -140,6 +146,13 @@ export const styles = StyleSheet.create({
     marginVertical: 8,
   },
 
+  button: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   buttonPrimary: {
     backgroundColor: '#1E90FF',
   },

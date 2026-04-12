@@ -1,6 +1,6 @@
 import React from 'react';
 import {View} from 'react-native';
-import {styles} from './PinDisplay.styles';
+import {styles} from './styles/PinDisplay.styles';
 
 interface PinDisplayProps {
   value: string;

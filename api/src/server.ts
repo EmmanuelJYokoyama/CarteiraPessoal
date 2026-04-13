@@ -10,6 +10,7 @@ import { otpRoutes } from '@modules/otp/otp.routes';
 import { pinRoutes } from '@modules/pin/pin.routes';
 import { cardsRoutes } from '@modules/cards/cards.routes';
 import { transactionsRoutes } from '@modules/transactions/transactions.routes';
+import { categoriesRoutes } from '@modules/categories/categories.routes';
 import { swaggerConfig, swaggerUIConfig } from '@/swagger.config';
 
 dotenv.config();
@@ -25,6 +26,7 @@ app.register(smsRoutes);
 app.register(otpRoutes);
 app.register(pinRoutes);
 app.register(cardsRoutes);
+app.register(categoriesRoutes);
 app.register(transactionsRoutes);
 
 app.get('/health', async () => ({status: 'ok'}));

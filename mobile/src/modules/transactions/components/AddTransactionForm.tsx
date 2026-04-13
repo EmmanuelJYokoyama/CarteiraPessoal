@@ -1,17 +1,17 @@
 import React, {useState, useEffect} from 'react';
-import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList} from 'react-native';
+import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {createTransaction} from '@services/api/transactions';
 import {listCards, Card} from '@services/api/cards';
+import {useCategories} from '../hooks/useCategories';
 import {styles} from './styles/AddTransactionForm.styles';
 
 interface AddTransactionFormProps {
   onSuccess?: () => void;
 }
 
-const CATEGORIES = ['Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Educação', 'Diversão', 'Outro'];
-
 export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
+  const {categories, addCategory} = useCategories();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -24,6 +24,10 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#2ED573');
+  const [creatingCategory, setCreatingCategory] = useState(false);
 
   useEffect(() => {
     loadCards();
@@ -38,6 +42,31 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       }
     } catch (error) {
       console.error('Erro ao carregar cartões:', error);
+    }
+  }
+
+  async function handleCreateNewCategory() {
+    if (!newCategoryName.trim()) {
+      Alert.alert('Erro', 'Nome da categoria obrigatório');
+      return;
+    }
+
+    try {
+      setCreatingCategory(true);
+      const newCategory = await addCategory({
+        name: newCategoryName.trim(),
+        color: newCategoryColor,
+      });
+      setCategory(newCategory.name);
+      setNewCategoryName('');
+      setNewCategoryColor('#2ED573');
+      setShowNewCategoryInput(false);
+      Alert.alert('Sucesso', 'Categoria criada com sucesso!');
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Falha ao criar categoria');
+      console.error('Erro ao criar categoria:', error);
+    } finally {
+      setCreatingCategory(false);
     }
   }
 
@@ -321,24 +350,102 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
 
       <Modal visible={showCategoryPicker} transparent animationType="slide">
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end'}}>
-          <View style={{backgroundColor: '#1a1a1a', borderTopLeftRadius: 12, borderTopRightRadius: 12}}>
-            <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333'}}>
+          <View style={{backgroundColor: '#1a1a1a', borderTopLeftRadius: 12, borderTopRightRadius: 12, maxHeight: '80%'}}>
+            <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
               <Text style={{color: '#fff', fontSize: 18, fontWeight: '700'}}>Selecionar Categoria</Text>
+              <Pressable onPress={() => setShowCategoryPicker(false)}>
+                <Text style={{color: '#999', fontSize: 24}}>×</Text>
+              </Pressable>
             </View>
+            
+            {showNewCategoryInput ? (
+              <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333'}}>
+                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 12}}>Nova Categoria</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nome da categoria"
+                  placeholderTextColor="#666"
+                  value={newCategoryName}
+                  onChangeText={setNewCategoryName}
+                  editable={!creatingCategory}
+                />
+                <View style={{flexDirection: 'row', gap: 8, marginTop: 12}}>
+                  <Pressable
+                    style={[styles.submitButton, {flex: 1}]}
+                    onPress={handleCreateNewCategory}
+                    disabled={creatingCategory}>
+                    {creatingCategory ? (
+                      <ActivityIndicator color="#000" />
+                    ) : (
+                      <Text style={styles.submitButtonText}>Criar</Text>
+                    )}
+                  </Pressable>
+                  <Pressable
+                    style={[styles.submitButton, {flex: 1, backgroundColor: '#444'}]}
+                    onPress={() => {
+                      setShowNewCategoryInput(false);
+                      setNewCategoryName('');
+                    }}
+                    disabled={creatingCategory}>
+                    <Text style={styles.submitButtonText}>Cancelar</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+            
             <FlatList
-              data={CATEGORIES}
-              keyExtractor={(item) => item}
+              data={categories}
+              keyExtractor={(item) => item.id}
               renderItem={({item}) => (
                 <Pressable
-                  style={styles.cardPickerItem}
+                  style={{
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#2a2a2a',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
                   onPress={() => {
-                    setCategory(item);
+                    setCategory(item.name);
                     setShowCategoryPicker(false);
                   }}>
-                  <Text style={styles.cardPickerItemText}>{item}</Text>
+                  <View style={{flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12}}>
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: item.color,
+                      }}
+                    />
+                    <Text style={{color: '#fff', fontSize: 16, fontWeight: '500'}}>
+                      {item.name}
+                    </Text>
+                  </View>
+                  {category === item.name && (
+                    <Text style={{color: '#2ed573', fontSize: 18, fontWeight: '700'}}>✓</Text>
+                  )}
                 </Pressable>
               )}
+              scrollEnabled={categories.length > 5}
+              nestedScrollEnabled={true}
             />
+            
+            <Pressable
+              style={{
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderTopWidth: 1,
+                borderTopColor: '#333',
+                backgroundColor: 'rgba(46, 213, 115, 0.1)',
+              }}
+              onPress={() => setShowNewCategoryInput(true)}>
+              <Text style={{color: '#2ed573', fontSize: 16, fontWeight: '600', textAlign: 'center'}}>
+                + Adicionar Nova Categoria
+              </Text>
+            </Pressable>
           </View>
         </View>
       </Modal>

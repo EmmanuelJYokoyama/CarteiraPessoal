@@ -1,0 +1,87 @@
+@baseUrl = http://localhost:3000
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTIxZWM4Yi1mY2Q2LTQ1NGUtYmJmNy0wMDhjMjcwOTdlY2YiLCJlbWFpbCI6InNpbHZhQG1haWwuY29tIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3NDkwOTEyMCwiZXhwIjoxNzc0OTEwMDIwfQ.HXPtx-R0BKToGHHHjWxBhm66wg8ECm-fY2ryuyS6cso
+
+### Listar categorias
+GET {{baseUrl}}/categories
+Authorization: Bearer {{accessToken}}
+
+### Criar categoria
+POST {{baseUrl}}/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Alimentação",
+  "color": "#FF6B6B"
+}
+
+### Criar categoria com cor padrão
+POST {{baseUrl}}/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Transporte"
+}
+
+### Criar múltiplas categorias
+POST {{baseUrl}}/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Saúde",
+  "color": "#4ECDC4"
+}
+
+###
+
+POST {{baseUrl}}/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Educação",
+  "color": "#45B7D1"
+}
+
+###
+
+POST {{baseUrl}}/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Diversão",
+  "color": "#FFA07A"
+}
+
+###
+
+POST {{baseUrl}}/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Moradia",
+  "color": "#98D8C8"
+}
+
+### Obter categoria específica
+@categoryId = category_id_from_list
+GET {{baseUrl}}/categories/{{categoryId}}
+Authorization: Bearer {{accessToken}}
+
+### Atualizar categoria
+PUT {{baseUrl}}/categories/{{categoryId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Alimentação - Atualizado",
+  "color": "#FF4444"
+}
+
+### Deletar categoria
+DELETE {{baseUrl}}/categories/{{categoryId}}
+Authorization: Bearer {{accessToken}}

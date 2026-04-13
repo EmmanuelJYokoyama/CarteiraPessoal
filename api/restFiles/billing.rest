@@ -1,0 +1,17 @@
+@baseUrl = http://localhost:3000
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTIxZWM4Yi1mY2Q2LTQ1NGUtYmJmNy0wMDhjMjcwOTdlY2YiLCJlbWFpbCI6InNpbHZhQG1haWwuY29tIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3NDkwOTEyMCwiZXhwIjoxNzc0OTEwMDIwfQ.HXPtx-R0BKToGHHHjWxBhm66wg8ECm-fY2ryuyS6cso
+@cardId = 550e8400-e29b-41d4-a716-446655440000
+
+### ===== FATURAS (BILLING) =====
+
+### Listar todas as faturas do usuário (um por cartão)
+GET {{baseUrl}}/billing/statements
+Authorization: Bearer {{accessToken}}
+
+### Obter fatura detalhada de um cartão
+GET {{baseUrl}}/billing/statements/{{cardId}}
+Authorization: Bearer {{accessToken}}
+
+### Gastos por categoria dentro da fatura
+GET {{baseUrl}}/billing/statements/{{cardId}}/by-category
+Authorization: Bearer {{accessToken}}

@@ -131,3 +131,20 @@ export async function clearPendingRequests(): Promise<void> {
     console.error('[Cache] Error clearing pending requests:', error);
   }
 }
+
+/**
+ * Limpa TODOS os dados do app (cache e pending requests)
+ * Use esta função ao fazer logout
+ */
+export async function clearAllAppData(): Promise<void> {
+  try {
+    console.log('[Cache] Clearing all app data...');
+    await Promise.all([
+      clearCache(), // Limpa todos os caches
+      clearPendingRequests(), // Limpa requisições pendentes
+    ]);
+    console.log('[Cache] ✅ All app data cleared');
+  } catch (error) {
+    console.error('[Cache] Error clearing all app data:', error);
+  }
+}

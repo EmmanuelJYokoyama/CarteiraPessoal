@@ -2,6 +2,7 @@ import {FastifyRequest, FastifyReply} from 'fastify';
 import {registerSchema, loginSchema, refreshSchema} from './auth.schema';
 import {registerUser, loginUser, generateTokens, refreshUserTokens, revokeRefreshToken, revokeAllUserTokens} from './auth.service';
 import {initiateSmsSending} from '../sms/sms.service';
+import {seedUserCategories} from '@utils/seedCategories';
 import type {AuthTokenPayload} from './auth.types';
 
 //registro de usuario
@@ -16,6 +17,10 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
     console.log(`👤 Registrando novo usuário: ${parsed.data.email}`);
     const user = await registerUser(parsed.data);
     console.log(`✅ Usuário criado: ${user.id}`);
+
+    // Seed categorias padrão para novo usuário
+    await seedUserCategories(user.id);
+    console.log(`✅ Categorias padrão criadas`);
 
     // Inicia o envio do código de confirmação via SMS
     console.log(`📱 Iniciando envio de SMS para: ${parsed.data.phoneNumber}`);
@@ -53,6 +58,10 @@ export async function login(req: FastifyRequest, reply: FastifyReply) {
 
   try {
     const user = await loginUser(parsed.data);
+    
+    // Seed categorias padrão se o usuário não tiver nenhuma
+    await seedUserCategories(user.id);
+    
     const tokens = await generateTokens(req.server, user.id, user.email);
 
     return reply.send({

@@ -15,24 +15,36 @@ export type CreateCategoryPayload = {
 };
 
 export async function listCategories(): Promise<Category[]> {
-  return apiRequest('GET', '/categories');
+  return apiRequest('/categories', {
+    method: 'GET',
+  });
 }
 
 export async function createCategory(payload: CreateCategoryPayload): Promise<Category> {
-  return apiRequest('POST', '/categories', payload);
+  return apiRequest('/categories', {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export async function getCategoryById(categoryId: string): Promise<Category> {
-  return apiRequest('GET', `/categories/${categoryId}`);
+  return apiRequest(`/categories/${categoryId}`, {
+    method: 'GET',
+  });
 }
 
 export async function updateCategory(
   categoryId: string,
   payload: Partial<CreateCategoryPayload>,
 ): Promise<Category> {
-  return apiRequest('PUT', `/categories/${categoryId}`, payload);
+  return apiRequest(`/categories/${categoryId}`, {
+    method: 'PUT',
+    body: payload,
+  });
 }
 
 export async function deleteCategory(categoryId: string): Promise<{success: boolean}> {
-  return apiRequest('DELETE', `/categories/${categoryId}`);
+  return apiRequest(`/categories/${categoryId}`, {
+    method: 'DELETE',
+  });
 }

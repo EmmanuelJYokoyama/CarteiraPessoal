@@ -53,6 +53,7 @@ export async function login(req: FastifyRequest, reply: FastifyReply) {
 
   try {
     const user = await loginUser(parsed.data);
+    
     const tokens = await generateTokens(req.server, user.id, user.email);
 
     return reply.send({

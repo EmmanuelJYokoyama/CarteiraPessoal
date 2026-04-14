@@ -51,15 +51,9 @@ export interface PermissionResult {
   details: Record<string, boolean>;
 }
 
-/**
- * Solicita permissões específicas ao usuário
- * @param permissionType - Tipo de permissão a solicitar
- * @returns Promise com resultado da solicitação
- */
 export async function requestPermission(
   permissionType: PermissionType,
 ): Promise<PermissionResult> {
-  // iOS não usa PermissionsAndroid em tempo de execução igual Android
   if (Platform.OS === 'ios') {
     console.warn('Permissões no iOS são gerenciadas via Info.plist');
     return {
@@ -106,11 +100,6 @@ export async function requestPermission(
   }
 }
 
-/**
- * Verifica se uma permissão foi concedida
- * @param permissionType - Tipo de permissão a verificar
- * @returns Promise com status da permissão
- */
 export async function checkPermission(
   permissionType: PermissionType,
 ): Promise<boolean> {
@@ -134,18 +123,12 @@ export async function checkPermission(
   }
 }
 
-/**
- * Obtém a configuração de uma permissão para exibir no dialogo
- */
 export function getPermissionConfig(
   permissionType: PermissionType,
 ): PermissionConfig {
   return PERMISSION_CONFIGS[permissionType];
 }
 
-/**
- * Solicita permissão com diálogo explicativo personalizado
- */
 export async function requestPermissionWithDialog(
   permissionType: PermissionType,
   onGranted?: () => void,
@@ -187,9 +170,6 @@ export async function requestPermissionWithDialog(
   });
 }
 
-/**
- * Solicita múltiplas permissões
- */
 export async function requestMultiplePermissions(
   permissionTypes: PermissionType[],
 ): Promise<Partial<Record<PermissionType, PermissionResult>>> {
@@ -202,9 +182,6 @@ export async function requestMultiplePermissions(
   return results;
 }
 
-/**
- * Verifica se todas as permissões foram concedidas
- */
 export async function checkAllPermissions(
   permissionTypes: PermissionType[],
 ): Promise<boolean> {
@@ -215,9 +192,6 @@ export async function checkAllPermissions(
   return results.every((result) => result === true);
 }
 
-/**
- * Obtém as permissões que ainda não foram concedidas
- */
 export async function getUngrantedPermissions(
   permissionTypes: PermissionType[],
 ): Promise<PermissionType[]> {

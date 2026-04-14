@@ -1,0 +1,707 @@
+openapi: 3.0.0
+info:
+  title: Carteira Pessoal API
+  version: 1.0.0
+  description: API para gerenciar carteira pessoal, cartões, transações, orçamentos e relatórios
+  contact:
+    name: Support
+    email: support@carteirapessoal.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor de desenvolvimento
+  - url: https://api.carteirapessoal.com
+    description: Servidor de produção
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Autenticação
+      summary: Registrar novo usuário
+      description: Registra um novo usuário no sistema e inicia envio de código de confirmação via SMS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+                - phoneNumber
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: usuario@email.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SenhaForte123!
+                name:
+                  type: string
+                  example: João Silva
+                phoneNumber:
+                  type: string
+                  example: +5585998765432
+      responses:
+        201:
+          description: Usuário registrado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  email:
+                    type: string
+                  message:
+                    type: string
+        400:
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        409:
+          description: Email já cadastrado
+        502:
+          description: Erro ao enviar SMS
+
+  /auth/login:
+    post:
+      tags:
+        - Autenticação
+      summary: Fazer login
+      description: Autentica um usuário e retorna tokens JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: usuario@email.com
+                password:
+                  type: string
+                  format: password
+                  example: SenhaForte123!
+      responses:
+        200:
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT access token válido por 15 minutos
+                  refreshToken:
+                    type: string
+                    description: JWT refresh token válido por 7 dias
+                  name:
+                    type: string
+                  email:
+                    type: string
+        401:
+          description: Email ou senha inválidos / Conta não confirmada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Erro interno
+
+  /auth/refresh:
+    post:
+      tags:
+        - Autenticação
+      summary: Renovar access token
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        200:
+          description: Token renovado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        401:
+          description: Token inválido ou expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - Autenticação
+      summary: Fazer logout
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Logout realizado
+        401:
+          description: Não autorizado
+
+  /auth/logout-all:
+    post:
+      tags:
+        - Autenticação
+      summary: Logout de todas as sessões
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Logout realizado em todas as sessões
+        401:
+          description: Não autorizado
+
+  /cards:
+    get:
+      tags:
+        - Cartões
+      summary: Listar cartões
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Lista de cartões
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+        401:
+          description: Não autorizado
+
+    post:
+      tags:
+        - Cartões
+      summary: Criar novo cartão
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardRequest'
+      responses:
+        201:
+          description: Cartão criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        400:
+          description: Dados inválidos
+        401:
+          description: Não autorizado
+
+  /cards/{cardId}:
+    get:
+      tags:
+        - Cartões
+      summary: Obter cartão
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Detalhes do cartão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        401:
+          description: Não autorizado
+        404:
+          description: Cartão não encontrado
+
+    put:
+      tags:
+        - Cartões
+      summary: Atualizar cartão
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardHolder:
+                  type: string
+                expiryDate:
+                  type: string
+      responses:
+        200:
+          description: Cartão atualizado
+        401:
+          description: Não autorizado
+        404:
+          description: Cartão não encontrado
+
+    delete:
+      tags:
+        - Cartões
+      summary: Deletar cartão
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Cartão deletado
+        401:
+          description: Não autorizado
+        404:
+          description: Cartão não encontrado
+
+  /transactions:
+    get:
+      tags:
+        - Transações
+      summary: Listar transações
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: take
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Lista de transações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        401:
+          description: Não autorizado
+
+    post:
+      tags:
+        - Transações
+      summary: Criar transação
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        201:
+          description: Transação criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        400:
+          description: Dados inválidos
+        401:
+          description: Não autorizado
+
+  /transactions/{transactionId}:
+    get:
+      tags:
+        - Transações
+      summary: Obter transação
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Detalhes da transação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        401:
+          description: Não autorizado
+        404:
+          description: Transação não encontrada
+
+    put:
+      tags:
+        - Transações
+      summary: Atualizar transação
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                amount:
+                  type: number
+                category:
+                  type: string
+      responses:
+        200:
+          description: Transação atualizada
+        401:
+          description: Não autorizado
+        404:
+          description: Transação não encontrada
+
+    delete:
+      tags:
+        - Transações
+      summary: Deletar transação
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Transação deletada
+        401:
+          description: Não autorizado
+        404:
+          description: Transação não encontrada
+
+  /transactions/{transactionId}/complete:
+    post:
+      tags:
+        - Transações
+      summary: Marcar como concluída
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Transação marcada como concluída
+        401:
+          description: Não autorizado
+        404:
+          description: Transação não encontrada
+
+  /transactions/{transactionId}/pay-installment:
+    post:
+      tags:
+        - Transações
+      summary: Pagar parcela específica
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                installmentNumber:
+                  type: integer
+      responses:
+        200:
+          description: Parcela paga
+        401:
+          description: Não autorizado
+        404:
+          description: Transação não encontrada
+
+  /otp/send:
+    post:
+      tags:
+        - OTP
+      summary: Enviar código OTP
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Código enviado
+        401:
+          description: Não autorizado
+        502:
+          description: Erro ao enviar SMS
+
+  /otp/verify:
+    post:
+      tags:
+        - OTP
+      summary: Verificar código OTP
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+      responses:
+        200:
+          description: Código verificado
+        400:
+          description: Código inválido
+        401:
+          description: Não autorizado
+
+  /pin/create:
+    post:
+      tags:
+        - PIN
+      summary: Criar PIN
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pin:
+                  type: string
+      responses:
+        200:
+          description: PIN criado
+        400:
+          description: PIN inválido
+        401:
+          description: Não autorizado
+
+  /pin/verify:
+    post:
+      tags:
+        - PIN
+      summary: Verificar PIN
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pin:
+                  type: string
+      responses:
+        200:
+          description: PIN correto
+        400:
+          description: PIN incorreto
+        401:
+          description: Não autorizado
+
+  /health:
+    get:
+      tags:
+        - Health Check
+      summary: Verificar saúde da API
+      responses:
+        200:
+          description: API em funcionamento
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+
+    Card:
+      type: object
+      properties:
+        id:
+          type: string
+        cardNumber:
+          type: string
+        cardHolder:
+          type: string
+        expiryDate:
+          type: string
+        brand:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateCardRequest:
+      type: object
+      required:
+        - cardNumber
+        - cardHolder
+        - expiryDate
+        - cvv
+      properties:
+        cardNumber:
+          type: string
+        cardHolder:
+          type: string
+        expiryDate:
+          type: string
+        cvv:
+          type: string
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed]
+        installments:
+          type: integer
+        installmentsPaid:
+          type: integer
+        transactionDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateTransactionRequest:
+      type: object
+      required:
+        - description
+        - amount
+        - category
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        cardId:
+          type: string
+        installments:
+          type: integer
+          default: 1
+
+tags:
+  - name: Autenticação
+    description: Endpoints de autenticação e autorização
+  - name: Cartões
+    description: Gerenciar cartões de crédito
+  - name: Transações
+    description: Gerenciar transações e despesas
+  - name: OTP
+    description: One-Time Password via SMS
+  - name: PIN
+    description: Gerenciar PIN de segurança
+  - name: Health Check
+    description: Status da API

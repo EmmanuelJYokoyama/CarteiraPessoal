@@ -47,7 +47,6 @@ export default function HomeScreen({navigation}: Props) {
     await signOut();
   };
 
-  // Calcular métricas
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
@@ -107,7 +106,6 @@ export default function HomeScreen({navigation}: Props) {
           </View>
         ) : (
           <>
-            {/* Despesas do Mês */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <TrendingDown size={24} color="#ef4444" />
@@ -121,7 +119,6 @@ export default function HomeScreen({navigation}: Props) {
               </Text>
             </View>
 
-            {/* Alertas */}
             {pendingInstallments > 0 && (
               <View style={styles.alertCard}>
                 <AlertCircle size={20} color="#f59e0b" />
@@ -140,7 +137,6 @@ export default function HomeScreen({navigation}: Props) {
               </View>
             )}
 
-            {/* Cartões Principais */}
             {cards.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -176,7 +172,6 @@ export default function HomeScreen({navigation}: Props) {
               </View>
             )}
 
-            {/* Transações Recentes */}
             {recentTransactions.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -229,7 +224,6 @@ export default function HomeScreen({navigation}: Props) {
               </View>
             )}
 
-            {/* Atalhos Rápidos */}
             <View style={styles.quickActions}>
               <Pressable
                 style={styles.actionButton}
@@ -252,8 +246,8 @@ export default function HomeScreen({navigation}: Props) {
         )}
       </ScrollView>
 
-      {/* Menu */}
-      <Modal
+        {/* Menu */}
+        <Modal
         visible={menuVisible}
         transparent
         animationType="fade"

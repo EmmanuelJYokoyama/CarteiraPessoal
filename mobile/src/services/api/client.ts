@@ -27,8 +27,6 @@ const PUBLIC_ENDPOINTS = [
   '/auth/register',
   '/auth/confirm-sms',
   '/pin/login',
-  '/pin/set',
-  '/pin/validate',
 ];
 
 type RequestOptions = {

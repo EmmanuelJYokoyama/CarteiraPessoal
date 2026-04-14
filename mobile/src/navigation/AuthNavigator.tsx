@@ -1,4 +1,4 @@
-// src/navigation/AuthNavigator.tsx
+// auto-generated file
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 

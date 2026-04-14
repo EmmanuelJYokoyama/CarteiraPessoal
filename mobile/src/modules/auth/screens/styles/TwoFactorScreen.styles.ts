@@ -1,4 +1,4 @@
-// src/modules/auth/screens/styles/TwoFactorScreen.styles.ts
+// auto-generated file
 import {StyleSheet} from 'react-native';
 
 export const styles = StyleSheet.create({

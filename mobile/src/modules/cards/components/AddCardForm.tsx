@@ -17,6 +17,8 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
     setCardType,
     expiryDate,
     handleExpiryDateChange,
+    limit,
+    setLimit,
     errorMessage,
     loading,
     canSubmit,
@@ -112,6 +114,19 @@ export function AddCardForm({onSuccess}: AddCardFormProps) {
             keyboardType="numeric"
             editable={!loading}
             maxLength={5}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Limite (Opcional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: 5000.00"
+            placeholderTextColor="#666"
+            value={limit}
+            onChangeText={setLimit}
+            keyboardType="decimal-pad"
+            editable={!loading}
           />
         </View>
 

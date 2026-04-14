@@ -17,6 +17,7 @@ export function cardsService(onSuccess: (cardId: string) => void) {
   const [cardNumber, setCardNumber] = useState('');
   const [cardType, setCardType] = useState<'credit' | 'debit' | 'prepaid'>('credit');
   const [expiryDate, setExpiryDate] = useState('');
+  const [limit, setLimit] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -53,12 +54,14 @@ export function cardsService(onSuccess: (cardId: string) => void) {
         lastFourDigits,
         cardType,
         expiryDate,
+        limit,
       });
 
       setName('');
       setCardNumber('');
       setExpiryDate('');
       setCardType('credit');
+      setLimit('');
 
       onSuccess(response.id);
     } catch (error) {
@@ -83,6 +86,8 @@ export function cardsService(onSuccess: (cardId: string) => void) {
     setCardType,
     expiryDate,
     handleExpiryDateChange,
+    limit,
+    setLimit,
     errorMessage,
     loading,
     canSubmit,

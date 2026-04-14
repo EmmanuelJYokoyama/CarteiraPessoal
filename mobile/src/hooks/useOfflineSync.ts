@@ -20,14 +20,11 @@ export function useOfflineSync() {
   });
 
   useEffect(() => {
-    // Initialize connectivity monitoring
     const unsubscribeMonitor = initConnectivityMonitoring();
 
-    // Subscribe to connectivity changes
     const unsubscribeListener = subscribeToConnectivityChanges(async (online) => {
       setStatus(prev => ({...prev, isOnline: online}));
 
-      // Auto-sync when coming back online
       if (online) {
         await performSync();
       }

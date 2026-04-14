@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {clearAllAppData} from '@services/cache';
 
 export type UserData = {
   name: string;
@@ -25,7 +26,6 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     user: null as UserData | null,
   });
 
-  // Verificar se há token salvo ao iniciar o app
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
@@ -53,7 +53,6 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     bootstrapAsync();
   }, []);
 
-  // Listener para mudanças de token (quando login/logout acontecer)
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -75,7 +74,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
       } catch (e) {
         console.error('Failed to check token', e);
       }
-    }, 500); // Verifica a cada 500ms
+    }, 500);
 
     return () => clearInterval(interval);
   }, []);
@@ -87,6 +86,9 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     user: state.user,
     signIn: async (accessToken: string, refreshToken: string, user: UserData) => {
       try {
+        // Limpar cache antes de fazer login com novo usuário
+        await clearAllAppData();
+        
         await AsyncStorage.setItem('@access_token', accessToken);
         await AsyncStorage.setItem('@refresh_token', refreshToken);
         await AsyncStorage.setItem('@user_data', JSON.stringify(user));
@@ -96,6 +98,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
           userToken: accessToken,
           user,
         });
+        console.log('[Auth] 🔓 User signed in - cache cleared for new session');
       } catch (e) {
         console.error('Failed to sign in', e);
         throw e;
@@ -103,15 +106,21 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     },
     signOut: async () => {
       try {
+        // Limpar tokens e dados de usuário
         await AsyncStorage.removeItem('@access_token');
         await AsyncStorage.removeItem('@refresh_token');
         await AsyncStorage.removeItem('@user_data');
+        
+        // Limpar TODOS os caches e requisições pendentes
+        await clearAllAppData();
+        
         dispatch({
           isLoading: false,
           isSignedIn: false,
           userToken: null,
           user: null,
         });
+        console.log('[Auth] 🔐 User logged out and all cache cleared');
       } catch (e) {
         console.error('Failed to sign out', e);
       }

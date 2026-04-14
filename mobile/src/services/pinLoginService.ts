@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@contexts/AuthContext';
 
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes
+const LOCKOUT_DURATION = 5 * 60 * 1000;
 
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,7 +64,6 @@ export function usePinLogin() {
       return;
     }
 
-    // Check lockout status
     const {isLocked: locked, lockoutTime: time, attempts: att} = await checkLockoutStatus();
     if (locked) {
       setError('Muitas tentativas. Tente novamente em 5 minutos.');
@@ -80,7 +79,6 @@ export function usePinLogin() {
       const response = await loginWithPin({email, pin});
 
       if (response.success && response.token) {
-        // Reset attempts on success
         await AsyncStorage.removeItem('@pin_attempts');
         await AsyncStorage.removeItem('@pin_lockout');
         await signIn(response.token, '', {

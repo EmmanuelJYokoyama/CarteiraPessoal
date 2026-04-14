@@ -31,7 +31,6 @@ export default function PinScreen({navigation}: Props) {
   const emailInputRef = useRef<TextInput>(null);
   const pinInputRef = useRef<TextInput>(null);
 
-  // Check for lockout on mount
   useEffect(() => {
     const init = async () => {
       const {isLocked: locked, lockoutTime: time} = await checkLockoutStatus();
@@ -41,7 +40,6 @@ export default function PinScreen({navigation}: Props) {
     init();
   }, [setIsLocked, setLockoutTime]);
 
-  // Countdown timer for lockout
   useEffect(() => {
     if (!isLocked || lockoutTime <= 0) return;
 
@@ -75,6 +73,9 @@ export default function PinScreen({navigation}: Props) {
     await handlePinLogin();
   };
 
+  const isValidEmail = (text: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.header}>
@@ -88,7 +89,6 @@ export default function PinScreen({navigation}: Props) {
       <View style={styles.content}>
         <Text style={styles.subtitle}>Digite seu email e PIN de 4 dígitos</Text>
 
-        {/* Email Input */}
         <TextInput
           ref={emailInputRef}
           style={styles.emailInput}
@@ -102,7 +102,6 @@ export default function PinScreen({navigation}: Props) {
           onSubmitEditing={() => pinInputRef.current?.focus()}
         />
 
-        {/* PIN Display */}
         <Pressable onPress={() => pinInputRef.current?.focus()}>
           <View style={styles.pinDisplay}>
             {[0, 1, 2, 3].map(i => (
@@ -119,15 +118,6 @@ export default function PinScreen({navigation}: Props) {
         </Pressable>
 
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        {isLocked && (
-          <Text style={styles.lockoutText}>
-            ⏱ Tente novamente em {formatTime(lockoutTime)}
-          </Text>
-        )}
-
-        {/* Native Keyboard Input */}
         <TextInput
           ref={pinInputRef}
           style={styles.hiddenInput}

@@ -1,0 +1,340 @@
+### Carteira Pessoal API - Exemplos de Requisições
+### Abra em qualquer editor REST Client (VS Code REST Client, Insomnia, Postman)
+
+@baseUrl = http://localhost:3000
+@token = seu_access_token_aqui
+@userId = seu_user_id_aqui
+@refreshToken = seu_refresh_token_aqui
+
+---
+
+### ===== AUTENTICAÇÃO =====
+
+### Registrar novo usuário
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "usuario@email.com",
+  "password": "SenhaForte123!",
+  "name": "João Silva",
+  "phoneNumber": "+5585998765432"
+}
+
+###
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "usuario@email.com",
+  "password": "SenhaForte123!"
+}
+
+###
+
+### Renovar Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### Logout da sessão atual
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{token}}
+
+###
+
+### Logout de todas as sessões
+POST {{baseUrl}}/auth/logout-all
+Authorization: Bearer {{token}}
+
+###
+
+### ===== CARTÕES =====
+
+### Listar todos os cartões
+GET {{baseUrl}}/cards
+Authorization: Bearer {{token}}
+
+###
+
+### Criar novo cartão
+POST {{baseUrl}}/cards
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cardNumber": "1234567890123456",
+  "cardHolder": "João Silva",
+  "expiryDate": "12/25",
+  "cvv": "123"
+}
+
+###
+
+### Obter detalhes de um cartão
+GET {{baseUrl}}/cards/card_123
+Authorization: Bearer {{token}}
+
+###
+
+### Atualizar cartão
+PUT {{baseUrl}}/cards/card_123
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cardHolder": "João Silva Silva",
+  "expiryDate": "12/26"
+}
+
+###
+
+### Deletar cartão
+DELETE {{baseUrl}}/cards/card_123
+Authorization: Bearer {{token}}
+
+###
+
+### ===== TRANSAÇÕES =====
+
+### Listar transações
+GET {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+
+###
+
+### Listar transações com filtros
+GET {{baseUrl}}/transactions?category=Alimentação&skip=0&take=10
+Authorization: Bearer {{token}}
+
+###
+
+### Criar nova transação
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Almoço no restaurante",
+  "amount": 45.50,
+  "category": "Alimentação",
+  "cardId": "card_123",
+  "installments": 1
+}
+
+###
+
+### Criar transação com parcelamento
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Eletrônicos",
+  "amount": 1200.00,
+  "category": "Eletrônicos",
+  "cardId": "card_123",
+  "installments": 12
+}
+
+###
+
+### Obter detalhes de uma transação
+GET {{baseUrl}}/transactions/transaction_123
+Authorization: Bearer {{token}}
+
+###
+
+### Atualizar transação
+PUT {{baseUrl}}/transactions/transaction_123
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Almoço no restaurante XYZ",
+  "amount": 50.00,
+  "category": "Alimentação"
+}
+
+###
+
+### Marcar transação como concluída
+POST {{baseUrl}}/transactions/transaction_123/complete
+Authorization: Bearer {{token}}
+
+###
+
+### Marcar parcela específica como paga
+POST {{baseUrl}}/transactions/transaction_123/pay-installment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "installmentNumber": 1
+}
+
+###
+
+### Deletar transação
+DELETE {{baseUrl}}/transactions/transaction_123
+Authorization: Bearer {{token}}
+
+###
+
+### ===== OTP (One-Time Password) =====
+
+### Enviar código OTP via SMS
+POST {{baseUrl}}/otp/send
+Authorization: Bearer {{token}}
+
+###
+
+### Verificar código OTP
+POST {{baseUrl}}/otp/verify
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "123456"
+}
+
+###
+
+### Reenviar código OTP
+POST {{baseUrl}}/otp/resend
+Authorization: Bearer {{token}}
+
+###
+
+### ===== PIN =====
+
+### Criar PIN
+POST {{baseUrl}}/pin/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "pin": "1234"
+}
+
+###
+
+### Verificar PIN
+POST {{baseUrl}}/pin/verify
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "pin": "1234"
+}
+
+###
+
+### Alterar PIN
+PUT {{baseUrl}}/pin/change
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "oldPin": "1234",
+  "newPin": "5678"
+}
+
+###
+
+### ===== SMS =====
+
+### Enviar SMS customizado
+POST {{baseUrl}}/sms/send
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "message": "Seu código de confirmação é 123456"
+}
+
+###
+
+### Verificar status do SMS
+GET {{baseUrl}}/sms/status
+Authorization: Bearer {{token}}
+
+###
+
+### ===== ORÇAMENTOS =====
+
+### Listar orçamentos
+GET {{baseUrl}}/budgets
+Authorization: Bearer {{token}}
+
+###
+
+### Criar orçamento
+POST {{baseUrl}}/budgets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "category": "Alimentação",
+  "amount": 500.00,
+  "month": "2026-04"
+}
+
+###
+
+### Atualizar orçamento
+PUT {{baseUrl}}/budgets/budget_123
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "amount": 600.00
+}
+
+###
+
+### Deletar orçamento
+DELETE {{baseUrl}}/budgets/budget_123
+Authorization: Bearer {{token}}
+
+###
+
+### ===== RELATÓRIOS =====
+
+### Relatório mensal
+GET {{baseUrl}}/reports/monthly?month=2026-04
+Authorization: Bearer {{token}}
+
+###
+
+### Gastos por categoria
+GET {{baseUrl}}/reports/category?month=2026-04
+Authorization: Bearer {{token}}
+
+###
+
+### Tendências de gastos
+GET {{baseUrl}}/reports/trends?months=6
+Authorization: Bearer {{token}}
+
+###
+
+### ===== HEALTH CHECK =====
+
+### Verificar saúde da API
+GET {{baseUrl}}/health
+
+###
+
+### Verificar acesso a rota protegida
+GET {{baseUrl}}/api/protected
+Authorization: Bearer {{token}}
+
+###

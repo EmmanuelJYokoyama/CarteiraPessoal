@@ -1,4 +1,4 @@
-// src/modules/auth/services/useTwoFactor.ts
+// auto-generated file
 import {useEffect, useRef, useState} from 'react';
 import {TextInput, NativeSyntheticEvent, TextInputKeyPressEventData} from 'react-native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';

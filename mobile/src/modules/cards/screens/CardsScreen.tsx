@@ -11,19 +11,16 @@ export default function CardsScreen() {
   const [recentlyAddedCardId, setRecentlyAddedCardId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  // Formatadores
   function formatCardDigits(lastFour: string): string {
     return `•••• •••• •••• ${lastFour}`;
   }
 
   function formatExpiryDate(expiryDate: string): string {
-    // Espera formato MM/YY
     const [month, year] = expiryDate.split('/');
     if (!month || !year) return expiryDate;
     return `${month}/20${year}`;
   }
 
-  // Cores baseadas na marca do cartão
   function getCardBrandColor(brand: string): {bg: string; accent: string} {
     const brandLower = brand?.toLowerCase() || '';
     if (brandLower.includes('visa')) {
@@ -86,8 +83,6 @@ export default function CardsScreen() {
     setShowForm(false);
     setRecentlyAddedCardId(cardId);
     loadCards();
-    
-    // Clear recently added highlight after 5 seconds
     setTimeout(() => setRecentlyAddedCardId(null), 5000);
   }
 
@@ -279,6 +274,17 @@ export default function CardsScreen() {
                             </Text>
                           </View>
                         </View>
+
+                        {item.limit && (
+                          <View style={{marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.2)'}}>
+                            <Text style={{fontSize: 10, color: 'rgba(255, 255, 255, 0.7)', marginBottom: 4, textTransform: 'uppercase'}}>
+                              Limite
+                            </Text>
+                            <Text style={{fontSize: 16, color: '#4ECDC4', fontWeight: '600'}}>
+                              R$ {parseFloat(item.limit).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <Pressable
                         onPress={() => confirmDeleteCard(item)}

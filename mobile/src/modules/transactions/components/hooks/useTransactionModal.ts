@@ -18,7 +18,6 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     setEditedCategory(transaction.category || '');
   }, [transaction]);
 
-  // Carrega as parcelas quando a transação tem mais de 1 parcela
   useEffect(() => {
     if (transaction.installments > 1 && isVisible) {
       loadInstallments();
@@ -40,11 +39,9 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     try {
       setIsLoading(true);
       if (transaction.installments > 1) {
-        // Encontra a primeira parcela pendente
         const nextPendingInstallment = installments.find(inst => inst.status === 'pending');
         if (nextPendingInstallment) {
           await payInstallment(nextPendingInstallment.id);
-          // Recarrega as parcelas para atualizar o status
           await loadInstallments();
         } else {
           Alert.alert('Aviso', 'Todas as parcelas já foram pagas');
@@ -68,7 +65,6 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     try {
       setIsLoading(true);
       await payInstallment(installmentId);
-      // Recarrega as parcelas para atualizar o status
       await loadInstallments();
       await invalidateCache('transactions');
       setShowInstallmentPicker(false);

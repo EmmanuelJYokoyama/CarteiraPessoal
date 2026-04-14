@@ -274,6 +274,17 @@ export default function CardsScreen() {
                             </Text>
                           </View>
                         </View>
+
+                        {item.limit && (
+                          <View style={{marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.2)'}}>
+                            <Text style={{fontSize: 10, color: 'rgba(255, 255, 255, 0.7)', marginBottom: 4, textTransform: 'uppercase'}}>
+                              Limite
+                            </Text>
+                            <Text style={{fontSize: 16, color: '#4ECDC4', fontWeight: '600'}}>
+                              R$ {parseFloat(item.limit).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <Pressable
                         onPress={() => confirmDeleteCard(item)}

@@ -7,6 +7,7 @@ export type CreateCardPayload = {
   lastFourDigits: string;
   cardType: 'credit' | 'debit' | 'prepaid';
   expiryDate: string;
+  limit?: string;
 };
 
 export type Card = {
@@ -16,6 +17,7 @@ export type Card = {
   cardType: string;
   brand: string;
   expiryDate: string;
+  limit?: string;
   createdAt: string;
 };
 

@@ -7,8 +7,7 @@
     "start": "node dist/server.js",
     "db:generate": "drizzle-kit generate:pg",
     "db:push": "drizzle-kit push:pg",
-    "db:studio": "drizzle-kit studio",
-    "seed:billing": "tsx drizzle/seed.ts"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.0",

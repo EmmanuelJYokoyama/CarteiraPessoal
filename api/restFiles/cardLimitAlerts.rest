@@ -1,0 +1,41 @@
+@baseUrl = http://localhost:3000
+@token = seu_token_jwt_aqui
+
+### Obter status de limite do cartão
+GET {{baseUrl}}/cards/{{cardId}}/limit-status
+Authorization: Bearer {{token}}
+
+### Obter status de limite de todos os cartões do usuário
+GET {{baseUrl}}/cards/limit-status/all
+Authorization: Bearer {{token}}
+
+### Atualizar limite do cartão
+PATCH {{baseUrl}}/cards/{{cardId}}/limit
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "limit": 5000
+}
+
+### Atualizar percentual de alerta
+PATCH {{baseUrl}}/cards/{{cardId}}/alert-percentage
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "alertPercentage": 80
+}
+
+### Ativar/Desativar alerta
+PATCH {{baseUrl}}/cards/{{cardId}}/alert-enabled
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+
+### Verificar alertas e enviar notificações
+POST {{baseUrl}}/cards/check-alerts
+Authorization: Bearer {{token}}

@@ -6,7 +6,6 @@ export async function jwtPlugin(app: FastifyInstance) {
     secret: process.env.JWT_SECRET!,
   });
 
-  // decorator para proteger rotas com access token
   app.decorate('authenticate', async (req: any, reply: any) => {
     try {
       await req.jwtVerify();
@@ -15,7 +14,6 @@ export async function jwtPlugin(app: FastifyInstance) {
     }
   });
 
-  // decorator para refresh token
   app.decorate('authenticateRefresh', async (req: any, reply: any) => {
     try {
       await req.jwtVerify();

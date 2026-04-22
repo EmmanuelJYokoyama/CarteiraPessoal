@@ -406,6 +406,133 @@ export const swaggerConfig = {
           },
         },
       },
+      '/billing/statements': {
+        get: {
+          tags: ['Fatura'],
+          summary: 'Listar faturas de todos os cartões',
+          description: 'Retorna a fatura atual de todos os cartões do usuário',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'Lista de faturas',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        cardId: { type: 'string' },
+                        cardName: { type: 'string' },
+                        billingPeriod: {
+                          type: 'object',
+                          properties: {
+                            startDate: { type: 'string', format: 'date-time' },
+                            endDate: { type: 'string', format: 'date-time' },
+                            closingDay: { type: 'integer' },
+                            dueDay: { type: 'integer' },
+                          },
+                        },
+                        totalAmount: { type: 'string' },
+                        pendingAmount: { type: 'string' },
+                        completedAmount: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Não autorizado' },
+          },
+        },
+      },
+      '/billing/statements/{cardId}': {
+        get: {
+          tags: ['Fatura'],
+          summary: 'Obter fatura de um cartão',
+          description: 'Retorna a fatura atual de um cartão específico',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'cardId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'ID do cartão',
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Fatura do cartão',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      cardId: { type: 'string' },
+                      cardName: { type: 'string' },
+                      billingPeriod: {
+                        type: 'object',
+                        properties: {
+                          startDate: { type: 'string', format: 'date-time' },
+                          endDate: { type: 'string', format: 'date-time' },
+                          closingDay: { type: 'integer' },
+                          dueDay: { type: 'integer' },
+                        },
+                      },
+                      transactions: { type: 'array' },
+                      totalAmount: { type: 'string' },
+                      pendingAmount: { type: 'string' },
+                      completedAmount: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Não autorizado' },
+            '404': { description: 'Cartão não encontrado' },
+          },
+        },
+      },
+      '/billing/statements/{cardId}/by-category': {
+        get: {
+          tags: ['Fatura'],
+          summary: 'Gastos por categoria',
+          description: 'Retorna os gastos agrupados por categoria da fatura',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'cardId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'ID do cartão',
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Gastos por categoria',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        category: { type: 'string' },
+                        total: { type: 'string' },
+                        count: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Não autorizado' },
+            '404': { description: 'Cartão não encontrado' },
+          },
+        },
+      },
     },
   },
 } as any;

@@ -46,7 +46,6 @@ export async function initiateSmsSending(userId: string, phoneNumber: string) {
 
   if (!user) throw new Error('USER_NOT_FOUND');
 
-  // Remove códigos anteriores não verificados
   await db
     .delete(otpCodes)
     .where(
@@ -57,9 +56,8 @@ export async function initiateSmsSending(userId: string, phoneNumber: string) {
     );
 
   const code = generateConfirmationCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  // Importamos sendOtpSms do Twilio
   const { sendOtpSms } = await import('@plugins/twilio');
 
   try {

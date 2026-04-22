@@ -13,7 +13,6 @@ export async function createTransaction(userId: string, input: CreateTransaction
   const amountPerInstallment = (amount / installmentCount).toFixed(2);
 
   return await db.transaction(async (tx) => {
-    // Criar a transação principal (primeira parcela)
     const newTransactionResult = await tx
       .insert(transactions)
       .values({
@@ -33,7 +32,6 @@ export async function createTransaction(userId: string, input: CreateTransaction
       ? newTransactionResult[0] 
       : newTransactionResult;
 
-    // Criar registros de parcelas
     const installmentsToCreate = Array.from({length: installmentCount}, (_, i) => {
       const dueDate = new Date(transactionDate);
       dueDate.setMonth(dueDate.getMonth() + i);
@@ -131,7 +129,6 @@ export async function deleteTransaction(transactionId: string, userId: string) {
 
   if (!transaction) throw new Error('TRANSACTION_NOT_FOUND');
 
-  // Deletar a transação (vai deletar lançamentos futuros automaticamente através da foreign key cascade)
   await db.delete(transactions).where(eq(transactions.id, transactionId));
 }
 

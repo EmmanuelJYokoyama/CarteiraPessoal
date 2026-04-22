@@ -4,8 +4,6 @@ import {registerUser, loginUser, generateTokens, refreshUserTokens, revokeRefres
 import {initiateSmsSending} from '../sms/sms.service';
 import type {AuthTokenPayload} from './auth.types';
 
-//registro de usuario
-
 export async function register(req: FastifyRequest, reply: FastifyReply) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -17,7 +15,6 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
     const user = await registerUser(parsed.data);
     console.log(`✅ Usuário criado: ${user.id}`);
 
-    // Inicia o envio do código de confirmação via SMS
     console.log(`📱 Iniciando envio de SMS para: ${parsed.data.phoneNumber}`);
     await initiateSmsSending(user.id, parsed.data.phoneNumber);
     console.log(`✅ SMS iniciado com sucesso`);
@@ -43,8 +40,6 @@ export async function register(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-// login
-
 export async function login(req: FastifyRequest, reply: FastifyReply) {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -62,7 +57,7 @@ export async function login(req: FastifyRequest, reply: FastifyReply) {
       email: user.email,
     });
   } catch (err: any) {
-    console.error('Erro no login:', err); 
+    console.error('Erro no login:', err);
     if (err.message === 'INVALID_CREDENTIALS') {
       return reply.status(401).send({error: 'E-mail ou senha inválidos'});
     }
@@ -72,8 +67,6 @@ export async function login(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(500).send({error: err.message || 'Erro interno'});
   }
 }
-
-// refresh token
 
 export async function refresh(req: FastifyRequest, reply: FastifyReply) {
   const parsed = refreshSchema.safeParse(req.body);
@@ -103,8 +96,6 @@ export async function refresh(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(500).send({error: err.message || 'Erro interno'});
   }
 }
-
-// logout do dispositivo atual
 
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
   try {

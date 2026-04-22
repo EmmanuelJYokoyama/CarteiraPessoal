@@ -64,7 +64,6 @@ export async function validateOtp(userId: string, code: string) {
     throw new Error('OTP_EXPIRED');
   }
 
-  // Marca o código como validado
   await db
     .update(otpCodes)
     .set({ verifiedAt: new Date() })

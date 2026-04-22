@@ -4,6 +4,7 @@ import jwt from '@fastify/jwt';
 import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui';
 import * as dotenv from 'dotenv';
+import '@types/jwt';
 import { authRoutes } from '@modules/auth/auth.routes';
 import { smsRoutes } from '@modules/sms/sms.routes';
 import { otpRoutes } from '@modules/otp/otp.routes';
@@ -11,6 +12,7 @@ import { pinRoutes } from '@modules/pin/pin.routes';
 import { cardsRoutes } from '@modules/cards/cards.routes';
 import { transactionsRoutes } from '@modules/transactions/transactions.routes';
 import { categoriesRoutes } from '@modules/categories/categories.routes';
+import { cardLimitAlertsRoutes } from '@modules/cardLimitAlerts/cardLimitAlerts.routes';
 import { swaggerConfig, swaggerUIConfig } from '@/swagger.config';
 
 dotenv.config();
@@ -28,6 +30,7 @@ app.register(pinRoutes);
 app.register(cardsRoutes);
 app.register(categoriesRoutes);
 app.register(transactionsRoutes);
+app.register(cardLimitAlertsRoutes);
 
 app.get('/health', async () => ({status: 'ok'}));
 

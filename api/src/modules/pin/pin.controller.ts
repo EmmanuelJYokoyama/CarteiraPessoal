@@ -70,7 +70,6 @@ export async function loginWithPin(req: FastifyRequest, reply: FastifyReply) {
     const {email, pin} = parsed.data;
     const user = await validateUserPinByEmail(email, pin);
 
-    // Generate JWT token
     const token = await reply.jwtSign(
       {userId: user.userId, email: user.email},
       {expiresIn: '8h'}

@@ -19,6 +19,14 @@ export const payInstallmentSchema = z.object({
   installmentId: z.string().uuid(),
 });
 
+export const duplicateCheckSchema = z.object({
+  description: z.string().min(1, 'Descrição obrigatória').max(255),
+  amount: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Valor deve ser maior que zero'),
+  transactionDate: z.string().datetime().or(z.date()),
+  cardId: z.string().uuid().optional(),
+});
+
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
 export type PayInstallmentInput = z.infer<typeof payInstallmentSchema>;
+export type DuplicateCheckInput = z.infer<typeof duplicateCheckSchema>;

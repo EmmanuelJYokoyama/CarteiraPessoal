@@ -48,7 +48,7 @@ Content-Type: application/json
 ### 4️⃣ RENOVAR TOKEN (REFRESH)
 ###############################################################################
 
-@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3YjRhNzgxZi1jNDgwLTQ1MzQtODJjZi1jNDdlZWJiNTZkZTAiLCJlbWFpbCI6InRlc3RhbmRvQG1haWwuY29tIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzQzOTYzMDMsImV4cCI6MTc3NTAwMTEwM30.4COlc9UN2jPoCgxck0MaHPhyk10huxrb0BCYLEg2Pfs
+@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTIxZWM4Yi1mY2Q2LTQ1NGUtYmJmNy0wMDhjMjcwOTdlY2YiLCJlbWFpbCI6InNpbHZhQG1haWwuY29tIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NzgwMjk2ODAsImV4cCI6MTc3ODYzNDQ4MH0.zVhnrySPas1qvM6CjHwaD54vC87-7ut59X4tE65dEac
 
 POST {{baseUrl}}/auth/refresh
 Content-Type: application/json

@@ -1,7 +1,7 @@
 import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
-import {eq, and, isNull} from 'drizzle-orm';
-import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput} from './transactions.schema';
+import {eq, and, isNull, gte, lte, ilike} from 'drizzle-orm';
+import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
 
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
   const transactionDate = input.transactionDate instanceof Date 
@@ -13,7 +13,6 @@ export async function createTransaction(userId: string, input: CreateTransaction
   const amountPerInstallment = (amount / installmentCount).toFixed(2);
 
   return await db.transaction(async (tx) => {
-    // Criar a transação principal (primeira parcela)
     const newTransactionResult = await tx
       .insert(transactions)
       .values({
@@ -33,7 +32,6 @@ export async function createTransaction(userId: string, input: CreateTransaction
       ? newTransactionResult[0] 
       : newTransactionResult;
 
-    // Criar registros de parcelas
     const installmentsToCreate = Array.from({length: installmentCount}, (_, i) => {
       const dueDate = new Date(transactionDate);
       dueDate.setMonth(dueDate.getMonth() + i);
@@ -72,7 +70,48 @@ export async function getTransactionsByUserId(userId: string) {
     ),
   });
 
+  console.log('[TransactionService] Found transactions:', userTransactions.length);
+  
   return userTransactions;
+}
+
+export async function findDuplicateTransactions(
+  userId: string,
+  input: DuplicateCheckInput
+) {
+  const rawDate = input.transactionDate instanceof Date
+    ? input.transactionDate
+    : new Date(input.transactionDate);
+
+  const startDate = new Date(rawDate);
+  startDate.setDate(startDate.getDate() - 3);
+
+  const endDate = new Date(rawDate);
+  endDate.setDate(endDate.getDate() + 3);
+
+  const amount = Number(input.amount);
+  const minAmount = (amount * 0.95).toFixed(2);
+  const maxAmount = (amount * 1.05).toFixed(2);
+
+  const description = input.description.trim();
+
+  const conditions = [
+    eq(transactions.userId, userId),
+    isNull(transactions.parentTransactionId),
+    gte(transactions.transactionDate, startDate),
+    lte(transactions.transactionDate, endDate),
+    gte(transactions.amount, minAmount),
+    lte(transactions.amount, maxAmount),
+    ilike(transactions.description, `%${description}%`),
+  ];
+
+  if (input.cardId) {
+    conditions.push(eq(transactions.cardId, input.cardId));
+  }
+
+  return db.query.transactions.findMany({
+    where: and(...conditions),
+  });
 }
 
 export async function getTransactionById(transactionId: string, userId: string) {
@@ -131,7 +170,6 @@ export async function deleteTransaction(transactionId: string, userId: string) {
 
   if (!transaction) throw new Error('TRANSACTION_NOT_FOUND');
 
-  // Deletar a transação (vai deletar lançamentos futuros automaticamente através da foreign key cascade)
   await db.delete(transactions).where(eq(transactions.id, transactionId));
 }
 

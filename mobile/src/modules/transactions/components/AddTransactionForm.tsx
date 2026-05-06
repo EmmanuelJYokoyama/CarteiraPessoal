@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {createTransaction} from '@services/api/transactions';
+import {createTransaction, checkDuplicateTransactions} from '@services/api/transactions';
 import {listCards, Card} from '@services/api/cards';
 import {useCategories} from '../hooks/useCategories';
 import {styles} from './styles/AddTransactionForm.styles';
@@ -102,30 +102,67 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   async function handleAddTransaction() {
     if (!validateForm()) return;
 
+    const payload = {
+      description: description.trim(),
+      amount,
+      category,
+      installments: Number(installments),
+      cardId: selectedCard?.id,
+      transactionDate: transactionDate.toISOString(),
+    };
+
+    const saveTransaction = async () => {
+      try {
+        setLoading(true);
+        setErrorMessage('');
+
+        await createTransaction(payload);
+
+        setDescription('');
+        setAmount('');
+        setCategory('');
+        setInstallments('1');
+        setTransactionDate(new Date());
+        onSuccess?.();
+      } catch (error: any) {
+        const message = error.message || 'Erro ao registrar despesa';
+        setErrorMessage(message);
+        console.error('Erro ao registrar despesa:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     try {
       setLoading(true);
       setErrorMessage('');
 
-      await createTransaction({
-        description: description.trim(),
-        amount,
-        category,
-        installments: Number(installments),
-        cardId: selectedCard?.id,
-        transactionDate: transactionDate.toISOString(),
+      const duplicateCheck = await checkDuplicateTransactions({
+        description: payload.description,
+        amount: payload.amount,
+        transactionDate: payload.transactionDate,
+        cardId: payload.cardId,
       });
 
-      setDescription('');
-      setAmount('');
-      setCategory('');
-      setInstallments('1');
-      setTransactionDate(new Date());
-      onSuccess?.();
+      setLoading(false);
+
+      if (duplicateCheck.count > 0) {
+        Alert.alert(
+          'Possivel duplicata',
+          'Encontramos uma transacao semelhante. Deseja salvar mesmo assim?',
+          [
+            {text: 'Cancelar', style: 'cancel'},
+            {text: 'Salvar mesmo assim', onPress: () => void saveTransaction()},
+          ]
+        );
+        return;
+      }
+
+      await saveTransaction();
     } catch (error: any) {
       const message = error.message || 'Erro ao registrar despesa';
       setErrorMessage(message);
-      console.error('Erro ao registrar despesa:', error);
-    } finally {
+      console.error('Erro ao verificar duplicatas:', error);
       setLoading(false);
     }
   }

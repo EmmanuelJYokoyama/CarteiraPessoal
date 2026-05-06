@@ -19,7 +19,6 @@ export async function cardsRoutes(app: FastifyInstance) {
   app.put<{Params: {cardId: string}}>('/cards/:cardId', updateCardHandler);
   app.delete<{Params: {cardId: string}}>('/cards/:cardId', deleteCardHandler);
 
-  // Rotas de fatura
   app.get('/billing/statements', getUserBillingStatementsHandler);
   app.get<{Params: {cardId: string}}>('/billing/statements/:cardId', getCardBillingStatementHandler);
   app.get<{Params: {cardId: string}}>('/billing/statements/:cardId/by-category', getCardStatementByCategoryHandler);

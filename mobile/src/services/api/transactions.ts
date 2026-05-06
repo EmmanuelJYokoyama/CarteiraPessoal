@@ -11,12 +11,19 @@ export type CreateTransactionPayload = {
   status?: 'pending' | 'completed' | 'cancelled';
 };
 
+export type DuplicateCheckPayload = {
+  description: string;
+  amount: string;
+  transactionDate: string;
+  cardId?: string;
+};
+
 export type Transaction = {
   id: string;
   userId: string;
   cardId?: string;
   description: string;
-  amount: string;
+  amount: number;
   installments: number;
   installmentsPaid: number;
   category?: string;
@@ -44,6 +51,11 @@ export type CreateTransactionResponse = {
 
 export type ListTransactionsResponse = Transaction[];
 
+export type DuplicateCheckResponse = {
+  count: number;
+  duplicates: Transaction[];
+};
+
 export async function createTransaction(payload: CreateTransactionPayload) {
   const response = await apiRequest<CreateTransactionResponse>('/transactions', {
     method: 'POST',
@@ -53,6 +65,13 @@ export async function createTransaction(payload: CreateTransactionPayload) {
   await clearCache('GET:/transactions');
 
   return response;
+}
+
+export async function checkDuplicateTransactions(payload: DuplicateCheckPayload) {
+  return apiRequest<DuplicateCheckResponse>('/transactions/check-duplicates', {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export async function listTransactions() {

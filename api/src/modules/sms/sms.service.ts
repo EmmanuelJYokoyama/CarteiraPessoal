@@ -1,7 +1,9 @@
 import {db} from '@db/index';
 import {users} from '../../db/schema/users';
 import {otpCodes} from '../../db/schema/otpCodes';
+import {transactions} from '../../db/schema/transactions';
 import {and, eq, isNull} from 'drizzle-orm';
+import {parseBankSms, ParsedSmsData} from './sms.parser';
 
 export async function confirmUserViaSms(email: string, code: string) {
   const user = await db.query.users.findFirst({
@@ -46,7 +48,6 @@ export async function initiateSmsSending(userId: string, phoneNumber: string) {
 
   if (!user) throw new Error('USER_NOT_FOUND');
 
-  // Remove códigos anteriores não verificados
   await db
     .delete(otpCodes)
     .where(
@@ -57,9 +58,8 @@ export async function initiateSmsSending(userId: string, phoneNumber: string) {
     );
 
   const code = generateConfirmationCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  // Importamos sendOtpSms do Twilio
   const { sendOtpSms } = await import('@plugins/twilio');
 
   try {
@@ -111,4 +111,56 @@ export async function resendSmsByEmail(email: string) {
   }
 
   return initiateSmsSending(user.id, user.phoneNumber);
+}
+
+export async function processBankSms(
+  userId: string,
+  message: string,
+  cardId: string
+): Promise<ParsedSmsData> {
+  const parsedData = parseBankSms(message);
+
+  if (!parsedData.parsed) {
+    return parsedData;
+  }
+
+  const transactionDate = parsedData.date || new Date();
+
+  await db.insert(transactions).values({
+    userId,
+    cardId,
+    amount: parsedData.amount.toString(),
+    description: `SMS: ${parsedData.bank.toUpperCase()} - ${parsedData.establishment || 'Sem estabelecimento'}`,
+    category: 'SMS Bancário',
+    transactionDate,
+    status: 'completed',
+  });
+
+  return parsedData;
+}
+
+export async function parseAndLogBankMessage(
+  userId: string,
+  cardId: string,
+  smsContent: string
+): Promise<{success: boolean; data?: ParsedSmsData; error?: string}> {
+  try {
+    const result = await processBankSms(userId, smsContent, cardId);
+
+    if (result.parsed) {
+      console.log(`✅ SMS bancário processado para usuário ${userId}:`, {
+        bank: result.bank,
+        amount: result.amount,
+        establishment: result.establishment,
+      });
+    }
+
+    return {success: result.parsed, data: result};
+  } catch (error) {
+    console.error(`❌ Erro ao processar SMS bancário para ${userId}:`, error);
+    return {
+      success: false,
+      error: (error as Error).message || 'Erro ao processar SMS',
+    };
+  }
 }

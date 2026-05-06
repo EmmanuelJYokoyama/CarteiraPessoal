@@ -1,0 +1,230 @@
+import {StyleSheet} from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 24,
+  },
+  inputSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  textarea: {
+    backgroundColor: '#1f2937',
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: 8,
+    padding: 12,
+    color: '#fff',
+    fontSize: 13,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  examplesSection: {
+    marginBottom: 20,
+  },
+  exampleTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  exampleButton: {
+    backgroundColor: '#1f2937',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3b82f6',
+  },
+  exampleText: {
+    fontSize: 12,
+    color: '#d1d5db',
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  clearButton: {
+    backgroundColor: '#374151',
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  parseButton: {
+    backgroundColor: '#3b82f6',
+  },
+  parseButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  resultCard: {
+    backgroundColor: '#1f2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10b981',
+  },
+  resultCardError: {
+    borderLeftColor: '#ef4444',
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  resultStatus: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  resultData: {
+    marginBottom: 20,
+  },
+  dataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+  },
+  dataLabel: {
+    fontSize: 13,
+    color: '#999',
+    fontWeight: '500',
+  },
+  dataValue: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#111827',
+    borderRadius: 6,
+    marginTop: 12,
+  },
+  copyButtonText: {
+    fontSize: 13,
+    color: '#3b82f6',
+    fontWeight: '500',
+  },
+  errorInfo: {
+    backgroundColor: '#7f1d1d',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorMessage: {
+    fontSize: 12,
+    color: '#fca5a5',
+    lineHeight: 18,
+  },
+  rawMessageSection: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
+  },
+  rawLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#999',
+    marginBottom: 8,
+  },
+  rawBox: {
+    backgroundColor: '#111827',
+    borderRadius: 6,
+    padding: 12,
+  },
+  rawText: {
+    fontSize: 11,
+    color: '#d1d5db',
+    lineHeight: 16,
+    fontFamily: 'monospace',
+  },
+  historySection: {
+    marginTop: 24,
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  historyItem: {
+    backgroundColor: '#1f2937',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderLeftWidth: 3,
+    borderLeftColor: '#3b82f6',
+  },
+  historyAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  historyBank: {
+    fontSize: 12,
+    color: '#999',
+  },
+  historyError: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '500',
+  },
+  historyPreview: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'right',
+  },
+});

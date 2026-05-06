@@ -20,12 +20,6 @@ export interface CardBillingStatement {
   completedAmount: string;
 }
 
-/**
- * Calcula o período de fatura baseado no dia de fechamento
- * @param closingDay - Dia do mês que o fechamento ocorre
- * @param referenceDate - Data de referência (padrão: hoje)
- * @returns Período de fatura (startDate, endDate)
- */
 export function calculateBillingPeriod(
   closingDay: number,
   referenceDate: Date = new Date()
@@ -34,26 +28,25 @@ export function calculateBillingPeriod(
   const month = referenceDate.getMonth();
   const day = referenceDate.getDate();
 
-  // Data do fechamento deste mês
-  const currentMonthClosing = new Date(year, month, closingDay);
+  const getClosingDate = (y: number, m: number): Date => {
+    const date = new Date(y, m, Math.min(closingDay, getDaysInMonth(y, m)));
+    return date;
+  };
 
-  // Se hoje é antes do fechamento, o período ainda está aberto
-  // Period vai de fechamento do mês passado até fechamento deste mês
+  const currentMonthClosing = getClosingDate(year, month);
+
   let startDate: Date;
   let endDate: Date;
 
   if (day < closingDay) {
-    // Ainda não fechou este mês, então pega do mês anterior
-    startDate = new Date(year, month - 1, closingDay);
+    startDate = getClosingDate(year, month - 1);
     endDate = currentMonthClosing;
   } else {
-    // Já passou do fechamento, então começa novo período
     startDate = currentMonthClosing;
-    endDate = new Date(year, month + 1, closingDay);
+    endDate = getClosingDate(year, month + 1);
   }
 
-  // Retorna com due day (vencimento do período anterior + 10 dias aprox)
-  const dueDay = closingDay + 10 <= 31 ? closingDay + 10 : closingDay + 10 - 31;
+  const dueDay = Math.min(closingDay + 10, 31);
 
   return {
     startDate,
@@ -63,14 +56,15 @@ export function calculateBillingPeriod(
   };
 }
 
-/**
- * Retorna todas as transações de um cartão dentro do período de fatura
- */
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
 export async function getCardBillingStatement(
   cardId: string,
   userId: string
 ): Promise<CardBillingStatement> {
-  // Buscar cartão
+
   const card = await db
     .select()
     .from(cards)
@@ -83,7 +77,6 @@ export async function getCardBillingStatement(
   const cardData = card[0];
   const billingPeriod = calculateBillingPeriod(cardData.closingDay || 15);
 
-  // Buscar transações deste cartão dentro do período
   const cardTransactions = await db
     .select()
     .from(transactions)
@@ -96,7 +89,6 @@ export async function getCardBillingStatement(
       )
     );
 
-  // Calcular totais
   const totalAmount = cardTransactions.reduce((sum, tx) => {
     return sum + parseFloat(tx.amount);
   }, 0);
@@ -124,19 +116,14 @@ export async function getCardBillingStatement(
   };
 }
 
-/**
- * Retorna declaração de fatura para todos os cartões do usuário
- */
 export async function getUserBillingStatements(
   userId: string
 ): Promise<CardBillingStatement[]> {
-  // Buscar todos os cartões do usuário
   const userCards = await db
     .select()
     .from(cards)
     .where(eq(cards.userId, userId));
 
-  // Calcular statement para cada cartão
   const statements = await Promise.all(
     userCards.map(card => getCardBillingStatement(card.id, userId))
   );
@@ -144,16 +131,12 @@ export async function getUserBillingStatements(
   return statements;
 }
 
-/**
- * Retorna gastos agregados por categoria dentro da fatura
- */
 export async function getCardStatementByCategory(
   cardId: string,
   userId: string
 ): Promise<Array<{category: string; total: string; count: number}>> {
   const statement = await getCardBillingStatement(cardId, userId);
 
-  // Agrupar por categoria
   const byCategory: Record<string, {total: number; count: number}> = {};
 
   statement.transactions.forEach(tx => {
@@ -165,7 +148,6 @@ export async function getCardStatementByCategory(
     byCategory[category].count += 1;
   });
 
-  // Converter para array ordenado por total
   return Object.entries(byCategory)
     .map(([category, {total, count}]) => ({
       category,

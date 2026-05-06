@@ -16,7 +16,8 @@
       "@db/*":      ["src/db/*"],
       "@modules/*": ["src/modules/*"],
       "@plugins/*": ["src/plugins/*"],
-      "@utils/*":   ["src/utils/*"]
+      "@utils/*":   ["src/utils/*"],
+      "@types/*":   ["src/types/*"]
     }
   },
   "include": ["src/**/*"],

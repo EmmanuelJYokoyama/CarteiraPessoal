@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:3000
+@accessToken = seu_token_jwt_aqui
+
+### Checar possiveis duplicatas antes de salvar
+POST {{baseUrl}}/transactions/check-duplicates
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "description": "Supermercado",
+  "amount": "150.00",
+  "transactionDate": "2026-05-05T12:00:00Z",
+  "cardId": "card-id-here"
+}

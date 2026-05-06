@@ -1,0 +1,232 @@
+import {StyleSheet} from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 24,
+  },
+  formatSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  formatButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  formatButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#1f2937',
+    borderWidth: 2,
+    borderColor: '#374151',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formatButtonActive: {
+    backgroundColor: '#2ed573',
+    borderColor: '#2ed573',
+  },
+  formatButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#999',
+  },
+  formatButtonTextActive: {
+    color: '#000',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#2ed573',
+    marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  previewButton: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#3b82f6',
+    marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  previewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  previewCard: {
+    backgroundColor: '#1f2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10b981',
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  errorsList: {
+    marginBottom: 16,
+  },
+  errorItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#fca5a5',
+    flex: 1,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#374151',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  importButton: {
+    backgroundColor: '#2ed573',
+  },
+  importButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  resultCard: {
+    backgroundColor: '#1f2937',
+    borderRadius: 12,
+    padding: 20,
+    borderTopWidth: 4,
+    borderTopColor: '#10b981',
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 16,
+  },
+  resultStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#374151',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  transactionsList: {
+    marginBottom: 16,
+  },
+  listTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  txDescription: {
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  txDate: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  txAmount: {
+    fontSize: 13,
+    color: '#10b981',
+    fontWeight: '600',
+  },
+  doneButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#2ed573',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+});

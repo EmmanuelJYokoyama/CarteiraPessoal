@@ -1,0 +1,51 @@
+@baseUrl = http://localhost:3000
+@accessToken = seu_token_jwt_aqui
+
+### Teste parsing CSV (formato 1: Data, Descrição, Valor)
+POST {{baseUrl}}/statements/test-parse
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "content": "Data,Descrição,Valor\n03/04/2026,Padaria do Joao,-150.50\n04/04/2026,Salario,5000.00\n05/04/2026,Cinema Multiplex,-250.00\n06/04/2026,Supermercado,-320.75\n07/04/2026,Transferencia recebida,1500.00"
+}
+
+### Teste parsing CSV (formato 2: Date, Description, Amount em inglês)
+POST {{baseUrl}}/statements/test-parse
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "content": "Date,Description,Amount\n2026-04-03,Grocery Store,-150.50\n2026-04-04,Salary Deposit,5000.00\n2026-04-05,Gas Station,-250.00"
+}
+
+### Teste parsing CSV (formato 3: com DD-MM-YYYY)
+POST {{baseUrl}}/statements/test-parse
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "content": "Data,Descricao,Valor\n03-04-2026,Padaria,-150.50\n04-04-2026,Salario,5000.00\n05-04-2026,Cinema,-250.00"
+}
+
+### Importar extrato CSV
+POST {{baseUrl}}/statements/import
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "cardId": "card-id-here",
+  "content": "Data,Descrição,Valor\n03/04/2026,Padaria do Joao,-150.50\n04/04/2026,Salario,5000.00\n05/04/2026,Cinema Multiplex,-250.00\n06/04/2026,Supermercado,-320.75\n07/04/2026,Transferencia recebida,1500.00"
+}
+
+### Importar extrato CSV com valores em reais (R$ 1.234,56)
+POST {{baseUrl}}/statements/import
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "format": "csv",
+  "cardId": "card-id-here",
+  "content": "Data,Descrição,Valor em BRL\n03/04/2026,Padaria do Joao,R$ -150,50\n04/04/2026,Salario,R$ 5.000,00\n05/04/2026,Cinema Multiplex,R$ -250,00"
+}

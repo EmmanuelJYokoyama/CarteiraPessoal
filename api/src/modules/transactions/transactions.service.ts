@@ -1,7 +1,7 @@
 import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
-import {eq, and, isNull} from 'drizzle-orm';
-import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput} from './transactions.schema';
+import {eq, and, isNull, gte, lte, ilike} from 'drizzle-orm';
+import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
 
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
   const transactionDate = input.transactionDate instanceof Date 
@@ -70,7 +70,48 @@ export async function getTransactionsByUserId(userId: string) {
     ),
   });
 
+  console.log('[TransactionService] Found transactions:', userTransactions.length);
+  
   return userTransactions;
+}
+
+export async function findDuplicateTransactions(
+  userId: string,
+  input: DuplicateCheckInput
+) {
+  const rawDate = input.transactionDate instanceof Date
+    ? input.transactionDate
+    : new Date(input.transactionDate);
+
+  const startDate = new Date(rawDate);
+  startDate.setDate(startDate.getDate() - 3);
+
+  const endDate = new Date(rawDate);
+  endDate.setDate(endDate.getDate() + 3);
+
+  const amount = Number(input.amount);
+  const minAmount = (amount * 0.95).toFixed(2);
+  const maxAmount = (amount * 1.05).toFixed(2);
+
+  const description = input.description.trim();
+
+  const conditions = [
+    eq(transactions.userId, userId),
+    isNull(transactions.parentTransactionId),
+    gte(transactions.transactionDate, startDate),
+    lte(transactions.transactionDate, endDate),
+    gte(transactions.amount, minAmount),
+    lte(transactions.amount, maxAmount),
+    ilike(transactions.description, `%${description}%`),
+  ];
+
+  if (input.cardId) {
+    conditions.push(eq(transactions.cardId, input.cardId));
+  }
+
+  return db.query.transactions.findMany({
+    where: and(...conditions),
+  });
 }
 
 export async function getTransactionById(transactionId: string, userId: string) {

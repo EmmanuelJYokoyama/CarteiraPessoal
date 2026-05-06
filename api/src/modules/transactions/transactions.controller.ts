@@ -1,6 +1,6 @@
 import {FastifyRequest, FastifyReply} from 'fastify';
-import {createTransactionSchema, updateTransactionSchema, payInstallmentSchema} from './transactions.schema';
-import {createTransaction, getTransactionsByUserId, getTransactionById, updateTransaction, deleteTransaction, payInstallment} from './transactions.service';
+import {createTransactionSchema, updateTransactionSchema, payInstallmentSchema, duplicateCheckSchema} from './transactions.schema';
+import {createTransaction, getTransactionsByUserId, getTransactionById, updateTransaction, deleteTransaction, payInstallment, findDuplicateTransactions} from './transactions.service';
 import type {AuthTokenPayload} from '../auth/auth.types';
 
 export async function createNewTransaction(req: FastifyRequest, reply: FastifyReply) {
@@ -31,10 +31,34 @@ export async function listTransactions(req: FastifyRequest, reply: FastifyReply)
   const user = req.user as AuthTokenPayload;
 
   try {
+    console.log('[Transactions] Fetching transactions for user:', user.userId);
     const userTransactions = await getTransactionsByUserId(user.userId);
+    console.log('[Transactions] Found transactions:', userTransactions.length);
     return reply.send(userTransactions);
   } catch (error: any) {
+    console.error('[Transactions] Error:', error);
     return reply.status(500).send({error: error.message});
+  }
+}
+
+export async function checkDuplicateTransactions(req: FastifyRequest, reply: FastifyReply) {
+  try {
+    await req.jwtVerify();
+  } catch {
+    return reply.status(401).send({error: 'Unauthorized'});
+  }
+
+  const user = req.user as AuthTokenPayload;
+
+  try {
+    const input = duplicateCheckSchema.parse(req.body);
+    const duplicates = await findDuplicateTransactions(user.userId, input);
+    return reply.send({
+      count: duplicates.length,
+      duplicates,
+    });
+  } catch (error: any) {
+    return reply.status(400).send({error: error.message});
   }
 }
 

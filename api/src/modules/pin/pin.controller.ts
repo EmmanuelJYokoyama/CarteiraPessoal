@@ -62,18 +62,29 @@ export async function validatePin(req: FastifyRequest, reply: FastifyReply) {
 
 export async function loginWithPin(req: FastifyRequest, reply: FastifyReply) {
   try {
+    console.log('[PIN Login] Request received:', {
+      body: req.body,
+      timestamp: new Date().toISOString(),
+    });
+
     const parsed = loginWithPinSchema.safeParse(req.body);
     if (!parsed.success) {
+      console.log('[PIN Login] Validation failed:', parsed.error.flatten());
       return reply.status(400).send({error: parsed.error.flatten()});
     }
 
     const {email, pin} = parsed.data;
+    console.log('[PIN Login] Validating PIN for email:', email);
+
     const user = await validateUserPinByEmail(email, pin);
+    console.log('[PIN Login] PIN validated successfully for user:', user.userId);
 
     const token = await reply.jwtSign(
       {userId: user.userId, email: user.email},
       {expiresIn: '8h'}
     );
+
+    console.log('[PIN Login] Token generated successfully');
 
     return reply.status(200).send({
       success: true,
@@ -86,6 +97,12 @@ export async function loginWithPin(req: FastifyRequest, reply: FastifyReply) {
       },
     });
   } catch (err: any) {
+    console.error('[PIN Login] Error:', {
+      message: err.message,
+      stack: err.stack,
+      type: err.constructor.name,
+    });
+
     if (err.message === 'USER_NOT_FOUND') {
       return reply.status(404).send({error: 'Usuário não encontrado'});
     }

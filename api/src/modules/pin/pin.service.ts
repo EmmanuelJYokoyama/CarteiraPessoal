@@ -32,19 +32,35 @@ export async function validateUserPin(userId: string, pin: string): Promise<bool
 }
 
 export async function validateUserPinByEmail(email: string, pin: string): Promise<any> {
-  const user = await db.query.users.findFirst({
-    where: eq(users.email, email),
-  });
+  console.log('[PIN Service] Looking up user by email:', email);
+  
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
 
-  if (!user) throw new Error('USER_NOT_FOUND');
-  if (!user.pinHash) throw new Error('PIN_NOT_SET');
+    console.log('[PIN Service] User lookup result:', user ? `Found user ${user.id}` : 'User not found');
 
-  const isValid = await comparePin(pin, user.pinHash);
-  if (!isValid) throw new Error('PIN_INVALID');
+    if (!user) throw new Error('USER_NOT_FOUND');
+    if (!user.pinHash) throw new Error('PIN_NOT_SET');
 
-  return {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-  };
+    console.log('[PIN Service] Comparing PIN for user:', user.id);
+    const isValid = await comparePin(pin, user.pinHash);
+    
+    if (!isValid) {
+      console.log('[PIN Service] PIN validation failed for user:', user.id);
+      throw new Error('PIN_INVALID');
+    }
+
+    console.log('[PIN Service] PIN validation successful for user:', user.id);
+
+    return {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+    };
+  } catch (error) {
+    console.error('[PIN Service] Error in validateUserPinByEmail:', error);
+    throw error;
+  }
 }

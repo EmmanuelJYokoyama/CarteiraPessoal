@@ -1,0 +1,37 @@
+### Parser de SMS Bancários - Testes
+
+POST http://localhost:3000/sms/test-parse
+Content-Type: application/json
+
+{
+  "message": "ITAU: Compra aprovada de R$ 150,50 em PADARIA DO JOAO em 25/12/23 14:30"
+}
+
+###
+
+POST http://localhost:3000/sms/test-parse
+Content-Type: application/json
+
+{
+  "message": "BRADESCO: Transacao de R$ 250,00 com CINEMA MULTIPLEX em 25/12/2023"
+}
+
+###
+
+POST http://localhost:3000/sms/test-parse
+Content-Type: application/json
+
+{
+  "message": "NUBANK: Compra no Nubank de R$ 320,00 em UBER"
+}
+
+###
+
+POST http://localhost:3000/sms/parse-bank
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "message": "Compra aprovada de R$ 89,99 em MERCADO CENTER",
+  "cardId": "card-id-here"
+}

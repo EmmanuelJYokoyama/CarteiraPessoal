@@ -14,10 +14,19 @@ export async function listCards(req: FastifyRequest, reply: FastifyReply) {
     await req.jwtVerify();
 
     const payload = req.user as AuthTokenPayload;
+    console.log('[Cards] Listing cards for user:', payload.userId);
+    
     const userCards = await getCardsByUserId(payload.userId);
 
+    console.log('[Cards] Found cards:', userCards.length);
     return reply.send(userCards);
   } catch (err: any) {
+    console.error('[Cards] Error listing cards:', {
+      message: err.message,
+      stack: err.stack,
+      type: err.constructor.name,
+    });
+    
     if (err.message?.includes('jwt')) {
       return reply.status(401).send({error: 'Token inválido ou ausente'});
     }

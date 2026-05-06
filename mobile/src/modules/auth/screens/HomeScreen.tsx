@@ -47,16 +47,33 @@ export default function HomeScreen({navigation}: Props) {
     await signOut();
   };
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const now = new Date();
+  const currentMonth = now.getUTCMonth();
+  const currentYear = now.getUTCFullYear();
 
   const monthlyTransactions = transactions.filter(tx => {
-    const date = new Date(tx.transactionDate);
-    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    try {
+      // Parse the date - transactionDate is always a string
+      const date = new Date(tx.transactionDate);
+      
+      // Use UTC methods consistently
+      const month = date.getUTCMonth();
+      const year = date.getUTCFullYear();
+      const isMatch = month === currentMonth && year === currentYear;
+
+      return isMatch;
+    } catch (e) {
+      console.error('[HomeScreen] Error parsing transaction date:', tx.transactionDate, e);
+      return false;
+    }
   });
 
+
   const monthlyTotal = monthlyTransactions.reduce(
-    (sum, tx) => sum + parseFloat(tx.amount),
+    (sum, tx) => {
+      const amount = typeof tx.amount === 'number' ? tx.amount : parseFloat(tx.amount || '0');
+      return sum + (isNaN(amount) ? 0 : amount);
+    },
     0
   );
 
@@ -204,7 +221,7 @@ export default function HomeScreen({navigation}: Props) {
                     </View>
                     <View style={{alignItems: 'flex-end'}}>
                       <Text style={styles.txAmount}>
-                        R$ {parseFloat(tx.amount).toFixed(2)}
+                        R$ {(typeof tx.amount === 'number' ? tx.amount : parseFloat(tx.amount || '0')).toFixed(2)}
                       </Text>
                       <Text
                         style={[
@@ -254,11 +271,9 @@ export default function HomeScreen({navigation}: Props) {
         onRequestClose={() => setMenuVisible(false)}>
         <Pressable
           style={styles.backdrop}
-          onPress={() => setMenuVisible(false)}
-          activeOpacity={1}>
+          onPress={() => setMenuVisible(false)}>
           <Pressable 
-            onPress={(e) => e.stopPropagation()}
-            activeOpacity={1}>
+            onPress={(e) => e.stopPropagation()}>
             <View style={styles.menu}>
               <View style={styles.menuHeader}>
                 <View style={styles.menuAvatar}>

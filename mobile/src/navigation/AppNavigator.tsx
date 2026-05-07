@@ -5,6 +5,7 @@ import SettingsScreen from '@modules/auth/screens/SettingsScreen';
 import SetPinScreen from '@modules/auth/screens/SetPinScreen';
 import CardsScreen from '@modules/cards/screens/CardsScreen';
 import TransactionsScreen from '@modules/transactions/screens/TransactionsScreen';
+import ImportStatementScreen from '@modules/transactions/screens/ImportStatementScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +36,10 @@ export function AppNavigator() {
       <Stack.Screen 
         name="Transactions" 
         component={TransactionsScreen}
+      />
+      <Stack.Screen 
+        name="ImportStatement" 
+        component={ImportStatementScreen}
       />
     </Stack.Navigator>
   );

@@ -68,10 +68,35 @@ export default function HomeScreen({navigation}: Props) {
     }
   });
 
+  // Get installments that are due this month
+  const monthlyInstallments: Array<{amount: string; dueDate: string}> = [];
+  transactions.forEach(tx => {
+    if (tx.installmentDetails && Array.isArray(tx.installmentDetails)) {
+      tx.installmentDetails.forEach(inst => {
+        try {
+          const dueDate = new Date(inst.dueDate);
+          const month = dueDate.getUTCMonth();
+          const year = dueDate.getUTCFullYear();
+          
+          if (month === currentMonth && year === currentYear && inst.status === 'pending') {
+            monthlyInstallments.push(inst);
+          }
+        } catch (e) {
+          console.error('[HomeScreen] Error parsing installment date:', inst.dueDate, e);
+        }
+      });
+    }
+  });
 
   const monthlyTotal = monthlyTransactions.reduce(
     (sum, tx) => {
       const amount = typeof tx.amount === 'number' ? tx.amount : parseFloat(tx.amount || '0');
+      return sum + (isNaN(amount) ? 0 : amount);
+    },
+    0
+  ) + monthlyInstallments.reduce(
+    (sum, inst) => {
+      const amount = typeof inst.amount === 'string' ? parseFloat(inst.amount) : inst.amount;
       return sum + (isNaN(amount) ? 0 : amount);
     },
     0
@@ -132,7 +157,7 @@ export default function HomeScreen({navigation}: Props) {
                 R$ {monthlyTotal.toFixed(2)}
               </Text>
               <Text style={styles.cardSubtitle}>
-                {monthlyTransactions.length} transações
+                {monthlyTransactions.length} transações{monthlyInstallments.length > 0 ? ` + ${monthlyInstallments.length} parcelas` : ''}
               </Text>
             </View>
 

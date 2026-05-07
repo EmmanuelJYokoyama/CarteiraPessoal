@@ -13,8 +13,8 @@ export default function TransactionsScreen() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Formatadores
-  function formatCurrency(value: string): string {
-    const num = parseFloat(value);
+  function formatCurrency(value: string | number): string {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',

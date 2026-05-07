@@ -11,6 +11,9 @@ export async function createCard(userId: string, input: CreateCardInput) {
     brand = detectCardBrand(input.cardNumber);
   }
 
+  const limitValue = input.limit && input.limit.trim() !== '' ? input.limit.trim() : '0';
+  console.log('[CardService] Creating card with limit:', limitValue, 'from input:', input.limit);
+
   const newCard = await db.insert(cards).values({
     userId,
     name: input.name,
@@ -18,7 +21,10 @@ export async function createCard(userId: string, input: CreateCardInput) {
     cardType: input.cardType,
     brand,
     expiryDate: input.expiryDate,
+    limit: limitValue,
   }).returning();
+
+  console.log('[CardService] Card created with limit:', newCard[0].limit);
 
   return newCard[0];
 }

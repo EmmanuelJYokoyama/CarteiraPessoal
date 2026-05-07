@@ -31,6 +31,7 @@ export type Transaction = {
   transactionDate: string;
   createdAt: string;
   updatedAt: string;
+  installmentDetails?: Installment[];
 };
 
 export type Installment = {

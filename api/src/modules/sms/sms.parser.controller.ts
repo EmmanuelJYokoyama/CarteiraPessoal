@@ -39,7 +39,7 @@ export async function testBankSmsParsingHandler(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    const {message} = request.body as {message: string};
+    const {message, phoneNumber} = request.body as {message: string; phoneNumber?: string};
 
     if (!message) {
       return reply.status(400).send({error: 'MESSAGE_REQUIRED'});
@@ -48,6 +48,23 @@ export async function testBankSmsParsingHandler(
     const {parseBankSms} = await import('./sms.parser');
     const result = parseBankSms(message);
 
+    // If parsing was successful and a phone number was provided, send confirmation SMS
+    if (result.parsed && phoneNumber) {
+      try {
+        const {sendGenericSms} = await import('@plugins/twilio');
+        const confirmationMessage = `✅ SMS reconhecido com sucesso!\nBanco: ${result.bank.toUpperCase()}\nValor: R$ ${result.amount.toFixed(2)}\nLocal: ${result.establishment || 'Desconhecido'}`;
+        
+        await sendGenericSms({
+          phone: phoneNumber,
+          message: confirmationMessage,
+        });
+        console.log(`📤 SMS de confirmação de parsing enviado para ${phoneNumber}`);
+      } catch (smsError) {
+        console.error('⚠️ Falha ao enviar SMS de confirmação:', smsError);
+        // Don't throw - just log the error. Parsing was already successful.
+      }
+    }
+
     reply.status(200).send({
       parsed: result.parsed,
       bank: result.bank,
@@ -55,6 +72,7 @@ export async function testBankSmsParsingHandler(
       establishment: result.establishment,
       date: result.date,
       rawMessage: result.rawMessage,
+      smsSent: result.parsed && phoneNumber ? true : false,
     });
   } catch (error) {
     console.error('Erro ao testar parsing:', error);

@@ -1,6 +1,11 @@
 ### Parser de SMS Bancários - Testes
 
-POST http://localhost:3000/sms/test-parse
+@baseUrl = http://localhost:3000
+@userToken = seu_token_jwt_aqui
+@phoneNumber = +5512991957161
+
+### Teste 1: Parser sem enviar SMS
+POST {{baseUrl}}/sms/test-parse
 Content-Type: application/json
 
 {
@@ -9,29 +14,46 @@ Content-Type: application/json
 
 ###
 
-POST http://localhost:3000/sms/test-parse
+### Teste 2: Parser e enviar SMS (com Twilio)
+POST {{baseUrl}}/sms/test-parse
 Content-Type: application/json
 
 {
-  "message": "BRADESCO: Transacao de R$ 250,00 com CINEMA MULTIPLEX em 25/12/2023"
+  "message": "BRADESCO: Transacao de R$ 250,00 com CINEMA MULTIPLEX em 25/12/2023",
+  "phoneNumber": "{{phoneNumber}}"
 }
 
 ###
 
-POST http://localhost:3000/sms/test-parse
+### Teste 3: Nubank parsing com SMS
+POST {{baseUrl}}/sms/test-parse
 Content-Type: application/json
 
 {
-  "message": "NUBANK: Compra no Nubank de R$ 320,00 em UBER"
+  "message": "NUBANK: Compra no Nubank de R$ 320,00 em UBER",
+  "phoneNumber": "{{phoneNumber}}"
 }
 
 ###
 
-POST http://localhost:3000/sms/parse-bank
-Authorization: Bearer YOUR_TOKEN_HERE
+### Teste 4: SMS genérico (sem banco reconhecido)
+POST {{baseUrl}}/sms/test-parse
 Content-Type: application/json
 
 {
   "message": "Compra aprovada de R$ 89,99 em MERCADO CENTER",
-  "cardId": "card-id-here"
+  "phoneNumber": "{{phoneNumber}}"
+}
+
+###
+
+### Teste 5: Parser e registrar transação (autenticado)
+### Requer cardId de um cartão existente
+POST {{baseUrl}}/sms/parse-bank
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "message": "ITAU: Compra aprovada de R$ 450,75 em RESTAURANTE OASIS em 06/05/2026",
+  "cardId": "seu-card-id-aqui"
 }

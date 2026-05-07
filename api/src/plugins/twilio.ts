@@ -24,6 +24,10 @@ export interface VerifyOtpOptions {
   code: string;
 }
 
+export interface SendGenericSmsOptions {
+  phone: string;
+  message: string;
+}
 
 export async function sendOtpSms({phone, code}: SendOtpOptions): Promise<{messageSid: string}> {
   try {
@@ -42,6 +46,29 @@ export async function sendOtpSms({phone, code}: SendOtpOptions): Promise<{messag
     return {messageSid: message.sid};
   } catch (error: any) {
     console.error('❌ Erro ao enviar SMS:', error.message);
+    console.error('   Código:', error.code);
+    console.error('   Status:', error.status);
+    throw new Error(`TWILIO_ERROR_${error.message}`);
+  }
+}
+
+export async function sendGenericSms({phone, message}: SendGenericSmsOptions): Promise<{messageSid: string}> {
+  try {
+    console.log(`📞 Enviando SMS genérico via Twilio`);
+    console.log(`   To: ${phone}`);
+    console.log(`   Message: ${message.substring(0, 50)}...`);
+    console.log(`   From: ${phoneNumber}`);
+
+    const smsMessage = await client.messages.create({
+      body: message,
+      from: phoneNumber,
+      to: phone,
+    });
+
+    console.log(`✅ SMS genérico enviado com sucesso! SID: ${smsMessage.sid}`);
+    return {messageSid: smsMessage.sid};
+  } catch (error: any) {
+    console.error('❌ Erro ao enviar SMS genérico:', error.message);
     console.error('   Código:', error.code);
     console.error('   Status:', error.status);
     throw new Error(`TWILIO_ERROR_${error.message}`);

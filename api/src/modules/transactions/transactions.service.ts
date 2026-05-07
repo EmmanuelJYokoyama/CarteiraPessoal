@@ -72,7 +72,21 @@ export async function getTransactionsByUserId(userId: string) {
 
   console.log('[TransactionService] Found transactions:', userTransactions.length);
   
-  return userTransactions;
+  // Enrich transactions with their installments
+  const transactionsWithInstallments = await Promise.all(
+    userTransactions.map(async (tx) => {
+      const txInstallments = await db.query.installments.findMany({
+        where: eq(installments.transactionId, tx.id),
+      });
+      
+      return {
+        ...tx,
+        installmentDetails: txInstallments,
+      };
+    })
+  );
+
+  return transactionsWithInstallments;
 }
 
 export async function findDuplicateTransactions(
@@ -144,12 +158,40 @@ export async function updateTransaction(transactionId: string, userId: string, i
 
   if (!transaction) throw new Error('TRANSACTION_NOT_FOUND');
 
+  const updateData: any = {
+    ...input,
+    updatedAt: new Date(),
+  };
+
+  // If amount is provided, convert to string and update all installments proportionally
+  if (input.amount) {
+    const newAmount = Number(input.amount);
+    const oldAmount = Number(transaction.amount);
+    
+    updateData.amount = newAmount.toString();
+
+    // Update all installments proportionally
+    const existingInstallments = await db.query.installments.findMany({
+      where: eq(installments.transactionId, transactionId),
+    });
+
+    if (existingInstallments.length > 0) {
+      const newAmountPerInstallment = (newAmount / existingInstallments.length).toFixed(2);
+      
+      for (const installment of existingInstallments) {
+        await db
+          .update(installments)
+          .set({
+            amount: newAmountPerInstallment,
+          })
+          .where(eq(installments.id, installment.id));
+      }
+    }
+  }
+
   const updatedResult = await db
     .update(transactions)
-    .set({
-      ...input,
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(transactions.id, transactionId))
     .returning();
 

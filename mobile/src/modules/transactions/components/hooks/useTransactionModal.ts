@@ -14,7 +14,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
 
   const syncState = useCallback(() => {
     setEditedDescription(transaction.description);
-    setEditedAmount(transaction.amount);
+    setEditedAmount(transaction.amount.toString());
     setEditedCategory(transaction.category || '');
   }, [transaction]);
 

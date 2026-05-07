@@ -2,6 +2,7 @@ import {FastifyRequest, FastifyReply} from 'fastify';
 import {createTransactionSchema, updateTransactionSchema, payInstallmentSchema, duplicateCheckSchema} from './transactions.schema';
 import {createTransaction, getTransactionsByUserId, getTransactionById, updateTransaction, deleteTransaction, payInstallment, findDuplicateTransactions} from './transactions.service';
 import type {AuthTokenPayload} from '../auth/auth.types';
+import {checkAndNotifyLimitAlerts} from '@modules/cardLimitAlerts/cardLimitAlerts.notifications';
 
 export async function createNewTransaction(req: FastifyRequest, reply: FastifyReply) {
   try {
@@ -15,6 +16,15 @@ export async function createNewTransaction(req: FastifyRequest, reply: FastifyRe
   try {
     const input = createTransactionSchema.parse(req.body);
     const result = await createTransaction(user.userId, input);
+    
+    // Check if limit alerts should be triggered
+    try {
+      await checkAndNotifyLimitAlerts(user.userId);
+    } catch (alertError) {
+      console.error('⚠️ Erro ao verificar alertas de limite:', alertError);
+      // Don't fail the transaction creation if alerts fail
+    }
+    
     return reply.status(201).send(result);
   } catch (error: any) {
     return reply.status(400).send({error: error.message});
@@ -96,6 +106,17 @@ export async function updateTransactionHandler(req: FastifyRequest, reply: Fasti
   try {
     const input = updateTransactionSchema.parse(req.body);
     const updated = await updateTransaction(transactionId, user.userId, input);
+    
+    // Check if limit alerts should be triggered (if amount was changed)
+    if (input.amount) {
+      try {
+        await checkAndNotifyLimitAlerts(user.userId);
+      } catch (alertError) {
+        console.error('⚠️ Erro ao verificar alertas de limite:', alertError);
+        // Don't fail the transaction update if alerts fail
+      }
+    }
+    
     return reply.send({transaction: updated});
   } catch (error: any) {
     if (error.message === 'TRANSACTION_NOT_FOUND') {

@@ -1,6 +1,6 @@
 import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
-import {eq, and, isNull, gte, lte, ilike} from 'drizzle-orm';
+import {eq, and, isNull, gte, lte} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
 
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
@@ -23,6 +23,8 @@ export async function createTransaction(userId: string, input: CreateTransaction
         installments: installmentCount,
         installmentsPaid: 0,
         category: input.category,
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
         status: 'pending',
         transactionDate,
       })
@@ -93,9 +95,9 @@ export async function findDuplicateTransactions(
   userId: string,
   input: DuplicateCheckInput
 ) {
-  const rawDate = input.transactionDate instanceof Date
-    ? input.transactionDate
-    : new Date(input.transactionDate);
+  const rawDate = input.transactionDate instanceof Date ? input.transactionDate : new Date(input.transactionDate);
+  const targetAmount = Number(input.amount);
+  const normalizedDescription = normalizeText(input.description);
 
   const startDate = new Date(rawDate);
   startDate.setDate(startDate.getDate() - 3);
@@ -103,29 +105,84 @@ export async function findDuplicateTransactions(
   const endDate = new Date(rawDate);
   endDate.setDate(endDate.getDate() + 3);
 
-  const amount = Number(input.amount);
-  const minAmount = (amount * 0.95).toFixed(2);
-  const maxAmount = (amount * 1.05).toFixed(2);
-
-  const description = input.description.trim();
-
-  const conditions = [
+  const candidateConditions = [
     eq(transactions.userId, userId),
     isNull(transactions.parentTransactionId),
     gte(transactions.transactionDate, startDate),
     lte(transactions.transactionDate, endDate),
-    gte(transactions.amount, minAmount),
-    lte(transactions.amount, maxAmount),
-    ilike(transactions.description, `%${description}%`),
   ];
 
   if (input.cardId) {
-    conditions.push(eq(transactions.cardId, input.cardId));
+    candidateConditions.push(eq(transactions.cardId, input.cardId));
   }
 
-  return db.query.transactions.findMany({
-    where: and(...conditions),
+  const candidates = await db.query.transactions.findMany({
+    where: and(...candidateConditions),
   });
+
+  return candidates
+    .map(candidate => {
+      const candidateAmount = Number(candidate.amount);
+      const candidateDate = new Date(candidate.transactionDate);
+      const amountDifference = Math.abs(candidateAmount - targetAmount);
+      const amountTolerance = targetAmount * 0.05;
+      const dayDifference = Math.abs(daysBetween(candidateDate, rawDate));
+      const merchantMatch = isMerchantMatch(normalizedDescription, normalizeText(candidate.description));
+
+      const matches = amountDifference <= amountTolerance && dayDifference <= 3 && merchantMatch;
+      const score = [amountDifference <= amountTolerance, dayDifference <= 3, merchantMatch].filter(Boolean).length;
+
+      return {
+        candidate,
+        matches,
+        score,
+        amountDifference,
+        dayDifference,
+      };
+    })
+    .filter(item => item.matches)
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      if (left.dayDifference !== right.dayDifference) return left.dayDifference - right.dayDifference;
+      return left.amountDifference - right.amountDifference;
+    })
+    .map(item => item.candidate);
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isMerchantMatch(left: string, right: string) {
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (left.includes(right) || right.includes(left)) return true;
+
+  const leftTokens = new Set(left.split(' ').filter(token => token.length > 2));
+  const rightTokens = new Set(right.split(' ').filter(token => token.length > 2));
+
+  let common = 0;
+  for (const token of leftTokens) {
+    if (rightTokens.has(token)) {
+      common++;
+    }
+  }
+
+  const maxSize = Math.max(leftTokens.size, rightTokens.size);
+  if (maxSize === 0) return false;
+
+  return common / maxSize >= 0.5;
+}
+
+function daysBetween(left: Date, right: Date) {
+  const diffMs = left.getTime() - right.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
 
 export async function getTransactionById(transactionId: string, userId: string) {
@@ -162,6 +219,14 @@ export async function updateTransaction(transactionId: string, userId: string, i
     ...input,
     updatedAt: new Date(),
   };
+
+  if (Object.prototype.hasOwnProperty.call(input, 'latitude')) {
+    updateData.latitude = input.latitude ?? null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, 'longitude')) {
+    updateData.longitude = input.longitude ?? null;
+  }
 
   // If amount is provided, convert to string and update all installments proportionally
   if (input.amount) {

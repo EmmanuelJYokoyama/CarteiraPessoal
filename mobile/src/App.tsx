@@ -2,6 +2,7 @@ import React, {useEffect} from 'react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NavigationContainer} from '@react-navigation/native';
 import {AuthProvider, useAuth} from '@contexts/AuthContext';
+import {GoalsProvider} from '@contexts/GoalsContext';
 import {PermissionsProvider} from '@contexts/PermissionsContext';
 import {AuthNavigator} from '@navigation/AuthNavigator';
 import {AppNavigator} from '@navigation/AppNavigator';
@@ -49,9 +50,11 @@ export default function App() {
     <SafeAreaProvider>
       <PermissionsProvider>
         <AuthProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
+          <GoalsProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </GoalsProvider>
         </AuthProvider>
       </PermissionsProvider>
     </SafeAreaProvider>

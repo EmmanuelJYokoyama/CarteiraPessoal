@@ -37,11 +37,80 @@ type RequestOptions = {
   skipQueue?: boolean;
 };
 
-export async function apiRequest<T>(path: string, options: RequestOptions): Promise<T> {
-  const isOnline = isNetworkOnline();
-  const cacheKey = `${options.method}:${path}`;
+// Old implementation - to be replaced
+// [REMOVED OLD IMPLEMENTATION]
 
-  if (options.method === 'GET' && !options.skipCache) {
+export async function syncPendingRequests(): Promise<{
+  success: number;
+  failed: number;
+}> {
+  const isOnline = isNetworkOnline();
+  if (!isOnline) {
+    console.log('[Sync] Offline, skipping');
+    return {success: 0, failed: 0};
+  }
+
+  const pending = await getPendingRequests();
+  let success = 0;
+  let failed = 0;
+
+  console.log(`[Sync] Syncing ${pending.length} requests`);
+
+  for (const request of pending) {
+    try {
+      await apiRequest(request.path, {
+        method: request.method,
+        body: request.body,
+        skipQueue: true,
+      });
+
+      await removePendingRequest(request.id);
+      success++;
+      console.log(`[Sync] ✅ ${request.method} ${request.path}`);
+    } catch (error) {
+      failed++;
+      console.error(`[Sync] ❌ ${request.method} ${request.path}:`, error);
+    }
+  }
+
+  console.log(`[Sync] Done: ${success} ok, ${failed} fail`);
+  return {success, failed};
+}
+
+// Helper methods
+async function apiRequestMain<T>(
+  path: string,
+  options: RequestOptions
+): Promise<T> {
+  return makeRequest<T>(path, options);
+}
+
+export const apiRequest = Object.assign(apiRequestMain, {
+  get: <T,>(path: string, options?: Partial<RequestOptions>) =>
+    makeRequest<T>(path, {...(options || {}), method: 'GET'} as RequestOptions),
+  post: <T,>(path: string, body?: unknown, options?: Partial<RequestOptions>) =>
+    makeRequest<T>(path, {...(options || {}), method: 'POST', body} as RequestOptions),
+  put: <T,>(path: string, body?: unknown, options?: Partial<RequestOptions>) =>
+    makeRequest<T>(path, {...(options || {}), method: 'PUT', body} as RequestOptions),
+  patch: <T,>(path: string, body?: unknown, options?: Partial<RequestOptions>) =>
+    makeRequest<T>(path, {...(options || {}), method: 'PATCH', body} as RequestOptions),
+  delete: <T,>(path: string, options?: Partial<RequestOptions>) =>
+    makeRequest<T>(path, {...(options || {}), method: 'DELETE'} as RequestOptions),
+});
+
+async function makeRequest<T>(
+  path: string,
+  options: Partial<RequestOptions>
+): Promise<T> {
+  const fullOptions: RequestOptions = {
+    method: (options.method || 'GET') as RequestOptions['method'],
+    ...options,
+  };
+
+  const isOnline = isNetworkOnline();
+  const cacheKey = `${fullOptions.method}:${path}`;
+
+  if (fullOptions.method === 'GET' && !fullOptions.skipCache) {
     const cached = await getCachedResponse<T>(cacheKey);
     if (cached) {
       console.log(`[API] Cache hit: ${path}`);
@@ -49,76 +118,96 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
     }
   }
 
-  if (!isOnline && options.method !== 'GET' && !options.skipQueue) {
-    console.log(`[API] Offline - queuing: ${options.method} ${path}`);
+  // Check if we're offline and should queue the request
+  if (!isOnline && !PUBLIC_ENDPOINTS.includes(path) && !fullOptions.skipQueue) {
+    console.log(`[API] Offline, queueing: ${fullOptions.method} ${path}`);
     await addPendingRequest({
-      method: options.method,
+      method: fullOptions.method,
       path,
-      body: options.body,
+      body: fullOptions.body,
     });
-    throw new Error('OFFLINE_REQUEST_QUEUED');
-  }
-
-  if (!isOnline && options.skipQueue) {
-    throw new Error('OFFLINE');
+    throw new Error('Offline - request queued');
   }
 
   try {
+    const url = `${API_BASE_URL}${path}`;
+    const token = await AsyncStorage.getItem('@access_token');
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    const isPublicEndpoint = PUBLIC_ENDPOINTS.some(ep => path.includes(ep));
-
-    if (!isPublicEndpoint) {
-      const token = await AsyncStorage.getItem('@access_token');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+    if (token && !PUBLIC_ENDPOINTS.includes(path)) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
     try {
-      const url = `${API_BASE_URL}${path}`;
-      console.log(`[API] ${options.method} ${url}`);
-
-      let response = await fetch(url, {
-        method: options.method,
+      const response = await fetch(url, {
+        method: fullOptions.method,
         headers,
-        body: options.body ? JSON.stringify(options.body) : undefined,
+        body:
+          fullOptions.body && fullOptions.method !== 'GET'
+            ? JSON.stringify(fullOptions.body)
+            : undefined,
         signal: controller.signal,
       });
 
-      // If token expired, try to refresh
-      if (response.status === 401 && !isPublicEndpoint) {
-        console.log('[API] Token expired, attempting refresh');
+      if (response.status === 401 && token) {
         try {
           const refreshToken = await AsyncStorage.getItem('@refresh_token');
           if (refreshToken) {
-            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${refreshToken}`,
-              },
-            });
+            const refreshResponse = await fetch(
+              `${API_BASE_URL}/auth/refresh`,
+              {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({refreshToken}),
+                signal: controller.signal,
+              }
+            );
 
             if (refreshResponse.ok) {
-              const refreshData = (await refreshResponse.json()) as any;
-              const newToken = refreshData.accessToken;
-              
-              await AsyncStorage.setItem('@access_token', newToken);
-              console.log('[API] Token refreshed');
+              const refreshData = await refreshResponse.json();
+              await AsyncStorage.setItem(
+                '@access_token',
+                refreshData.accessToken
+              );
 
-              headers['Authorization'] = `Bearer ${newToken}`;
-              response = await fetch(url, {
-                method: options.method,
+              headers['Authorization'] = `Bearer ${refreshData.accessToken}`;
+
+              const retryResponse = await fetch(url, {
+                method: fullOptions.method,
                 headers,
-                body: options.body ? JSON.stringify(options.body) : undefined,
+                body:
+                  fullOptions.body && fullOptions.method !== 'GET'
+                    ? JSON.stringify(fullOptions.body)
+                    : undefined,
                 signal: controller.signal,
               });
+
+              if (!retryResponse.ok) {
+                throw new Error(
+                  `Error ${retryResponse.status}: ${retryResponse.statusText}`
+                );
+              }
+
+              const data = await retryResponse.json();
+
+              if (
+                fullOptions.method === 'GET' ||
+                fullOptions.cacheTTL
+              ) {
+                await setCachedResponse(
+                  cacheKey,
+                  data,
+                  fullOptions.cacheTTL
+                );
+              }
+
+              return data as T;
             } else {
               console.log('[API] Refresh failed');
               await AsyncStorage.removeItem('@access_token');
@@ -157,8 +246,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
         throw new Error(message);
       }
 
-      if (options.method === 'GET' || options.cacheTTL) {
-        await setCachedResponse(cacheKey, data, options.cacheTTL);
+      if (
+        fullOptions.method === 'GET' ||
+        fullOptions.cacheTTL
+      ) {
+        await setCachedResponse(cacheKey, data, fullOptions.cacheTTL);
       }
 
       return data as T;
@@ -176,41 +268,4 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
     }
     throw new Error('Network request failed');
   }
-}
-
-export async function syncPendingRequests(): Promise<{
-  success: number;
-  failed: number;
-}> {
-  const isOnline = isNetworkOnline();
-  if (!isOnline) {
-    console.log('[Sync] Offline, skipping');
-    return {success: 0, failed: 0};
-  }
-
-  const pending = await getPendingRequests();
-  let success = 0;
-  let failed = 0;
-
-  console.log(`[Sync] Syncing ${pending.length} requests`);
-
-  for (const request of pending) {
-    try {
-      await apiRequest(request.path, {
-        method: request.method,
-        body: request.body,
-        skipQueue: true,
-      });
-
-      await removePendingRequest(request.id);
-      success++;
-      console.log(`[Sync] ✅ ${request.method} ${request.path}`);
-    } catch (error) {
-      failed++;
-      console.error(`[Sync] ❌ ${request.method} ${request.path}:`, error);
-    }
-  }
-
-  console.log(`[Sync] Done: ${success} ok, ${failed} fail`);
-  return {success, failed};
 }

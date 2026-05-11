@@ -1,23 +1,39 @@
-import React from 'react';
-import {View, SafeAreaView, Pressable, Text} from 'react-native';
+import React, {useState, useCallback} from 'react';
+import {View, Pressable, Text, ActivityIndicator} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {X} from 'lucide-react-native';
-import {useCards} from '@modules/cards/hooks/useCards';
+import {useFocusEffect} from '@react-navigation/native';
+import {listCards, Card} from '@services/api/cards';
 import {ImportStatementForm} from '../components/ImportStatementForm';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'ImportStatement'>;
 
 export default function ImportStatementScreen({navigation}: Props) {
-  const {cards} = useCards();
-  const [selectedCardId, setSelectedCardId] = React.useState<string | null>(
-    cards.length > 0 ? cards[0].id : null
+  const [cards, setCards] = useState<Card[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCards();
+    }, [])
   );
 
-  React.useEffect(() => {
-    if (cards.length > 0 && !selectedCardId) {
-      setSelectedCardId(cards[0].id);
+  async function loadCards() {
+    try {
+      setLoading(true);
+      const data = await listCards();
+      setCards(data);
+      if (data.length > 0 && !selectedCardId) {
+        setSelectedCardId(data[0].id);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar cartões:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [cards, selectedCardId]);
+  }
 
   const handleSuccess = () => {
     navigation.goBack();
@@ -39,13 +55,21 @@ export default function ImportStatementScreen({navigation}: Props) {
           <Text style={{fontSize: 18, fontWeight: '700', color: '#fff'}}>
             Importar Extrato
           </Text>
-          <Pressable onPress={() => navigation.goBack()}>
+          <Pressable onPress={() => navigation.goBack()} disabled={loading}>
             <X size={24} color="#e8e8e8" />
           </Pressable>
         </View>
 
+        {/* Loading */}
+        {loading && cards.length === 0 ? (
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={{color: '#999', marginTop: 12}}>Carregando cartões...</Text>
+          </View>
+        ) : null}
+
         {/* Card Selection */}
-        {cards.length > 1 && (
+        {!loading && cards.length > 1 && (
           <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333'}}>
             <Text style={{fontSize: 14, fontWeight: '600', color: '#999', marginBottom: 12}}>
               Cartão de Destino
@@ -75,7 +99,7 @@ export default function ImportStatementScreen({navigation}: Props) {
                       fontWeight: '600',
                       textAlign: 'center',
                     }}>
-                    {card.cardName}
+                    {card.name}
                   </Text>
                   <Text
                     style={{
@@ -84,7 +108,7 @@ export default function ImportStatementScreen({navigation}: Props) {
                       textAlign: 'center',
                       marginTop: 4,
                     }}>
-                    {card.lastDigits && `****${card.lastDigits}`}
+                    {(card as any).lastDigits && `****${(card as any).lastDigits}`}
                   </Text>
                 </Pressable>
               ))}
@@ -93,14 +117,15 @@ export default function ImportStatementScreen({navigation}: Props) {
         )}
 
         {/* Import Form */}
-        {selectedCardId && (
+        {!loading && selectedCardId && (
           <ImportStatementForm
             cardId={selectedCardId}
             onSuccess={handleSuccess}
           />
         )}
 
-        {cards.length === 0 && (
+        {/* No Cards */}
+        {!loading && cards.length === 0 && (
           <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32}}>
             <Text style={{color: '#999', fontSize: 16, textAlign: 'center'}}>
               Nenhum cartão disponível.{'\n'}Crie um cartão primeiro.

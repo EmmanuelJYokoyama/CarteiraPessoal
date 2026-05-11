@@ -38,6 +38,29 @@ export async function checkAndNotifyLimitAlerts(
   return notificationsToSend;
 }
 
+export async function checkAndNotifyCardLimitAlert(
+  userId: string,
+  cardId: string
+): Promise<NotificationMessage | null> {
+  const alert = await getCardLimitStatus(cardId, userId);
+
+  if (!alert || !alert.shouldAlert) {
+    return null;
+  }
+
+  const notification: NotificationMessage = {
+    userId,
+    cardName: alert.cardName,
+    usedAmount: alert.usedAmount,
+    limit: alert.limit,
+    usedPercentage: alert.usedPercentage,
+    alertPercentage: alert.alertPercentage,
+  };
+
+  await sendNotification(notification);
+  return notification;
+}
+
 export async function checkAndNotifyAllUsers(): Promise<void> {
   const allUsers = await db.select({id: users.id}).from(users);
 

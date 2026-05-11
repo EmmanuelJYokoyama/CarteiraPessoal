@@ -1,8 +1,9 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useMemo} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import {useAuth} from '@contexts/AuthContext';
+import {useGoalsContext} from '@contexts/GoalsContext';
 import {listTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
 import {TrendingDown, CreditCard, AlertCircle, ArrowRight} from 'lucide-react-native';
@@ -13,6 +14,7 @@ type Props = NativeStackScreenProps<any, 'Home'>;
 
 export default function HomeScreen({navigation}: Props) {
   const {signOut, user} = useAuth();
+  const {activeGoal} = useGoalsContext();
   const [menuVisible, setMenuVisible] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -108,6 +110,24 @@ export default function HomeScreen({navigation}: Props) {
 
   const recentTransactions = transactions.slice(0, 3);
 
+  const reserveProgress = useMemo(() => {
+    if (!activeGoal.target) return 0;
+    return Math.min(100, (activeGoal.current / activeGoal.target) * 100);
+  }, [activeGoal.current, activeGoal.target]);
+
+  const latestLocationTransaction = useMemo(() => {
+    const withLocation = transactions
+      .filter(tx => tx.latitude != null && tx.longitude != null)
+      .slice()
+      .sort((left, right) => new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime());
+
+    return withLocation[0] || null;
+  }, [transactions]);
+
+  const locationLatitude = latestLocationTransaction?.latitude != null ? Number(latestLocationTransaction.latitude) : null;
+  const locationLongitude = latestLocationTransaction?.longitude != null ? Number(latestLocationTransaction.longitude) : null;
+  const hasLocation = Number.isFinite(locationLatitude) && Number.isFinite(locationLongitude);
+
   const getCardColor = (brand: string) => {
     const b = brand?.toLowerCase() || '';
     if (b.includes('visa')) return '#1434CB';
@@ -159,6 +179,56 @@ export default function HomeScreen({navigation}: Props) {
               <Text style={styles.cardSubtitle}>
                 {monthlyTransactions.length} transações{monthlyInstallments.length > 0 ? ` + ${monthlyInstallments.length} parcelas` : ''}
               </Text>
+            </View>
+
+            <View style={styles.progressCard}>
+              <View style={styles.progressCardHeader}>
+                <View>
+                  <Text style={styles.progressCardKicker}>Reserva de emergência</Text>
+                  <Text style={styles.progressCardTitle}>{activeGoal.name}</Text>
+                </View>
+                <Text style={styles.progressCardPercent}>{reserveProgress.toFixed(0)}%</Text>
+              </View>
+
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, {width: `${reserveProgress}%`}]} />
+              </View>
+
+              <View style={styles.progressMetaRow}>
+                <Text style={styles.progressMetaText}>
+                  {new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(activeGoal.current)} de {new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(activeGoal.target)}
+                </Text>
+                <Text style={styles.progressMetaText}>{activeGoal.category} • prazo {activeGoal.deadline}</Text>
+              </View>
+            </View>
+
+            <View style={styles.mapCard}>
+              <View style={styles.mapCardHeader}>
+                <View>
+                  <Text style={styles.mapCardKicker}>Localização da despesa</Text>
+                  <Text style={styles.mapCardTitle}>
+                    {latestLocationTransaction ? latestLocationTransaction.description : 'Sem despesa localizada'}
+                  </Text>
+                </View>
+                {hasLocation ? (
+                  <Text style={styles.mapCardStatus}>Última registrada</Text>
+                ) : null}
+              </View>
+
+              <View style={styles.mapEmptyState}>
+                <Text style={styles.mapEmptyStateText}>
+                  Mapa desativado temporariamente para teste.
+                </Text>
+                {hasLocation ? (
+                  <Text style={styles.mapEmptyStateText}>
+                    Última posição: {locationLatitude?.toFixed(5)}, {locationLongitude?.toFixed(5)}
+                  </Text>
+                ) : (
+                  <Text style={styles.mapEmptyStateText}>
+                    Registre uma despesa com localização para ver as coordenadas aqui.
+                  </Text>
+                )}
+              </View>
             </View>
 
             {pendingInstallments > 0 && (
@@ -328,6 +398,33 @@ export default function HomeScreen({navigation}: Props) {
                   navigation.navigate('Transactions');
                 }}>
                 <Text style={styles.menuItemText}>Minhas Despesas</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('Budgets');
+                }}>
+                <Text style={styles.menuItemText}>Orçamentos</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('Goals');
+                }}>
+                <Text style={styles.menuItemText}>Metas</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('Investments');
+                }}>
+                <Text style={styles.menuItemText}>Simulador de investimento</Text>
               </Pressable>
 
               <Pressable

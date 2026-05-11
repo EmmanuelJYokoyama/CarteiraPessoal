@@ -19,6 +19,7 @@
     "drizzle-orm": "^0.30.0",
     "fastify": "^4.0.0",
     "pg": "^8.11.0",
+    "react-native-maps": "^1.27.2",
     "resend": "^6.9.4",
     "zod": "^3.22.0"
   },

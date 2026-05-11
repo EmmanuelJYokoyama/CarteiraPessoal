@@ -11,6 +11,8 @@ export const transactions = pgTable('transactions', {
   installments: integer('installments').default(1).notNull(),
   installmentsPaid: integer('installments_paid').default(0).notNull(),
   category: varchar('category', {length: 50}),
+  latitude: numeric('latitude', {precision: 10, scale: 7}),
+  longitude: numeric('longitude', {precision: 10, scale: 7}),
   status: varchar('status', {length: 20}).default('pending').notNull(),
   transactionDate: timestamp('transaction_date').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

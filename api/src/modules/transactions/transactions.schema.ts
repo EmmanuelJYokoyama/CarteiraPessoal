@@ -24,6 +24,8 @@ export const createTransactionSchema = z.object({
     }),
   installments: z.number().int().min(1, 'Mínimo 1 parcela').default(1),
   category: z.string().max(50).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   transactionDate: z.string().datetime().or(z.date()),
 });
 
@@ -54,6 +56,8 @@ export const updateTransactionSchema = z.object({
     }),
   category: z.string().max(50).optional(),
   status: z.enum(['pending', 'completed', 'cancelled']).optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
 });
 
 export const payInstallmentSchema = z.object({

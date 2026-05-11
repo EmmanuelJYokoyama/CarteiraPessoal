@@ -1,5 +1,6 @@
 import React, {useState, useCallback} from 'react';
-import {View, Text, FlatList, Pressable, SafeAreaView, ActivityIndicator} from 'react-native';
+import {View, Text, FlatList, Pressable, ActivityIndicator} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {Upload} from 'lucide-react-native';
 import {AddTransactionForm} from '../components/AddTransactionForm';
@@ -59,6 +60,11 @@ export default function TransactionsScreen({navigation}: Props) {
 
   function handleTransactionAdded() {
     setShowForm(false);
+    loadTransactions();
+  }
+
+  function handleTransactionDeleted() {
+    setShowDetailsModal(false);
     loadTransactions();
   }
 
@@ -205,7 +211,7 @@ export default function TransactionsScreen({navigation}: Props) {
         visible={showDetailsModal}
         transaction={selectedTransaction}
         onClose={() => setShowDetailsModal(false)}
-        onUpdate={handleTransactionAdded}
+        onUpdate={handleTransactionDeleted}
       />
     </SafeAreaView>
   );

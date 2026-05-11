@@ -13,6 +13,7 @@ import { transactionsRoutes } from '@modules/transactions/transactions.routes';
 import { categoriesRoutes } from '@modules/categories/categories.routes';
 import { cardLimitAlertsRoutes } from '@modules/cardLimitAlerts/cardLimitAlerts.routes';
 import { statementsRoutes } from '@modules/statements/statements.routes';
+import { budgetsRoutes } from '@modules/budgets/budgets.routes';
 import { swaggerConfig, swaggerUIConfig } from '@/swagger.config';
 
 dotenv.config();
@@ -55,6 +56,7 @@ app.register(categoriesRoutes);
 app.register(transactionsRoutes);
 app.register(cardLimitAlertsRoutes);
 app.register(statementsRoutes);
+app.register(budgetsRoutes);
 
 app.get('/health', async (req, reply) => {
   reply.send({status: 'ok', timestamp: new Date().toISOString()});

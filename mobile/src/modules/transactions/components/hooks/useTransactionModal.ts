@@ -1,7 +1,7 @@
 import {useState, useCallback, useEffect} from 'react';
 import {Alert} from 'react-native';
 import {updateTransaction, deleteTransaction, payInstallment, getTransaction, Transaction, Installment} from '@services/api/transactions';
-import {invalidateCache} from '@services/cache';
+import {clearCache} from '@services/cache';
 
 export function useTransactionModal(transaction: Transaction, onUpdate: () => void, onClose: () => void, isVisible: boolean = true) {
   const [isEditing, setIsEditing] = useState(false);
@@ -50,7 +50,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
       } else {
         await updateTransaction(transaction.id, {status: 'completed'});
       }
-      await invalidateCache('transactions');
+      await clearCache('GET:/transactions');
       onUpdate();
       onClose();
     } catch (error) {
@@ -66,7 +66,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
       setIsLoading(true);
       await payInstallment(installmentId);
       await loadInstallments();
-      await invalidateCache('transactions');
+      await clearCache('GET:/transactions');
       setShowInstallmentPicker(false);
       onUpdate();
       onClose();
@@ -91,7 +91,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
         amount: editedAmount,
         category: editedCategory,
       });
-      await invalidateCache('transactions');
+      await clearCache('GET:/transactions');
       setIsEditing(false);
       onUpdate();
       onClose();
@@ -116,7 +116,8 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
             try {
               setIsLoading(true);
               await deleteTransaction(transaction.id);
-              await invalidateCache('transactions');
+              // deleteTransaction already clears cache, but ensure it's cleared
+              await clearCache('GET:/transactions');
               onUpdate();
               onClose();
             } catch (error) {

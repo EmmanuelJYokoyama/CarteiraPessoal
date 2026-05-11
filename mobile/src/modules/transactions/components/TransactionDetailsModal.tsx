@@ -3,6 +3,7 @@ import {View, Text, Modal, Pressable, ScrollView, TextInput, ActivityIndicator} 
 import {CheckCircle, Edit2, Trash2, X} from 'lucide-react-native';
 import {Transaction} from '@services/api/transactions';
 import {useTransactionModal} from './hooks/useTransactionModal';
+import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import {styles} from './styles/TransactionDetailsModal.styles';
 
 interface TransactionDetailsModalProps {
@@ -40,6 +41,34 @@ export function TransactionDetailsModal({
     setShowInstallmentPicker,
   } = useTransactionModal(transaction, onUpdate, onClose, visible);
 
+  // Formatador de valor para edição
+  const formatAmountInput = (text: string): string => {
+    // Remove tudo que não é número, ponto ou vírgula
+    let cleaned = text.replace(/[^0-9,.]/g, '');
+    
+    // Se tiver múltiplos pontos/vírgulas, remove os antigos
+    const dots = (cleaned.match(/\./g) || []).length;
+    const commas = (cleaned.match(/,/g) || []).length;
+    
+    if (dots > 1) {
+      cleaned = cleaned.replace(/\./g, '');
+    }
+    if (commas > 1) {
+      cleaned = cleaned.slice(0, -1);
+    }
+    
+    return cleaned;
+  };
+
+  const handleAmountChange = (text: string) => {
+    const formatted = formatAmountInput(text);
+    setEditedAmount(formatted);
+  };
+
+  const latitude = transaction.latitude != null ? Number(transaction.latitude) : null;
+  const longitude = transaction.longitude != null ? Number(transaction.longitude) : null;
+  const hasLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
+
   React.useEffect(() => {
     syncState();
   }, [transaction, syncState]);
@@ -70,7 +99,7 @@ export function TransactionDetailsModal({
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
-                    }).format(parseFloat(transaction.amount))}
+                    }).format(transaction.amount)}
                   </Text>
                 </View>
 
@@ -85,6 +114,43 @@ export function TransactionDetailsModal({
                     {new Date(transaction.transactionDate).toLocaleDateString('pt-BR')}
                   </Text>
                 </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>Localização</Text>
+                  {hasLocation ? (
+                    <Text style={styles.value}>
+                      {latitude?.toFixed(5)}, {longitude?.toFixed(5)}
+                    </Text>
+                  ) : (
+                    <Text style={styles.value}>Sem localização registrada</Text>
+                  )}
+                </View>
+
+                {hasLocation ? (
+                  <View style={styles.mapSection}>
+                    <Text style={styles.label}>Mapa da despesa</Text>
+                    <View style={styles.mapContainer}>
+                      <MapView
+                        provider={PROVIDER_GOOGLE}
+                        style={styles.map}
+                        initialRegion={{
+                          latitude: latitude as number,
+                          longitude: longitude as number,
+                          latitudeDelta: 0.012,
+                          longitudeDelta: 0.012,
+                        }}>
+                        <Marker
+                          coordinate={{
+                            latitude: latitude as number,
+                            longitude: longitude as number,
+                          }}
+                          title={transaction.description}
+                          description={transaction.category || 'Despesa registrada'}
+                        />
+                      </MapView>
+                    </View>
+                  </View>
+                ) : null}
 
                 {transaction.installments > 1 && (
                   <>
@@ -205,7 +271,7 @@ export function TransactionDetailsModal({
                   <TextInput
                     style={styles.input}
                     value={editedAmount}
-                    onChangeText={text => setEditedAmount(text.replace(/[^0-9.]/g, ''))}
+                    onChangeText={handleAmountChange}
                     placeholderTextColor="#666"
                     keyboardType="decimal-pad"
                     editable={!isLoading}

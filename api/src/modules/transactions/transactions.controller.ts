@@ -2,6 +2,8 @@ import {FastifyRequest, FastifyReply} from 'fastify';
 import {createTransactionSchema, updateTransactionSchema, payInstallmentSchema, duplicateCheckSchema} from './transactions.schema';
 import {createTransaction, getTransactionsByUserId, getTransactionById, updateTransaction, deleteTransaction, payInstallment, findDuplicateTransactions} from './transactions.service';
 import type {AuthTokenPayload} from '../auth/auth.types';
+import {checkAndNotifyCardLimitAlert} from '@modules/cardLimitAlerts/cardLimitAlerts.notifications';
+import {getCardLimitStatus} from '@modules/cardLimitAlerts/cardLimitAlerts.service';
 
 export async function createNewTransaction(req: FastifyRequest, reply: FastifyReply) {
   try {
@@ -14,7 +16,29 @@ export async function createNewTransaction(req: FastifyRequest, reply: FastifyRe
 
   try {
     const input = createTransactionSchema.parse(req.body);
+    const beforeAlert = input.cardId
+      ? await getCardLimitStatus(input.cardId, user.userId)
+      : null;
+
     const result = await createTransaction(user.userId, input);
+    
+    const afterAlert = result.transaction.cardId
+      ? await getCardLimitStatus(result.transaction.cardId, user.userId)
+      : null;
+
+    // Send only when this transaction pushes the card past the alert threshold
+    try {
+      if (
+        result.transaction.cardId &&
+        (!beforeAlert?.shouldAlert && afterAlert?.shouldAlert)
+      ) {
+        await checkAndNotifyCardLimitAlert(user.userId, result.transaction.cardId);
+      }
+    } catch (alertError) {
+      console.error('⚠️ Erro ao verificar alertas de limite:', alertError);
+      // Don't fail the transaction creation if alerts fail
+    }
+    
     return reply.status(201).send(result);
   } catch (error: any) {
     return reply.status(400).send({error: error.message});
@@ -95,7 +119,23 @@ export async function updateTransactionHandler(req: FastifyRequest, reply: Fasti
 
   try {
     const input = updateTransactionSchema.parse(req.body);
+    const existing = await getTransactionById(transactionId, user.userId);
+    const cardId = existing.transaction.cardId;
+    const beforeAlert = cardId ? await getCardLimitStatus(cardId, user.userId) : null;
+
     const updated = await updateTransaction(transactionId, user.userId, input);
+    const afterAlert = updated.cardId ? await getCardLimitStatus(updated.cardId, user.userId) : null;
+    
+    // Send only when this update pushes the card past the alert threshold
+    if (updated.cardId && (!beforeAlert?.shouldAlert && afterAlert?.shouldAlert)) {
+      try {
+        await checkAndNotifyCardLimitAlert(user.userId, updated.cardId);
+      } catch (alertError) {
+        console.error('⚠️ Erro ao verificar alertas de limite:', alertError);
+        // Don't fail the transaction update if alerts fail
+      }
+    }
+    
     return reply.send({transaction: updated});
   } catch (error: any) {
     if (error.message === 'TRANSACTION_NOT_FOUND') {

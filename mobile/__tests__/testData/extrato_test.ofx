@@ -1,0 +1,137 @@
+OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:1252
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+
+<OFX>
+  <SIGNONMSGSRSV1>
+    <SONRS>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+        <MESSAGE>Login successful</MESSAGE>
+      </STATUS>
+      <DTSERVER>20260508120000[-3:BRT]</DTSERVER>
+      <LANGUAGE>POR</LANGUAGE>
+      <FI>
+        <ORG>Itaú Unibanco S.A.</ORG>
+        <FID>341</FID>
+      </FI>
+    </SONRS>
+  </SIGNONMSGSRSV1>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <TRNUID>1001</TRNUID>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+      </STATUS>
+      <STMTRS>
+        <CURDEF>BRL</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>341</BANKID>
+          <BRANCHID>0001</BRANCHID>
+          <ACCTID>123456</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+          <DTSTART>20260501000000[-3:BRT]</DTSTART>
+          <DTEND>20260508235959[-3:BRT]</DTEND>
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20260501000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>3500.00</TRNAMT>
+            <FITID>20260501001</FITID>
+            <NAME>Embraer S.A.</NAME>
+            <MEMO>CREDITO SALARIO REF ABR/2026</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260501000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-250.00</TRNAMT>
+            <FITID>20260501002</FITID>
+            <NAME>Itaú Unibanco</NAME>
+            <MEMO>DEBITO CONTA - TARIFA MANUTENCAO</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260502000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-150.00</TRNAMT>
+            <FITID>20260502001</FITID>
+            <NAME>Supermercado Carrefour</NAME>
+            <MEMO>COMPRA DEBITO - CARREFOUR SJC 02/05</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260503000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-45.50</TRNAMT>
+            <FITID>20260503001</FITID>
+            <NAME>Farmácia Popular</NAME>
+            <MEMO>COMPRA DEBITO - FARMACIA POPULAR 03/05</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260504000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-180.75</TRNAMT>
+            <FITID>20260504001</FITID>
+            <NAME>Posto Shell</NAME>
+            <MEMO>COMPRA DEBITO - SHELL SJCAMPOS 04/05</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260505000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-92.30</TRNAMT>
+            <FITID>20260505001</FITID>
+            <NAME>Restaurante Madero</NAME>
+            <MEMO>COMPRA DEBITO - MADERO SJC 05/05</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260506000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-120.00</TRNAMT>
+            <FITID>20260506001</FITID>
+            <NAME>Smart Fit Academia</NAME>
+            <MEMO>DEBITO AUTOMATICO - SMARTFIT MENSALIDADE MAI/2026</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260507000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-38.90</TRNAMT>
+            <FITID>20260507001</FITID>
+            <NAME>iFood</NAME>
+            <MEMO>COMPRA DEBITO - IFOOD*DELIVERY 07/05</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260508000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-29.90</TRNAMT>
+            <FITID>20260508001</FITID>
+            <NAME>Netflix</NAME>
+            <MEMO>DEBITO AUTOMATICO - NETFLIX.COM MAI/2026</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260508000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-55.00</TRNAMT>
+            <FITID>20260508002</FITID>
+            <NAME>Uber</NAME>
+            <MEMO>COMPRA DEBITO - UBER* TRIP 08/05</MEMO>
+          </STMTTRN>
+        </BANKTRANLIST>
+        <LEDGERBAL>
+          <BALAMT>2537.65</BALAMT>
+          <DTASOF>20260508235959[-3:BRT]</DTASOF>
+        </LEDGERBAL>
+        <AVAILBAL>
+          <BALAMT>2537.65</BALAMT>
+          <DTASOF>20260508235959[-3:BRT]</DTASOF>
+        </AVAILBAL>
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

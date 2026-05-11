@@ -38,6 +38,29 @@ export async function checkAndNotifyLimitAlerts(
   return notificationsToSend;
 }
 
+export async function checkAndNotifyCardLimitAlert(
+  userId: string,
+  cardId: string
+): Promise<NotificationMessage | null> {
+  const alert = await getCardLimitStatus(cardId, userId);
+
+  if (!alert || !alert.shouldAlert) {
+    return null;
+  }
+
+  const notification: NotificationMessage = {
+    userId,
+    cardName: alert.cardName,
+    usedAmount: alert.usedAmount,
+    limit: alert.limit,
+    usedPercentage: alert.usedPercentage,
+    alertPercentage: alert.alertPercentage,
+  };
+
+  await sendNotification(notification);
+  return notification;
+}
+
 export async function checkAndNotifyAllUsers(): Promise<void> {
   const allUsers = await db.select({id: users.id}).from(users);
 
@@ -73,10 +96,10 @@ async function sendNotification(notification: NotificationMessage): Promise<void
     }
 
     const user = userData[0];
-    const code = generateAlertCode(notification);
+    const alertMessage = generateAlertCode(notification);
 
     if (user.phoneNumber) {
-      await sendSmsNotification(user.phoneNumber, code, notification);
+      await sendSmsNotification(user.phoneNumber, alertMessage, notification);
     }
   } catch (error) {
     console.error(
@@ -92,15 +115,15 @@ function generateAlertCode(notification: NotificationMessage): string {
 
 async function sendSmsNotification(
   phoneNumber: string,
-  code: string,
+  alertMessage: string,
   notification: NotificationMessage
 ): Promise<void> {
   try {
-    const {sendOtpSms} = await import('@plugins/twilio');
+    const {sendGenericSms} = await import('@plugins/twilio');
 
-    await sendOtpSms({
+    await sendGenericSms({
       phone: phoneNumber,
-      code,
+      message: alertMessage,
     });
 
     console.log(

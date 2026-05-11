@@ -1,10 +1,16 @@
 import React, {useState, useEffect} from 'react';
-import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert} from 'react-native';
+import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert, Platform, PermissionsAndroid, Linking} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Geolocation from '@react-native-community/geolocation';
 import {createTransaction, checkDuplicateTransactions} from '@services/api/transactions';
 import {listCards, Card} from '@services/api/cards';
 import {useCategories} from '../hooks/useCategories';
 import {styles} from './styles/AddTransactionForm.styles';
+
+type DeviceLocation = {
+  latitude: number;
+  longitude: number;
+};
 
 interface AddTransactionFormProps {
   onSuccess?: () => void;
@@ -28,10 +34,76 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#2ED573');
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<DeviceLocation | null>(null);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
 
   useEffect(() => {
     loadCards();
+
+    Geolocation.setRNConfiguration({
+      skipPermissionRequests: false,
+      authorizationLevel: 'whenInUse',
+      locationProvider: 'auto',
+    });
   }, []);
+
+  async function ensureLocationPermission() {
+    if (Platform.OS === 'ios') {
+      Geolocation.requestAuthorization();
+      return true;
+    }
+
+    const finePermission = PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
+
+    try {
+      const hasFine = await PermissionsAndroid.check(finePermission);
+      if (hasFine) {
+        return true;
+      }
+
+      const result = await PermissionsAndroid.request(finePermission, {
+        title: 'Permissão de localização',
+        message: 'Precisamos da sua localização atual para registrar onde a despesa ocorreu.',
+        buttonPositive: 'Permitir',
+        buttonNegative: 'Agora não',
+      });
+
+      if (result === PermissionsAndroid.RESULTS.GRANTED) {
+        return true;
+      }
+
+      if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+        Alert.alert(
+          'Permissão bloqueada',
+          'A localização está bloqueada para este app. Ative nas configurações do dispositivo.',
+          [
+            {text: 'Cancelar', style: 'cancel'},
+            {text: 'Abrir configurações', onPress: () => Linking.openSettings()},
+          ],
+        );
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Erro ao solicitar permissão de localização:', error);
+      return false;
+    }
+  }
+
+  function getCurrentPosition(options: Parameters<typeof Geolocation.getCurrentPosition>[2]) {
+    return new Promise<DeviceLocation>((resolve, reject) => {
+      Geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => reject(error),
+        options,
+      );
+    });
+  }
 
   async function loadCards() {
     try {
@@ -70,7 +142,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
     }
   }
 
-  function handleDateChange(event: any, selectedDate?: Date) {
+  function handleDateChange(_event: any, selectedDate?: Date) {
     if (selectedDate) {
       setTransactionDate(selectedDate);
     }
@@ -99,6 +171,49 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
     return true;
   }
 
+  async function handleGetCurrentLocation() {
+    try {
+      setFetchingLocation(true);
+
+      const granted = await ensureLocationPermission();
+      if (!granted) {
+        Alert.alert('Permissão negada', 'Ative a localização para registrar a despesa com a posição atual.');
+        return;
+      }
+
+      try {
+        const preciseLocation = await getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        });
+        setSelectedLocation(preciseLocation);
+        return;
+      } catch (preciseError) {
+        console.warn('Falha em alta precisão, tentando modo balanceado:', preciseError);
+      }
+
+      try {
+        const fallbackLocation = await getCurrentPosition({
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 60000,
+        });
+        setSelectedLocation(fallbackLocation);
+      } catch (fallbackError: any) {
+        console.error('Erro ao obter localização atual:', fallbackError);
+        Alert.alert(
+          'Falha ao obter localização',
+          fallbackError?.code === 1
+            ? 'Permissão de localização negada no sistema. Verifique as permissões do app nas configurações.'
+            : 'Não foi possível capturar a localização atual do dispositivo.',
+        );
+      }
+    } finally {
+      setFetchingLocation(false);
+    }
+  }
+
   async function handleAddTransaction() {
     if (!validateForm()) return;
 
@@ -109,6 +224,8 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       installments: Number(installments),
       cardId: selectedCard?.id,
       transactionDate: transactionDate.toISOString(),
+      latitude: selectedLocation?.latitude,
+      longitude: selectedLocation?.longitude,
     };
 
     const saveTransaction = async () => {
@@ -123,6 +240,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         setCategory('');
         setInstallments('1');
         setTransactionDate(new Date());
+        setSelectedLocation(null);
         onSuccess?.();
       } catch (error: any) {
         const message = error.message || 'Erro ao registrar despesa';
@@ -147,9 +265,16 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       setLoading(false);
 
       if (duplicateCheck.count > 0) {
+        const duplicate = duplicateCheck.duplicates[0];
+        const formattedDate = new Date(duplicate.transactionDate).toLocaleDateString('pt-BR');
+        const formattedAmount = Number(duplicate.amount).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        });
+
         Alert.alert(
-          'Possivel duplicata',
-          'Encontramos uma transacao semelhante. Deseja salvar mesmo assim?',
+          'Possível duplicata',
+          `Encontramos um lançamento parecido:\n\n${duplicate.description}\n${formattedAmount} • ${formattedDate}\n\nDeseja salvar mesmo assim?`,
           [
             {text: 'Cancelar', style: 'cancel'},
             {text: 'Salvar mesmo assim', onPress: () => void saveTransaction()},
@@ -253,6 +378,34 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
               Nenhum cartão disponível
             </Text>
           )}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Localização da despesa</Text>
+          <Pressable
+            style={styles.selectedCardContainer}
+            onPress={handleGetCurrentLocation}
+            disabled={fetchingLocation || loading}>
+            <Text style={styles.selectedCardText}>
+              {fetchingLocation
+                ? 'Capturando localização atual...'
+                : selectedLocation
+                  ? `${selectedLocation.latitude.toFixed(4)}, ${selectedLocation.longitude.toFixed(4)}`
+                  : 'Usar localização atual do dispositivo'}
+            </Text>
+          </Pressable>
+          <Text style={styles.locationHint}>
+            A localização é capturada automaticamente pelo GPS do aparelho.
+          </Text>
+          {selectedLocation ? (
+            <Pressable
+              onPress={() => setSelectedLocation(null)}
+              style={{marginTop: 8}}>
+              <Text style={{color: '#f1c40f', fontSize: 12, fontWeight: '600'}}>
+                Limpar localização
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.rowContainer}>

@@ -1,0 +1,35 @@
+@baseUrl = http://localhost:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTIxZWM4Yi1mY2Q2LTQ1NGUtYmJmNy0wMDhjMjcwOTdlY2YiLCJlbWFpbCI6InNpbHZhQG1haWwuY29tIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3ODQzODYxOCwiZXhwIjoxNzc4NDM5NTE4fQ.gw9Mg4BjNtLso8nW818qWi1PItssaupYivCYJyxksCk
+
+POST {{baseUrl}}/budgets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Alimentação Maio",
+  "amount": "500.00",
+  "category": "Alimentação",
+  "periodStart": "2026-05-01T00:00:00.000Z",
+  "periodEnd": "2026-05-31T23:59:59.999Z"
+}
+
+### List budgets
+GET {{baseUrl}}/budgets
+Authorization: Bearer {{token}}
+
+### Get budget progress (replace {id})
+GET {{baseUrl}}/budgets/{id}/progress
+Authorization: Bearer {{token}}
+
+### Update budget
+PUT {{baseUrl}}/budgets/{id}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "amount": "600.00"
+}
+
+### Delete budget
+DELETE {{baseUrl}}/budgets/{id}
+Authorization: Bearer {{token}}

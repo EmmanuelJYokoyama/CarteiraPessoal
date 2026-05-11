@@ -1,0 +1,46 @@
+@baseUrl = http://localhost:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTIxZWM4Yi1mY2Q2LTQ1NGUtYmJmNy0wMDhjMjcwOTdlY2YiLCJlbWFpbCI6InNpbHZhQG1haWwuY29tIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3ODQzODYxOCwiZXhwIjoxNzc4NDM5NTE4fQ.gw9Mg4BjNtLso8nW818qWi1PItssaupYivCYJyxksCk
+
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Padaria Pão Doce",
+  "amount": "10.00",
+  "transactionDate": "2026-05-10T00:00:00.000Z",
+  "installments": 1
+}
+
+### List transactions (verify created)
+GET {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+
+
+### Check duplicates — similar transaction (should return count >= 1)
+POST {{baseUrl}}/transactions/check-duplicates
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Padaria Pao Doce",
+  "amount": "10.20",
+  "transactionDate": "2026-05-11T00:00:00.000Z"
+}
+
+
+### Check duplicates — different amount (outside ±5%) (should return count = 0)
+POST {{baseUrl}}/transactions/check-duplicates
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Padaria Pao Doce",
+  "amount": "20.00",
+  "transactionDate": "2026-05-11T00:00:00.000Z"
+}
+
+
+### (Optional) Delete the created transaction — replace {id} with the id from the create response
+DELETE {{baseUrl}}/transactions/90534af0-3d57-47a4-93d6-d4d8f447c637
+Authorization: Bearer {{token}}

@@ -1,11 +1,16 @@
 import React, {useState, useCallback} from 'react';
-import {View, Text, FlatList, Pressable, SafeAreaView, ActivityIndicator} from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {View, Text, FlatList, Pressable, ActivityIndicator} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {Upload} from 'lucide-react-native';
 import {AddTransactionForm} from '../components/AddTransactionForm';
 import {TransactionDetailsModal} from '../components/TransactionDetailsModal';
 import {listTransactions, Transaction} from '@services/api/transactions';
+import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 
-export default function TransactionsScreen() {
+type Props = NativeStackScreenProps<any, 'Transactions'>;
+
+export default function TransactionsScreen({navigation}: Props) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -13,8 +18,8 @@ export default function TransactionsScreen() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Formatadores
-  function formatCurrency(value: string): string {
-    const num = parseFloat(value);
+  function formatCurrency(value: string | number): string {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -58,6 +63,11 @@ export default function TransactionsScreen() {
     loadTransactions();
   }
 
+  function handleTransactionDeleted() {
+    setShowDetailsModal(false);
+    loadTransactions();
+  }
+
 
 
   return (
@@ -68,18 +78,39 @@ export default function TransactionsScreen() {
             Minhas Despesas
           </Text>
           {!showForm ? (
-            <Pressable
-              style={{
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                backgroundColor: '#fff',
-                borderRadius: 8,
-              }}
-              onPress={() => setShowForm(true)}>
-              <Text style={{color: '#000', textAlign: 'center', fontWeight: '600'}}>
-                Nova Despesa
-              </Text>
-            </Pressable>
+            <View style={{gap: 12}}>
+              <Pressable
+                style={{
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  backgroundColor: '#fff',
+                  borderRadius: 8,
+                }}
+                onPress={() => setShowForm(true)}>
+                <Text style={{color: '#000', textAlign: 'center', fontWeight: '600'}}>
+                  + Nova Despesa
+                </Text>
+              </Pressable>
+              <Pressable
+                style={{
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#3498db',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+                onPress={() => navigation.navigate('ImportStatement')}>
+                <Upload size={18} color="#3498db" />
+                <Text style={{color: '#3498db', textAlign: 'center', fontWeight: '600'}}>
+                  Importar Extrato
+                </Text>
+              </Pressable>
+            </View>
           ) : null}
         </View>
 
@@ -180,7 +211,7 @@ export default function TransactionsScreen() {
         visible={showDetailsModal}
         transaction={selectedTransaction}
         onClose={() => setShowDetailsModal(false)}
-        onUpdate={handleTransactionAdded}
+        onUpdate={handleTransactionDeleted}
       />
     </SafeAreaView>
   );

@@ -108,6 +108,12 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  locationHint: {
+    color: '#999',
+    fontSize: 12,
+    marginTop: 8,
+    lineHeight: 16,
+  },
   submitButton: {
     marginTop: 28,
     marginBottom: 24,

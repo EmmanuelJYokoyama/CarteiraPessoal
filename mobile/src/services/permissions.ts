@@ -85,8 +85,16 @@ export async function requestPermission(
       }
     }
 
+    const granted =
+      permissionType === PermissionType.LOCATION
+        ? Boolean(
+            details[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ||
+            details[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION],
+          )
+        : allGranted;
+
     return {
-      granted: allGranted,
+      granted,
       deniedCount,
       details,
     };
@@ -115,6 +123,10 @@ export async function checkPermission(
         PermissionsAndroid.check(permission),
       ),
     );
+
+    if (permissionType === PermissionType.LOCATION) {
+      return results.some((result) => result === true);
+    }
 
     return results.every((result) => result === true);
   } catch (error) {

@@ -94,7 +94,7 @@ CarteiraPessoal/
 ### 🔄 Sprint 4 — Orçamentos e Metas
 - [ ] Orçamentos flexíveis por período
 - [ ] Metas de economia com aportes manuais
-- [ ] Simulação de investimento com juros compostos
+- [x] Simulação de investimento com juros compostos
 - [ ] Sugestão automática de categoria
 
 ### 🔄 Sprint 5 — Relatórios e Notificações

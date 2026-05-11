@@ -7,6 +7,8 @@ export type CreateTransactionPayload = {
   amount: string;
   installments?: number;
   category?: string;
+  latitude?: number;
+  longitude?: number;
   transactionDate: string;
   status?: 'pending' | 'completed' | 'cancelled';
 };
@@ -27,10 +29,13 @@ export type Transaction = {
   installments: number;
   installmentsPaid: number;
   category?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   status: string;
   transactionDate: string;
   createdAt: string;
   updatedAt: string;
+  installmentDetails?: Installment[];
 };
 
 export type Installment = {

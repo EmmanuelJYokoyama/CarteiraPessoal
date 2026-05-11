@@ -1,5 +1,6 @@
 import React, {useState, useRef, useCallback} from 'react';
-import {View, Text, FlatList, Pressable, SafeAreaView, ActivityIndicator, Alert} from 'react-native';
+import {View, Text, FlatList, Pressable, ActivityIndicator, Alert} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import {AddCardForm} from '../components/AddCardForm';
 import {listCards, Card, deleteCard} from '@services/api/cards';

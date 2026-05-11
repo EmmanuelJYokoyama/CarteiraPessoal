@@ -48,14 +48,20 @@ export function cardsService(onSuccess: (cardId: string) => void) {
       setLoading(true);
       setErrorMessage('');
 
-      const response = await createCard({
+      const payload: any = {
         name: name.trim(),
         cardNumber: cardNumberDigits,
         lastFourDigits,
         cardType,
         expiryDate,
-        limit,
-      });
+      };
+
+      // Only include limit if it's not empty
+      if (limit && limit.trim() !== '') {
+        payload.limit = limit.trim();
+      }
+
+      const response = await createCard(payload);
 
       setName('');
       setCardNumber('');

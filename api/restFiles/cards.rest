@@ -75,3 +75,17 @@ Content-Type: application/json
 ### Deletar cartão
 DELETE {{baseUrl}}/cards/{{cardId}}
 Authorization: Bearer {{accessToken}}
+
+### TESTE: Criar cartão COM LIMITE
+POST {{baseUrl}}/cards
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Teste Limite 4k",
+  "cardNumber": "4532111111111111",
+  "lastFourDigits": "1111",
+  "cardType": "credit",
+  "expiryDate": "12/26",
+  "limit": "4000.00"
+}

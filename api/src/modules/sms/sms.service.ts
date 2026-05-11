@@ -126,6 +126,7 @@ export async function processBankSms(
 
   const transactionDate = parsedData.date || new Date();
 
+  // Insert the transaction
   await db.insert(transactions).values({
     userId,
     cardId,
@@ -135,6 +136,32 @@ export async function processBankSms(
     transactionDate,
     status: 'completed',
   });
+
+  // Send confirmation SMS to user
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (user && user.phoneNumber) {
+      const {sendGenericSms} = await import('@plugins/twilio');
+      const confirmationMessage = `✅ Transação registrada!\nValor: R$ ${parsedData.amount.toFixed(2)}\nLocal: ${parsedData.establishment || 'Desconhecido'}\nCarteira Pessoal`;
+      
+      try {
+        await sendGenericSms({
+          phone: user.phoneNumber,
+          message: confirmationMessage,
+        });
+        console.log(`📤 SMS de confirmação enviado para ${user.phoneNumber}`);
+      } catch (smsError) {
+        console.error('⚠️ Falha ao enviar SMS de confirmação:', smsError);
+        // Don't throw - just log the error. Transaction was already created.
+      }
+    }
+  } catch (error) {
+    console.error('⚠️ Erro ao buscar usuário para enviar notificação:', error);
+    // Don't throw - transaction was already created
+  }
 
   return parsedData;
 }

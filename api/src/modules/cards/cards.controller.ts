@@ -39,13 +39,18 @@ export async function createNewCard(req: FastifyRequest, reply: FastifyReply) {
   try {
     await req.jwtVerify();
 
+    console.log('[Cards] Creating card with body:', JSON.stringify(req.body));
+
     const parsed = createCardSchema.safeParse(req.body);
     if (!parsed.success) {
+      console.log('[Cards] Validation errors:', parsed.error.flatten());
       return reply.status(400).send({error: parsed.error.flatten()});
     }
 
+    console.log('[Cards] Parsed data:', JSON.stringify(parsed.data));
     const payload = req.user as AuthTokenPayload;
     const card = await createCard(payload.userId, parsed.data);
+    console.log('[Cards] Card created:', JSON.stringify(card));
 
     return reply.status(201).send(card);
   } catch (err: any) {

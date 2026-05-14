@@ -7,9 +7,13 @@ export function useBudgetForm(budgetId?: string, initialData?: any, onSuccess?: 
   const [amount, setAmount] = useState(initialData?.amount?.toString() || '');
   const [selectedCategory, setSelectedCategory] = useState(initialData?.category || '');
   const [selectedCard, setSelectedCard] = useState(initialData?.cardId || null);
-  const [periodStart, setPeriodStart] = useState(initialData?.periodStart ? new Date(initialData.periodStart) : new Date());
-  const [periodEnd, setPeriodEnd] = useState(initialData?.periodEnd ? new Date(initialData.periodEnd) : addMonths(new Date(), 1));
-  const [periodType, setPeriodType] = useState<'monthly' | 'custom'>('monthly');
+  const [periodStart, setPeriodStart] = useState<Date | null>(
+    initialData?.periodStart ? new Date(initialData.periodStart) : null,
+  );
+  const [periodEnd, setPeriodEnd] = useState<Date | null>(
+    initialData?.periodEnd ? new Date(initialData.periodEnd) : null,
+  );
+  const [periodType, setPeriodType] = useState<'monthly' | 'custom'>('custom');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -20,6 +24,10 @@ export function useBudgetForm(budgetId?: string, initialData?: any, onSuccess?: 
     }
     if (!amount.trim() || isNaN(Number(amount)) || Number(amount) <= 0) {
       setErrorMessage('Valor deve ser um número maior que zero');
+      return false;
+    }
+    if (!periodStart || !periodEnd) {
+      setErrorMessage('Defina o período inicial e final');
       return false;
     }
     if (periodStart >= periodEnd) {
@@ -106,10 +114,4 @@ export function useBudgetForm(budgetId?: string, initialData?: any, onSuccess?: 
     handleSave,
     handleDelete,
   };
-}
-
-function addMonths(date: Date, months: number): Date {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
-  return result;
 }

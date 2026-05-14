@@ -1,7 +1,7 @@
 import {db} from '@db/index';
 import {budgets} from '@/db/schema/budgets';
-import {transactions} from '@/db/schema/transactions';
-import {and, eq, gte, lte} from 'drizzle-orm';
+import {transactions, installments} from '@/db/schema/transactions';
+import {and, eq, gte, lte, sql} from 'drizzle-orm';
 import type {CreateBudgetInput, UpdateBudgetInput} from './budgets.schema';
 
 export async function createBudget(userId: string, input: CreateBudgetInput) {
@@ -50,14 +50,98 @@ export async function deleteBudget(budgetId: string, userId: string) {
 export async function calculateBudgetProgress(budgetId: string, userId: string) {
   const budget = await getBudgetById(budgetId, userId);
 
-  // Build conditions for transactions that count towards the budget
-  const conditions: any[] = [ eq(transactions.userId, userId), gte(transactions.transactionDate, budget.periodStart), lte(transactions.transactionDate, budget.periodEnd) ];
-  if (budget.category) conditions.push(eq(transactions.category, budget.category));
-  if (budget.cardId) conditions.push(eq(transactions.cardId, budget.cardId));
+  let totalSpent = 0;
 
-  const txs = await db.query.transactions.findMany({ where: and(...conditions) });
+  // Case 1: Budget with category - sum transactions matching category within period
+  if (budget.category) {
+    // Get all transactions for the user within the budget period
+    const userTransactions = await db.query.transactions.findMany({
+      where: and(
+        eq(transactions.userId, userId),
+        gte(transactions.transactionDate, budget.periodStart),
+        lte(transactions.transactionDate, budget.periodEnd)
+      ),
+    });
 
-  const totalSpent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
+    // Filter by category (case-insensitive)
+    const matchingTransactions = userTransactions.filter(tx => 
+      tx.category && tx.category.toLowerCase() === budget.category.toLowerCase()
+    );
+
+    // For each matching transaction
+    for (const tx of matchingTransactions) {
+      if (tx.installments === 1) {
+        // Single payment - add full amount
+        totalSpent += Number(tx.amount);
+      } else {
+        // Installment transaction - sum pending installments due in budget period
+        const txInstallments = await db.query.installments.findMany({
+          where: and(
+            eq(installments.transactionId, tx.id),
+            gte(installments.dueDate, budget.periodStart),
+            lte(installments.dueDate, budget.periodEnd)
+          ),
+        });
+        for (const inst of txInstallments) {
+          totalSpent += Number(inst.amount);
+        }
+      }
+    }
+  } else if (budget.cardId) {
+    // Case 2: Budget with card - sum all transactions for that card within period
+    const txs = await db.query.transactions.findMany({
+      where: and(
+        eq(transactions.userId, userId),
+        eq(transactions.cardId, budget.cardId),
+        gte(transactions.transactionDate, budget.periodStart),
+        lte(transactions.transactionDate, budget.periodEnd)
+      ),
+    });
+
+    for (const tx of txs) {
+      if (tx.installments === 1) {
+        totalSpent += Number(tx.amount);
+      } else {
+        const txInstallments = await db.query.installments.findMany({
+          where: and(
+            eq(installments.transactionId, tx.id),
+            gte(installments.dueDate, budget.periodStart),
+            lte(installments.dueDate, budget.periodEnd)
+          ),
+        });
+        for (const inst of txInstallments) {
+          totalSpent += Number(inst.amount);
+        }
+      }
+    }
+  } else {
+    // Case 3: Budget with no category or card - sum all transactions within period
+    const txs = await db.query.transactions.findMany({
+      where: and(
+        eq(transactions.userId, userId),
+        gte(transactions.transactionDate, budget.periodStart),
+        lte(transactions.transactionDate, budget.periodEnd)
+      ),
+    });
+
+    for (const tx of txs) {
+      if (tx.installments === 1) {
+        totalSpent += Number(tx.amount);
+      } else {
+        const txInstallments = await db.query.installments.findMany({
+          where: and(
+            eq(installments.transactionId, tx.id),
+            gte(installments.dueDate, budget.periodStart),
+            lte(installments.dueDate, budget.periodEnd)
+          ),
+        });
+        for (const inst of txInstallments) {
+          totalSpent += Number(inst.amount);
+        }
+      }
+    }
+  }
+
   const limit = Number(budget.amount);
   const percent = limit === 0 ? 0 : Math.min(100, (totalSpent / limit) * 100);
 

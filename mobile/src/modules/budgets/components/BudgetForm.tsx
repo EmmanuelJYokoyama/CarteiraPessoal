@@ -120,7 +120,11 @@ export function BudgetForm({budgetId, initialData, onSuccess, onClose}: BudgetFo
     }).format(num);
   };
 
-  const formatDate = (date: Date): string => {
+  const formatDate = (date: Date | null): string => {
+    if (!date) {
+      return 'Selecione a data';
+    }
+
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -273,7 +277,7 @@ export function BudgetForm({budgetId, initialData, onSuccess, onClose}: BudgetFo
                       paddingVertical: 10,
                     }}
                     onPress={() => setShowDatePickerStart(true)}>
-                    <Text style={{color: '#fff', fontSize: 14}}>{formatDate(periodStart)}</Text>
+                    <Text style={{color: periodStart ? '#fff' : '#666', fontSize: 14}}>{formatDate(periodStart)}</Text>
                   </Pressable>
                 </View>
 
@@ -289,7 +293,7 @@ export function BudgetForm({budgetId, initialData, onSuccess, onClose}: BudgetFo
                       paddingVertical: 10,
                     }}
                     onPress={() => setShowDatePickerEnd(true)}>
-                    <Text style={{color: '#fff', fontSize: 14}}>{formatDate(periodEnd)}</Text>
+                    <Text style={{color: periodEnd ? '#fff' : '#666', fontSize: 14}}>{formatDate(periodEnd)}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -334,7 +338,7 @@ export function BudgetForm({budgetId, initialData, onSuccess, onClose}: BudgetFo
         <View style={{flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)'}}>
           <View style={{backgroundColor: '#1a1a1a', margin: 40, borderRadius: 8, padding: 16}}>
             <DateTimePicker
-              value={periodStart}
+              value={periodStart || new Date()}
               mode="date"
               display="spinner"
               onChange={handleDateChangeStart}
@@ -359,7 +363,7 @@ export function BudgetForm({budgetId, initialData, onSuccess, onClose}: BudgetFo
         <View style={{flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.7)'}}>
           <View style={{backgroundColor: '#1a1a1a', margin: 40, borderRadius: 8, padding: 16}}>
             <DateTimePicker
-              value={periodEnd}
+              value={periodEnd || new Date()}
               mode="date"
               display="spinner"
               onChange={handleDateChangeEnd}

@@ -4,6 +4,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Geolocation from '@react-native-community/geolocation';
 import {createTransaction, checkDuplicateTransactions} from '@services/api/transactions';
 import {listCards, Card} from '@services/api/cards';
+import {invalidateCache} from '@services/cache';
+import {suggestCategory} from '@services/categorySuggestion';
 import {useCategories} from '../hooks/useCategories';
 import {styles} from './styles/AddTransactionForm.styles';
 
@@ -36,6 +38,10 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<DeviceLocation | null>(null);
   const [fetchingLocation, setFetchingLocation] = useState(false);
+  const [categorySuggestion, setCategorySuggestion] = useState<{category: string; confidence: number; occurrences: number} | null>(null);
+  const [suggestingCategory, setSuggestingCategory] = useState(false);
+
+  console.log('[AddTransactionForm] Renderizando. Description:', description, 'Sugestão:', categorySuggestion);
 
   useEffect(() => {
     loadCards();
@@ -46,6 +52,42 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       locationProvider: 'auto',
     });
   }, []);
+
+  // Sugerir categoria quando a descrição muda
+  useEffect(() => {
+    console.log('[UseEffect] Description mudou para:', description);
+    
+    async function fetchSuggestion() {
+      if (!description || description.trim().length < 3) {
+        console.log('[UseEffect] Description muito curta, limpando sugestão');
+        setCategorySuggestion(null);
+        return;
+      }
+
+      console.log('[UseEffect] Acionando sugestão para:', description);
+      setSuggestingCategory(true);
+      try {
+        const suggestion = await suggestCategory(description);
+        console.log('[UseEffect] Resultado da sugestão:', suggestion);
+        setCategorySuggestion(suggestion);
+      } catch (error) {
+        console.error('[UseEffect] Erro ao obter sugestão:', error);
+        setCategorySuggestion(null);
+      } finally {
+        setSuggestingCategory(false);
+      }
+    }
+
+    const debounceTimer = setTimeout(() => {
+      console.log('[UseEffect] Debounce finalizado, chamando fetchSuggestion');
+      fetchSuggestion();
+    }, 500); // Debounce de 500ms
+
+    return () => {
+      console.log('[UseEffect] Limpando timeout anterior');
+      clearTimeout(debounceTimer);
+    };
+  }, [description]);
 
   async function ensureLocationPermission() {
     if (Platform.OS === 'ios') {
@@ -235,6 +277,11 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
 
         await createTransaction(payload);
 
+        // Invalidate budget cache if transaction has a category
+        if (payload.category) {
+          await invalidateCache('budgets');
+        }
+
         setDescription('');
         setAmount('');
         setCategory('');
@@ -333,6 +380,45 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
             onPress={() => setShowCategoryPicker(true)}>
             <Text style={styles.selectedCardText}>{category || 'Selecione uma categoria'}</Text>
           </Pressable>
+
+          {suggestingCategory && (
+            <View style={{marginTop: 8, paddingHorizontal: 12, paddingVertical: 8}}>
+              <ActivityIndicator size="small" color="#2ed573" />
+              <Text style={{color: '#2ed573', fontSize: 11, marginTop: 4}}>Buscando sugestão...</Text>
+            </View>
+          )}
+
+          {categorySuggestion && !suggestingCategory && (
+            <>
+              {console.log('[Render] Renderizando sugestão:', categorySuggestion)}
+              <Pressable
+                style={{
+                  marginTop: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: 'rgba(46, 213, 115, 0.2)',
+                  borderRadius: 6,
+                  borderLeftWidth: 4,
+                  borderLeftColor: '#2ed573',
+                  borderWidth: 1,
+                  borderColor: '#2ed573',
+                }}
+                onPress={() => {
+                  console.log('[Render] Aceitando sugestão:', categorySuggestion.category);
+                  setCategory(categorySuggestion.category);
+                }}>
+                <Text style={{color: '#2ed573', fontSize: 13, fontWeight: '700', marginBottom: 6}}>
+                  💡 Sugestão: {categorySuggestion.category}
+                </Text>
+                <Text style={{color: '#aaa', fontSize: 12}}>
+                  {categorySuggestion.occurrences}x encontrado(s) • {categorySuggestion.confidence.toFixed(0)}% confiança
+                </Text>
+                <Text style={{color: '#888', fontSize: 11, marginTop: 4, fontStyle: 'italic'}}>
+                  👉 Toque para aceitar
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         <View style={styles.inputGroup}>

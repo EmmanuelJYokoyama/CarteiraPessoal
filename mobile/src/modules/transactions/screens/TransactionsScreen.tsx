@@ -1,7 +1,7 @@
 import React, {useState, useCallback} from 'react';
 import {View, Text, FlatList, Pressable, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import {Upload} from 'lucide-react-native';
 import {AddTransactionForm} from '../components/AddTransactionForm';
 import {TransactionDetailsModal} from '../components/TransactionDetailsModal';
@@ -91,25 +91,29 @@ export default function TransactionsScreen({navigation}: Props) {
                   + Nova Despesa
                 </Text>
               </Pressable>
-              <Pressable
-                style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: '#3498db',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-                onPress={() => navigation.navigate('ImportStatement')}>
-                <Upload size={18} color="#3498db" />
-                <Text style={{color: '#3498db', textAlign: 'center', fontWeight: '600'}}>
-                  Importar Extrato
-                </Text>
-              </Pressable>
+              <View style={{flexDirection: 'row', gap: 12}}>
+                <Pressable
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#3498db',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                  onPress={() => navigation.navigate('ImportStatement')}>
+                  <Upload size={18} color="#3498db" />
+                  <Text style={{color: '#3498db', textAlign: 'center', fontWeight: '600'}}>
+                    Importar
+                  </Text>
+                </Pressable>
+
+              </View>
             </View>
           ) : null}
         </View>

@@ -82,3 +82,8 @@ export async function getBudgetProgress(budgetId: string) {
     method: 'GET',
   });
 }
+
+export async function getBudgetByCategory(category: string) {
+  const budgets = await listBudgets();
+  return budgets.find(b => b.category?.toLowerCase() === category.toLowerCase());
+}

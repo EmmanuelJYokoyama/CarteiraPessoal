@@ -3,6 +3,23 @@ import {transactions, installments} from '../../db/schema/transactions';
 import {eq, and, isNull, gte, lte} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
 
+// Helper function to convert database numeric fields to numbers for frontend
+function serializeTransaction(tx: any) {
+  return {
+    ...tx,
+    amount: Number(tx.amount),
+    latitude: tx.latitude ? Number(tx.latitude) : null,
+    longitude: tx.longitude ? Number(tx.longitude) : null,
+  };
+}
+
+function serializeInstallment(inst: any) {
+  return {
+    ...inst,
+    amount: Number(inst.amount),
+  };
+}
+
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
   const transactionDate = input.transactionDate instanceof Date 
     ? input.transactionDate 
@@ -25,6 +42,7 @@ export async function createTransaction(userId: string, input: CreateTransaction
         category: input.category,
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
+        location: input.location ?? null,
         status: 'pending',
         transactionDate,
       })
@@ -58,8 +76,8 @@ export async function createTransaction(userId: string, input: CreateTransaction
       : [createdInstallmentsResult];
 
     return {
-      transaction: newTransaction,
-      installments: createdInstallments,
+      transaction: serializeTransaction(newTransaction),
+      installments: createdInstallments.map(serializeInstallment),
     };
   });
 }
@@ -82,8 +100,8 @@ export async function getTransactionsByUserId(userId: string) {
       });
       
       return {
-        ...tx,
-        installmentDetails: txInstallments,
+        ...serializeTransaction(tx),
+        installmentDetails: txInstallments.map(serializeInstallment),
       };
     })
   );
@@ -133,7 +151,7 @@ export async function findDuplicateTransactions(
       const score = [amountDifference <= amountTolerance, dayDifference <= 3, merchantMatch].filter(Boolean).length;
 
       return {
-        candidate,
+        candidate: serializeTransaction(candidate),
         matches,
         score,
         amountDifference,
@@ -200,8 +218,8 @@ export async function getTransactionById(transactionId: string, userId: string) 
   });
 
   return {
-    transaction,
-    installments: transactionInstallments,
+    transaction: serializeTransaction(transaction),
+    installments: transactionInstallments.map(serializeInstallment),
   };
 }
 
@@ -264,7 +282,7 @@ export async function updateTransaction(transactionId: string, userId: string, i
     ? updatedResult[0] 
     : updatedResult;
 
-  return updated;
+  return serializeTransaction(updated);
 }
 
 export async function deleteTransaction(transactionId: string, userId: string) {

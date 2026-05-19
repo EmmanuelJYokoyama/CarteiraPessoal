@@ -67,7 +67,15 @@ export function TransactionDetailsModal({
 
   const latitude = transaction.latitude != null ? Number(transaction.latitude) : null;
   const longitude = transaction.longitude != null ? Number(transaction.longitude) : null;
-  const hasLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const hasLocation = latitude !== null && longitude !== null && Number.isFinite(latitude) && Number.isFinite(longitude);
+
+  console.log('[TransactionDetailsModal] Location check:', {
+    transactionLatitude: transaction.latitude,
+    transactionLongitude: transaction.longitude,
+    latitude,
+    longitude,
+    hasLocation,
+  });
 
   React.useEffect(() => {
     syncState();
@@ -117,16 +125,16 @@ export function TransactionDetailsModal({
 
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Localização</Text>
-                  {hasLocation ? (
+                  {hasLocation && latitude !== null && longitude !== null ? (
                     <Text style={styles.value}>
-                      {latitude?.toFixed(5)}, {longitude?.toFixed(5)}
+                      {latitude.toFixed(5)}, {longitude.toFixed(5)}
                     </Text>
                   ) : (
                     <Text style={styles.value}>Sem localização registrada</Text>
                   )}
                 </View>
 
-                {hasLocation ? (
+                {hasLocation && latitude !== null && longitude !== null ? (
                   <View style={styles.mapSection}>
                     <Text style={styles.label}>Mapa da despesa</Text>
                     <View style={styles.mapContainer}>
@@ -134,15 +142,15 @@ export function TransactionDetailsModal({
                         provider={PROVIDER_GOOGLE}
                         style={styles.map}
                         initialRegion={{
-                          latitude: latitude as number,
-                          longitude: longitude as number,
+                          latitude,
+                          longitude,
                           latitudeDelta: 0.012,
                           longitudeDelta: 0.012,
                         }}>
                         <Marker
                           coordinate={{
-                            latitude: latitude as number,
-                            longitude: longitude as number,
+                            latitude,
+                            longitude,
                           }}
                           title={transaction.description}
                           description={transaction.category || 'Despesa registrada'}

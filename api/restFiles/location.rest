@@ -1,0 +1,5 @@
+### Get address from coordinates
+GET http://localhost:3000/location/address?latitude=-93.2425&longitude=-45.8946
+
+### Get address from different coordinates
+GET http://localhost:3000/location/address?latitude=-23.5505&longitude=-46.6333

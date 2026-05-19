@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo, useEffect} from 'react';
+import React, {useState, useCallback, useMemo} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
@@ -24,6 +24,7 @@ export default function HomeScreen({navigation}: Props) {
   const [userLocation, setUserLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [addressName, setAddressName] = useState<string | null>(null);
 
   const initials = user?.name?.charAt(0)?.toUpperCase() || '👤';
 
@@ -33,11 +34,6 @@ export default function HomeScreen({navigation}: Props) {
       loadDashboardData();
     }, []),
   );
-
-  // Solicitar permissão de localização uma única vez na inicialização
-  useEffect(() => {
-    requestLocationPermission();
-  }, []);
 
   const loadDashboardData = async () => {
     try {
@@ -52,6 +48,75 @@ export default function HomeScreen({navigation}: Props) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getLocationErrorMessage = (code: number): string => {
+    switch (code) {
+      case 1:
+        return 'Permissão negada. Ative nas configurações do device.';
+      case 2:
+        return 'Posição indisponível. Ative o GPS do device.';
+      case 3:
+        return 'Timeout ao obter localização. Tente novamente.';
+      default:
+        return 'Erro ao obter localização. Tente novamente.';
+    }
+  };
+
+  const reverseGeocode = async (latitude: number, longitude: number) => {
+    try {
+      // Usa o endpoint do backend
+      const baseUrl = 'http://localhost:3000';
+      const url = `${baseUrl}/location/address?latitude=${latitude}&longitude=${longitude}`;
+      
+      console.log('[HomeScreen] Chamando endpoint:', url);
+      
+      const response = await fetch(url);
+      console.log('[HomeScreen] Status:', response.status);
+      
+      if (!response.ok) {
+        console.log('[HomeScreen] Response não OK, status:', response.status);
+        const errorText = await response.text();
+        console.log('[HomeScreen] Error response:', errorText);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('[HomeScreen] Full response:', JSON.stringify(data, null, 2));
+      
+      // Tenta extrair o nome de várias formas
+      let addressName = null;
+      
+      if (data.name) {
+        addressName = data.name;
+      } else if (data.address?.road) {
+        addressName = data.address.road;
+      } else if (data.address?.street) {
+        addressName = data.address.street;
+      } else if (data.address?.neighbourhood) {
+        addressName = data.address.neighbourhood;
+      } else if (data.address?.city) {
+        addressName = data.address.city;
+      } else if (data.fullAddress) {
+        addressName = data.fullAddress.split(',')[0];
+      }
+      
+      if (addressName) {
+        setAddressName(addressName);
+        console.log('[HomeScreen] Endereço extraído:', addressName);
+      } else {
+        console.log('[HomeScreen] Nenhum endereço encontrado na resposta');
+        setAddressName(null);
+      }
+    } catch (error) {
+      console.error('[HomeScreen] Erro ao obter endereço:', error);
+      console.error('[HomeScreen] Error type:', typeof error);
+      if (error instanceof Error) {
+        console.error('[HomeScreen] Error message:', error.message);
+        console.error('[HomeScreen] Error stack:', error.stack);
+      }
+      setAddressName(null);
     }
   };
 
@@ -71,13 +136,19 @@ export default function HomeScreen({navigation}: Props) {
             setUserLocation({latitude, longitude});
             setLocationLoading(false);
             console.log('[HomeScreen] Localização obtida:', latitude, longitude);
+            reverseGeocode(latitude, longitude);
           },
-          (error) => {
-            console.error('[HomeScreen] Erro ao obter localização:', error);
-            setLocationError('Não foi possível obter sua localização');
+          (error: any) => {
+            console.error('[HomeScreen] Erro ao obter localização:', error.code, error.message);
+            const errorMsg = getLocationErrorMessage(error.code);
+            setLocationError(errorMsg);
             setLocationLoading(false);
           },
-          {enableHighAccuracy: false, timeout: 15000, maximumAge: 60000}
+          {
+            enableHighAccuracy: false,
+            timeout: 30000,
+            maximumAge: 300000,
+          }
         );
       } else {
         setLocationLoading(false);
@@ -85,6 +156,7 @@ export default function HomeScreen({navigation}: Props) {
       }
     } catch (error) {
       console.error('[HomeScreen] Erro ao solicitar permissão:', error);
+      setLocationError('Erro ao solicitar permissão');
       setLocationLoading(false);
     }
   };
@@ -246,13 +318,13 @@ export default function HomeScreen({navigation}: Props) {
                 <View>
                   <Text style={styles.mapCardKicker}>Sua Localização</Text>
                   <Text style={styles.mapCardTitle}>
-                    {locationLoading ? 'Obtendo...' : userLocation ? `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}` : 'Permissão necessária'}
+                    {locationLoading ? 'Buscando...' : userLocation ? (addressName || `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`) : 'Desativada'}
                   </Text>
                 </View>
                 <MapPin size={24} color={userLocation ? '#2ed573' : '#999'} />
               </View>
 
-              <View style={{padding: 16, backgroundColor: locationLoading ? 'rgba(52, 152, 219, 0.1)' : userLocation ? 'rgba(46, 213, 115, 0.1)' : 'rgba(255, 107, 107, 0.1)', borderRadius: 8}}>
+              <View style={{padding: 16, backgroundColor: locationLoading ? 'rgba(52, 152, 219, 0.1)' : userLocation ? 'rgba(46, 213, 115, 0.1)' : 'rgba(159, 159, 159, 0.1)', borderRadius: 8}}>
                 {locationLoading ? (
                   <View style={{alignItems: 'center'}}>
                     <ActivityIndicator size="small" color="#3b82f6" />
@@ -262,33 +334,52 @@ export default function HomeScreen({navigation}: Props) {
                   </View>
                 ) : userLocation ? (
                   <View>
-                    <Text style={{color: '#2ed573', fontSize: 13, fontWeight: '600', marginBottom: 4}}>
+                    <Text style={{color: '#2ed573', fontSize: 13, fontWeight: '600', marginBottom: 8}}>
                       ✓ Localização ativa
                     </Text>
-                    <Text style={{color: '#999', fontSize: 12}}>
-                      Latitude: {userLocation.latitude.toFixed(6)}
+                    {addressName && (
+                      <Text style={{color: '#333', fontSize: 13, fontWeight: '500', marginBottom: 6}}>
+                        {addressName}
+                      </Text>
+                    )}
+                    <Text style={{color: '#999', fontSize: 11, marginBottom: 2}}>
+                      Lat: {userLocation.latitude.toFixed(6)}
                     </Text>
-                    <Text style={{color: '#999', fontSize: 12}}>
-                      Longitude: {userLocation.longitude.toFixed(6)}
+                    <Text style={{color: '#999', fontSize: 11}}>
+                      Lon: {userLocation.longitude.toFixed(6)}
                     </Text>
                   </View>
                 ) : locationError ? (
                   <View>
-                    <Text style={{color: '#ff6b6b', fontSize: 13, fontWeight: '600', marginBottom: 4}}>
+                    <Text style={{color: '#ff6b6b', fontSize: 12, fontWeight: '600', marginBottom: 10}}>
                       ⚠️ {locationError}
                     </Text>
                     <Pressable
                       onPress={requestLocationPermission}
-                      style={{marginTop: 12, paddingVertical: 8}}>
-                      <Text style={{color: '#ff6b6b', fontSize: 12, fontWeight: '600'}}>
-                        Tentar novamente →
+                      style={{
+                        backgroundColor: '#2563eb',
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderRadius: 6,
+                      }}>
+                      <Text style={{color: '#fff', fontSize: 12, fontWeight: '600', textAlign: 'center'}}>
+                        Tentar novamente
                       </Text>
                     </Pressable>
                   </View>
                 ) : (
-                  <Text style={{color: '#999', fontSize: 13, textAlign: 'center'}}>
-                    Permita acesso ao GPS nas configurações
-                  </Text>
+                  <Pressable
+                    onPress={requestLocationPermission}
+                    style={{
+                      backgroundColor: '#2563eb',
+                      paddingVertical: 10,
+                      paddingHorizontal: 12,
+                      borderRadius: 6,
+                    }}>
+                    <Text style={{color: '#fff', fontSize: 13, fontWeight: '600', textAlign: 'center'}}>
+                      Ativar localização
+                    </Text>
+                  </Pressable>
                 )}
               </View>
             </View>

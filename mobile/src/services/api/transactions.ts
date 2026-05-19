@@ -9,6 +9,7 @@ export type CreateTransactionPayload = {
   category?: string;
   latitude?: number;
   longitude?: number;
+  location?: string;
   transactionDate: string;
   status?: 'pending' | 'completed' | 'cancelled';
 };
@@ -31,11 +32,24 @@ export type Transaction = {
   category?: string;
   latitude?: number | null;
   longitude?: number | null;
+  location?: string | null;
   status: string;
   transactionDate: string;
   createdAt: string;
   updatedAt: string;
   installmentDetails?: Installment[];
+};
+
+export type CategorySuggestion = {
+  name: string;
+  color: string;
+  score: number;
+};
+
+export type SuggestCategoryResponse = {
+  success: boolean;
+  suggestions: CategorySuggestion[];
+  topSuggestion: CategorySuggestion | null;
 };
 
 export type Installment = {
@@ -70,6 +84,13 @@ export async function createTransaction(payload: CreateTransactionPayload) {
   await clearCache('GET:/transactions');
 
   return response;
+}
+
+export async function suggestCategory(description: string) {
+  return apiRequest<SuggestCategoryResponse>('/transactions/suggest-category', {
+    method: 'POST',
+    body: {description},
+  });
 }
 
 export async function checkDuplicateTransactions(payload: DuplicateCheckPayload) {

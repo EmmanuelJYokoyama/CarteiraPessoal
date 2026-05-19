@@ -10,10 +10,12 @@ import { otpRoutes } from '@modules/otp/otp.routes';
 import { pinRoutes } from '@modules/pin/pin.routes';
 import { cardsRoutes } from '@modules/cards/cards.routes';
 import { transactionsRoutes } from '@modules/transactions/transactions.routes';
+import { transactionsAiRoutes } from '@modules/transactions/transactions-ai.routes';
 import { categoriesRoutes } from '@modules/categories/categories.routes';
 import { cardLimitAlertsRoutes } from '@modules/cardLimitAlerts/cardLimitAlerts.routes';
 import { statementsRoutes } from '@modules/statements/statements.routes';
 import { budgetsRoutes } from '@modules/budgets/budgets.routes';
+import { locationRoutes } from '@modules/location/location.routes';
 import { swaggerConfig, swaggerUIConfig } from '@/swagger.config';
 
 dotenv.config();
@@ -54,9 +56,11 @@ app.register(pinRoutes);
 app.register(cardsRoutes);
 app.register(categoriesRoutes);
 app.register(transactionsRoutes);
+app.register(transactionsAiRoutes);
 app.register(cardLimitAlertsRoutes);
 app.register(statementsRoutes);
 app.register(budgetsRoutes);
+app.register(locationRoutes);
 
 app.get('/health', async (req, reply) => {
   reply.send({status: 'ok', timestamp: new Date().toISOString()});

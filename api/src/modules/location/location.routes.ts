@@ -48,8 +48,21 @@ export async function locationRoutes(fastify: FastifyInstance) {
           address.neighbourhood ||
           address.suburb ||
           address.city ||
+          address.town ||
+          address.village ||
           data.display_name?.split(',')[0] ||
-          'Local desconhecido';
+          null;
+
+        // Se não encontrou nenhum nome, retorna null em vez de "Local desconhecido"
+        if (!name) {
+          return reply.code(200).send({
+            success: true,
+            name: null,
+            fullAddress: data.display_name || null,
+            address,
+            rawData: data,
+          });
+        }
 
         const fullAddress = data.display_name || name;
 

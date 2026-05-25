@@ -6,8 +6,9 @@ import Geolocation from '@react-native-community/geolocation';
 import {useAuth} from '@contexts/AuthContext';
 import {useGoalsContext} from '@contexts/GoalsContext';
 import {requestPermission, PermissionType} from '@services/permissions';
-import {listTransactions, type Transaction} from '@services/api/transactions';
+import {listAllTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
+import {useOfflineSync} from '@hooks/useOfflineSync';
 import {TrendingDown, CreditCard, AlertCircle, ArrowRight, MapPin} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {styles} from './styles/HomeScreen.styles';
@@ -17,6 +18,7 @@ type Props = NativeStackScreenProps<any, 'Home'>;
 export default function HomeScreen({navigation}: Props) {
   const {signOut, user} = useAuth();
   const {activeGoal} = useGoalsContext();
+  const {isOnline, isSyncing, lastSyncTime, syncError, pendingRequestsCount, sync} = useOfflineSync({monitorConnectivity: false});
   const [menuVisible, setMenuVisible] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -39,7 +41,7 @@ export default function HomeScreen({navigation}: Props) {
     try {
       setLoading(true);
       const [txs, cardsData] = await Promise.all([
-        listTransactions(),
+        listAllTransactions(),
         listCards(),
       ]);
       setTransactions(txs);
@@ -272,6 +274,8 @@ export default function HomeScreen({navigation}: Props) {
           <Text style={styles.welcomeName}>Olá, {user?.name?.split(' ')[0]}! 👋</Text>
           <Text style={styles.welcomeSubtitle}>Veja seu resumo financeiro</Text>
         </View>
+
+        {/* Offline sync card moved to Settings */}
 
         {loading ? (
           <View style={{justifyContent: 'center', alignItems: 'center', paddingTop: 40}}>

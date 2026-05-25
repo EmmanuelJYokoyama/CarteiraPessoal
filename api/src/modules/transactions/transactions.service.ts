@@ -1,6 +1,6 @@
 import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
-import {eq, and, isNull, gte, lte} from 'drizzle-orm';
+import {eq, and, isNull, gte, lte, desc} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
 
 // Helper function to convert database numeric fields to numbers for frontend
@@ -83,22 +83,63 @@ export async function createTransaction(userId: string, input: CreateTransaction
 }
 
 export async function getTransactionsByUserId(userId: string) {
+  return getAllTransactionsByUserId(userId);
+}
+
+export async function getPagedTransactionsByUserId(userId: string, skip: number, take: number) {
+  const pagedTransactions = await db.query.transactions.findMany({
+    where: and(
+      eq(transactions.userId, userId),
+      isNull(transactions.parentTransactionId)
+    ),
+    orderBy: [desc(transactions.transactionDate), desc(transactions.createdAt)],
+    offset: skip,
+    limit: take + 1,
+  });
+
+  const hasMore = pagedTransactions.length > take;
+  const visibleTransactions = hasMore ? pagedTransactions.slice(0, take) : pagedTransactions;
+
+  const transactionsWithInstallments = await Promise.all(
+    visibleTransactions.map(async (tx) => {
+      const txInstallments = await db.query.installments.findMany({
+        where: eq(installments.transactionId, tx.id),
+      });
+
+      return {
+        ...serializeTransaction(tx),
+        installmentDetails: txInstallments.map(serializeInstallment),
+      };
+    })
+  );
+
+  return {
+    items: transactionsWithInstallments,
+    pageInfo: {
+      skip,
+      take,
+      hasMore,
+    },
+  };
+}
+
+export async function getAllTransactionsByUserId(userId: string) {
   const userTransactions = await db.query.transactions.findMany({
     where: and(
       eq(transactions.userId, userId),
       isNull(transactions.parentTransactionId)
     ),
+    orderBy: [desc(transactions.transactionDate), desc(transactions.createdAt)],
   });
 
   console.log('[TransactionService] Found transactions:', userTransactions.length);
-  
-  // Enrich transactions with their installments
+
   const transactionsWithInstallments = await Promise.all(
     userTransactions.map(async (tx) => {
       const txInstallments = await db.query.installments.findMany({
         where: eq(installments.transactionId, tx.id),
       });
-      
+
       return {
         ...serializeTransaction(tx),
         installmentDetails: txInstallments.map(serializeInstallment),

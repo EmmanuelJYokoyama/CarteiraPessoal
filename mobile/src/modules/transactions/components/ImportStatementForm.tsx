@@ -32,14 +32,17 @@ export function ImportStatementForm({cardId, onSuccess}: Props) {
 
     setLoading(true);
     try {
-      const res = await apiRequest.post('/statements/test-parse', {
-        content,
-        format: content.includes('<OFX>') ? 'ofx' : 'csv',
-      });
+      const res = await apiRequest.post<{ transactionCount: number; errors?: string[] }>(
+        '/statements/test-parse',
+        {
+          content,
+          format: content.includes('<OFX>') ? 'ofx' : 'csv',
+        }
+      );
 
       setPreview({
-        count: res.data.transactionCount,
-        errors: res.data.errors || [],
+        count: res.transactionCount,
+        errors: res.errors || [],
       });
     } catch (error: any) {
       Alert.alert('Erro', error.response?.data?.error || 'Falha ao analisar');
@@ -56,14 +59,14 @@ export function ImportStatementForm({cardId, onSuccess}: Props) {
 
     setLoading(true);
     try {
-      const res = await apiRequest.post('/statements/import', {
+      const res = await apiRequest.post<{ imported: number }>('/statements/import', {
         cardId,
         content,
         format: content.includes('<OFX>') ? 'ofx' : 'csv',
       });
 
       setSuccess(true);
-      Alert.alert('Sucesso!', `${res.data.imported} transações importadas`);
+      Alert.alert('Sucesso!', `${res.imported} transações importadas`);
       setTimeout(() => onSuccess?.(), 1500);
     } catch (error: any) {
       Alert.alert('Erro', error.response?.data?.error || 'Falha na importação');

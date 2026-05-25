@@ -6,6 +6,7 @@ import {createTransaction, checkDuplicateTransactions, suggestCategory, type Cat
 import {API_BASE_URL} from '@services/api/client';
 import {listCards, Card} from '@services/api/cards';
 import {invalidateCache} from '@services/cache';
+import {recordCategoryLearning} from '@services/categorySuggestion';
 import {useCategories} from '../hooks/useCategories';
 import {styles} from './styles/AddTransactionForm.styles';
 
@@ -154,7 +155,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
     });
   }
 
-  async function reverseGeocode(latitude: number, longitude: number) {
+  async function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
     try {
       const url = `${API_BASE_URL}/location/address?latitude=${latitude}&longitude=${longitude}`;
       
@@ -165,21 +166,27 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       if (!response.ok) {
         console.log('[AddTransactionForm] Response não OK, status:', response.status);
         console.log('[AddTransactionForm] Continuando sem nome do local');
-        return;
+        return null;
       }
 
       const data = await response.json();
       console.log('[AddTransactionForm] Endereço recebido:', data);
       
+      // Prioridade: name > fullAddress > null
       if (data.name) {
-        setLocationName(data.name);
-        console.log('[AddTransactionForm] Endereço definido:', data.name);
+        console.log('[AddTransactionForm] Endereço obtido:', data.name);
+        return data.name;
+      } else if (data.fullAddress) {
+        console.log('[AddTransactionForm] Endereço completo obtido:', data.fullAddress);
+        return data.fullAddress;
       } else {
         console.log('[AddTransactionForm] Nenhum nome de local encontrado na resposta');
+        return null;
       }
     } catch (error) {
       console.error('[AddTransactionForm] Erro ao obter endereço:', error);
       console.log('[AddTransactionForm] Continuando sem nome do local');
+      return null;
     }
   }
 
@@ -266,7 +273,8 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
           maximumAge: 0,
         });
         setSelectedLocation(preciseLocation);
-        reverseGeocode(preciseLocation.latitude, preciseLocation.longitude);
+        const locationName = await reverseGeocode(preciseLocation.latitude, preciseLocation.longitude);
+        setLocationName(locationName);
         return;
       } catch (preciseError) {
         console.warn('Falha em alta precisão, tentando modo balanceado:', preciseError);
@@ -279,7 +287,8 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
           maximumAge: 60000,
         });
         setSelectedLocation(fallbackLocation);
-        reverseGeocode(fallbackLocation.latitude, fallbackLocation.longitude);
+        const locationName = await reverseGeocode(fallbackLocation.latitude, fallbackLocation.longitude);
+        setLocationName(locationName);
       } catch (fallbackError: any) {
         console.error('Erro ao obter localização atual:', fallbackError);
         Alert.alert(
@@ -322,6 +331,10 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         setErrorMessage('');
 
         await createTransaction(payload);
+
+        if (payload.category) {
+          await recordCategoryLearning(payload.description, payload.category);
+        }
 
         // Invalidate budget cache if transaction has a category
         if (payload.category) {

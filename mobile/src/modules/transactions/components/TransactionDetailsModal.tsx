@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Text, Modal, Pressable, ScrollView, TextInput, ActivityIndicator} from 'react-native';
-import {CheckCircle, Edit2, Trash2, X} from 'lucide-react-native';
+import {CheckCircle, Edit2, Trash2, X, MapPin} from 'lucide-react-native';
 import {Transaction} from '@services/api/transactions';
 import {useTransactionModal} from './hooks/useTransactionModal';
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
@@ -11,6 +11,7 @@ interface TransactionDetailsModalProps {
   transaction: Transaction | null;
   onClose: () => void;
   onUpdate: () => void;
+  onShowMap?: () => void;
 }
 
 export function TransactionDetailsModal({
@@ -18,6 +19,7 @@ export function TransactionDetailsModal({
   transaction,
   onClose,
   onUpdate,
+  onShowMap,
 }: TransactionDetailsModalProps) {
   if (!transaction) return null;
 
@@ -30,6 +32,8 @@ export function TransactionDetailsModal({
     setEditedAmount,
     editedCategory,
     setEditedCategory,
+    editedLocation,
+    setEditedLocation,
     isLoading,
     syncState,
     handleComplete,
@@ -125,10 +129,8 @@ export function TransactionDetailsModal({
 
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Localização</Text>
-                  {hasLocation && latitude !== null && longitude !== null ? (
-                    <Text style={styles.value}>
-                      {latitude.toFixed(5)}, {longitude.toFixed(5)}
-                    </Text>
+                  {transaction.location ? (
+                    <Text style={styles.value}>{transaction.location}</Text>
                   ) : (
                     <Text style={styles.value}>Sem localização registrada</Text>
                   )}
@@ -296,6 +298,18 @@ export function TransactionDetailsModal({
                     editable={!isLoading}
                   />
                 </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Localização (Opcional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={editedLocation}
+                    onChangeText={setEditedLocation}
+                    placeholder="Ex: Rua Principal, São Paulo"
+                    placeholderTextColor="#666"
+                    editable={!isLoading}
+                  />
+                </View>
               </View>
             )}
           </ScrollView>
@@ -336,6 +350,16 @@ export function TransactionDetailsModal({
                   <Edit2 size={18} color="#0a0a0a" />
                   <Text style={styles.buttonText}>Editar</Text>
                 </Pressable>
+
+                {hasLocation && onShowMap && (
+                  <Pressable
+                    style={[styles.button, {backgroundColor: 'rgba(52, 152, 219, 0.9)'}]}
+                    onPress={onShowMap}
+                    disabled={isLoading}>
+                    <MapPin size={18} color="#0a0a0a" />
+                    <Text style={styles.buttonText}>Mapa</Text>
+                  </Pressable>
+                )}
 
                 <Pressable
                   style={[styles.button, styles.deleteButton]}

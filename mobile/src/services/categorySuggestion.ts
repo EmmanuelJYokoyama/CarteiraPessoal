@@ -1,4 +1,14 @@
-import {listTransactions, type Transaction} from './api/transactions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {listAllTransactions} from './api/transactions';
+
+const CATEGORY_LEARNING_STORAGE_KEY = '@category_suggestion:learning';
+
+type LearnedCategoryEntry = {
+  votes: Record<string, number>;
+  lastUsedAt: string;
+};
+
+type LearnedCategoryMap = Record<string, LearnedCategoryEntry>;
 
 /**
  * Calcula similaridade entre duas strings (0-1)
@@ -39,6 +49,160 @@ function calculateStringSimilarity(str1: string, str2: string): number {
   return 1 - distance / longer.length;
 }
 
+function normalizeDescription(description: string): string {
+  return description.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+async function loadLearnedCategoryMap(): Promise<LearnedCategoryMap> {
+  const storedValue = await AsyncStorage.getItem(CATEGORY_LEARNING_STORAGE_KEY);
+
+  if (!storedValue) {
+    return {};
+  }
+
+  try {
+    const parsedValue = JSON.parse(storedValue) as unknown;
+
+    if (!parsedValue || typeof parsedValue !== 'object' || Array.isArray(parsedValue)) {
+      return {};
+    }
+
+    return Object.entries(parsedValue as Record<string, unknown>).reduce<LearnedCategoryMap>(
+      (accumulator, [key, value]) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+          return accumulator;
+        }
+
+        const entry = value as Partial<LearnedCategoryEntry> & {votes?: unknown};
+        const votes = entry.votes;
+
+        if (
+          !votes ||
+          typeof votes !== 'object' ||
+          Array.isArray(votes) ||
+          typeof entry.lastUsedAt !== 'string'
+        ) {
+          return accumulator;
+        }
+
+        const normalizedVotes = Object.entries(votes as Record<string, unknown>).reduce<Record<string, number>>(
+          (voteAccumulator, [category, count]) => {
+            if (typeof count === 'number' && Number.isFinite(count) && count > 0) {
+              voteAccumulator[category] = count;
+            }
+
+            return voteAccumulator;
+          },
+          {}
+        );
+
+        if (Object.keys(normalizedVotes).length === 0) {
+          return accumulator;
+        }
+
+        accumulator[key] = {
+          votes: normalizedVotes,
+          lastUsedAt: entry.lastUsedAt,
+        };
+
+        return accumulator;
+      },
+      {}
+    );
+  } catch {
+    return {};
+  }
+}
+
+async function saveLearnedCategoryMap(map: LearnedCategoryMap): Promise<void> {
+  await AsyncStorage.setItem(CATEGORY_LEARNING_STORAGE_KEY, JSON.stringify(map));
+}
+
+function getBestCategoryFromVotes(votes: Record<string, number>): {category: string; count: number} | null {
+  let topCategory = '';
+  let topCount = 0;
+
+  for (const [category, count] of Object.entries(votes)) {
+    if (count > topCount) {
+      topCategory = category;
+      topCount = count;
+    }
+  }
+
+  if (!topCategory) {
+    return null;
+  }
+
+  return {category: topCategory, count: topCount};
+}
+
+export function getLearnedCategorySuggestionFromEntries(
+  description: string,
+  learnedCategories: LearnedCategoryMap,
+  similarityThreshold: number = 0.85
+): CategorySuggestion | null {
+  const normalizedDescription = normalizeDescription(description);
+
+  if (!normalizedDescription) {
+    return null;
+  }
+
+  const weightedVotes: Record<string, number> = {};
+  let weightedOccurrences = 0;
+
+  Object.entries(learnedCategories).forEach(([learnedDescription, entry]) => {
+    const similarity = calculateStringSimilarity(normalizedDescription, learnedDescription);
+
+    if (similarity < similarityThreshold) {
+      return;
+    }
+
+    Object.entries(entry.votes).forEach(([category, count]) => {
+      const weightedCount = count * similarity;
+      weightedVotes[category] = (weightedVotes[category] || 0) + weightedCount;
+      weightedOccurrences += weightedCount;
+    });
+  });
+
+  const bestCategory = getBestCategoryFromVotes(weightedVotes);
+
+  if (!bestCategory) {
+    return null;
+  }
+
+  return {
+    category: bestCategory.category,
+    confidence: weightedOccurrences > 0 ? (bestCategory.count / weightedOccurrences) * 100 : 0,
+    occurrences: Math.max(1, Math.round(bestCategory.count)),
+  };
+}
+
+async function getLearnedCategorySuggestion(description: string): Promise<CategorySuggestion | null> {
+  const learnedCategories = await loadLearnedCategoryMap();
+  return getLearnedCategorySuggestionFromEntries(description, learnedCategories);
+}
+
+export async function recordCategoryLearning(description: string, category: string): Promise<void> {
+  const normalizedDescription = normalizeDescription(description);
+  const normalizedCategory = category.trim();
+
+  if (!normalizedDescription || !normalizedCategory) {
+    return;
+  }
+
+  const learnedCategories = await loadLearnedCategoryMap();
+  const currentEntry = learnedCategories[normalizedDescription] ?? {
+    votes: {},
+    lastUsedAt: new Date().toISOString(),
+  };
+
+  currentEntry.votes[normalizedCategory] = (currentEntry.votes[normalizedCategory] || 0) + 1;
+  currentEntry.lastUsedAt = new Date().toISOString();
+  learnedCategories[normalizedDescription] = currentEntry;
+
+  await saveLearnedCategoryMap(learnedCategories);
+}
+
 interface CategorySuggestion {
   category: string;
   confidence: number;
@@ -62,7 +226,15 @@ export async function suggestCategory(
     }
 
     console.log('[suggestCategory] Iniciando busca com threshold:', similarityThreshold);
-    const transactions = await listTransactions();
+
+    const learnedSuggestion = await getLearnedCategorySuggestion(description);
+
+    if (learnedSuggestion) {
+      console.log('[suggestCategory] ✅ Sugestão local encontrada:', learnedSuggestion);
+      return learnedSuggestion;
+    }
+
+    const transactions = await listAllTransactions();
     console.log('[suggestCategory] Total de transações no banco:', transactions.length);
 
     // Log de todas as transações para debug
@@ -158,7 +330,7 @@ export async function suggestCategoryByLocation(
       return null;
     }
 
-    const transactions = await listTransactions();
+    const transactions = await listAllTransactions();
 
     // Filtrar transações com categoria e localização próxima
     const similarTransactions = transactions.filter((tx) => {

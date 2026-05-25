@@ -1,5 +1,6 @@
 import {apiRequest} from './client';
-import {clearCache} from '@services/cache';
+import {clearCache, invalidateCache} from '@services/cache';
+import {logTransactionEvent} from '@services/telemetry/firebaseTelemetry';
 
 export type CreateTransactionPayload = {
   cardId?: string;
@@ -70,20 +71,44 @@ export type CreateTransactionResponse = {
 
 export type ListTransactionsResponse = Transaction[];
 
+export type PagedTransactionsResponse = {
+  items: Transaction[];
+  pageInfo: {
+    skip: number;
+    take: number;
+    hasMore: boolean;
+  };
+};
+
 export type DuplicateCheckResponse = {
   count: number;
   duplicates: Transaction[];
 };
 
 export async function createTransaction(payload: CreateTransactionPayload) {
-  const response = await apiRequest<CreateTransactionResponse>('/transactions', {
-    method: 'POST',
-    body: payload,
-  });
+  try {
+    const response = await apiRequest<CreateTransactionResponse>('/transactions', {
+      method: 'POST',
+      body: payload,
+    });
 
-  await clearCache('GET:/transactions');
+    // Invalidate cached transaction list pages so UI can refetch fresh data
+    await invalidateCache('GET:/transactions');
+    void logTransactionEvent('create', 'success', {
+      has_category: Boolean(payload.category),
+      has_location: Boolean(payload.location),
+      installment_count: payload.installments ?? 1,
+    });
 
-  return response;
+    return response;
+  } catch (error) {
+    void logTransactionEvent('create', 'failure', {
+      has_category: Boolean(payload.category),
+      has_location: Boolean(payload.location),
+      error_message: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
+    });
+    throw error;
+  }
 }
 
 export async function suggestCategory(description: string) {
@@ -100,11 +125,30 @@ export async function checkDuplicateTransactions(payload: DuplicateCheckPayload)
   });
 }
 
-export async function listTransactions() {
-  return apiRequest<ListTransactionsResponse>('/transactions', {
+export async function listTransactions(skip = 0, take = 20) {
+  return apiRequest<PagedTransactionsResponse>(`/transactions?skip=${skip}&take=${take}`, {
     method: 'GET',
     cacheTTL: 300000,
   });
+}
+
+export async function listAllTransactions() {
+  const allTransactions: Transaction[] = [];
+  let skip = 0;
+  const take = 20;
+
+  while (true) {
+    const response = await listTransactions(skip, take);
+    allTransactions.push(...response.items);
+
+    if (!response.pageInfo.hasMore) {
+      break;
+    }
+
+    skip += take;
+  }
+
+  return allTransactions;
 }
 
 export async function getTransaction(transactionId: string) {
@@ -125,7 +169,7 @@ export async function updateTransaction(
     body: payload,
   });
 
-  await clearCache('GET:/transactions');
+  await invalidateCache('GET:/transactions');
 
   return response;
 }
@@ -135,7 +179,7 @@ export async function deleteTransaction(transactionId: string) {
     method: 'DELETE',
   });
 
-  await clearCache('GET:/transactions');
+  await invalidateCache('GET:/transactions');
 
   return response;
 }

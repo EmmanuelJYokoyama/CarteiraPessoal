@@ -1,3 +1,5 @@
+import {FastifyRequest, FastifyReply} from 'fastify';
+
 export interface JwtPayload {
   userId: string;
   email: string;
@@ -11,7 +13,6 @@ declare global {
 }
 
 declare module 'fastify' {
-  import {FastifyRequest, FastifyReply} from 'fastify';
   interface FastifyInstance {
     authenticate: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
     authenticateRefresh: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;

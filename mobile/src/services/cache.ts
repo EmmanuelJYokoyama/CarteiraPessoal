@@ -1,8 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  clearPendingRequestsTable,
+  deletePendingRequest,
+  insertPendingRequest,
+  listPendingRequests,
+  parseOfflineRequestBody,
+} from './offlineDatabase';
 
 const CACHE_PREFIX = '@cache:';
-const CACHE_TTL_PREFIX = '@cache_ttl:';
 const PENDING_REQUESTS_KEY = '@pending_requests';
+const PENDING_REQUESTS_MIGRATED_KEY = '@pending_requests_migrated';
 
 export interface CachedResponse<T> {
   data: T;
@@ -83,9 +90,40 @@ export interface PendingRequest {
   timestamp: number;
 }
 
+async function migratePendingRequestsIfNeeded(): Promise<void> {
+  const alreadyMigrated = await AsyncStorage.getItem(PENDING_REQUESTS_MIGRATED_KEY);
+
+  if (alreadyMigrated === 'true') {
+    return;
+  }
+
+  const rawPending = await AsyncStorage.getItem(PENDING_REQUESTS_KEY);
+
+  if (rawPending) {
+    try {
+      const pending = JSON.parse(rawPending) as PendingRequest[];
+
+      for (const request of pending) {
+        await insertPendingRequest({
+          id: request.id,
+          method: request.method,
+          path: request.path,
+          body: request.body,
+          timestamp: request.timestamp,
+        });
+      }
+
+      await AsyncStorage.removeItem(PENDING_REQUESTS_KEY);
+    } catch (error) {
+      console.error('[Cache] Error migrating pending requests:', error);
+    }
+  }
+
+  await AsyncStorage.setItem(PENDING_REQUESTS_MIGRATED_KEY, 'true');
+}
+
 export async function addPendingRequest(request: Omit<PendingRequest, 'id' | 'timestamp'>): Promise<string> {
   try {
-    const pending = await getPendingRequests();
     const id = `${Date.now()}-${Math.random()}`;
     const newRequest: PendingRequest = {
       ...request,
@@ -93,8 +131,8 @@ export async function addPendingRequest(request: Omit<PendingRequest, 'id' | 'ti
       timestamp: Date.now(),
     };
 
-    pending.push(newRequest);
-    await AsyncStorage.setItem(PENDING_REQUESTS_KEY, JSON.stringify(pending));
+    await migratePendingRequestsIfNeeded();
+    await insertPendingRequest(newRequest);
     console.log('[Cache] Added pending request:', id);
 
     return id;
@@ -106,8 +144,17 @@ export async function addPendingRequest(request: Omit<PendingRequest, 'id' | 'ti
 
 export async function getPendingRequests(): Promise<PendingRequest[]> {
   try {
-    const data = await AsyncStorage.getItem(PENDING_REQUESTS_KEY);
-    return data ? JSON.parse(data) : [];
+    await migratePendingRequestsIfNeeded();
+
+    const rows = await listPendingRequests();
+
+    return rows.map(row => ({
+      id: row.id,
+      method: row.method,
+      path: row.path,
+      body: parseOfflineRequestBody(row.body),
+      timestamp: row.timestamp,
+    }));
   } catch (error) {
     console.error('[Cache] Error getting pending requests:', error);
     return [];
@@ -116,9 +163,8 @@ export async function getPendingRequests(): Promise<PendingRequest[]> {
 
 export async function removePendingRequest(id: string): Promise<void> {
   try {
-    const pending = await getPendingRequests();
-    const filtered = pending.filter(r => r.id !== id);
-    await AsyncStorage.setItem(PENDING_REQUESTS_KEY, JSON.stringify(filtered));
+    await migratePendingRequestsIfNeeded();
+    await deletePendingRequest(id);
   } catch (error) {
     console.error('[Cache] Error removing pending request:', error);
   }
@@ -126,6 +172,7 @@ export async function removePendingRequest(id: string): Promise<void> {
 
 export async function clearPendingRequests(): Promise<void> {
   try {
+    await clearPendingRequestsTable();
     await AsyncStorage.removeItem(PENDING_REQUESTS_KEY);
   } catch (error) {
     console.error('[Cache] Error clearing pending requests:', error);
@@ -143,6 +190,7 @@ export async function clearAllAppData(): Promise<void> {
       clearCache(), // Limpa todos os caches
       clearPendingRequests(), // Limpa requisições pendentes
     ]);
+    await AsyncStorage.removeItem(PENDING_REQUESTS_MIGRATED_KEY);
     console.log('[Cache] ✅ All app data cleared');
   } catch (error) {
     console.error('[Cache] Error clearing all app data:', error);

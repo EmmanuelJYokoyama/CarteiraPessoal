@@ -2,6 +2,8 @@
 
     <!-- Permissões de Rede -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Permissão para receber BOOT_COMPLETED e garantir agendamento após reinício -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Permissões de Localização (GPS) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -36,6 +38,12 @@
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustResize"
         android:exported="true">
+        <intent-filter android:autoVerify="false">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="com.carteirapessoal" android:host="oauthredirect" />
+        </intent-filter>
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

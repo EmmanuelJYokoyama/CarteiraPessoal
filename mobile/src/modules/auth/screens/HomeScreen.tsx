@@ -9,6 +9,7 @@ import {requestPermission, PermissionType} from '@services/permissions';
 import {listAllTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
 import {useOfflineSync} from '@hooks/useOfflineSync';
+import {BarChartCard} from '@components/charts';
 import {TrendingDown, CreditCard, AlertCircle, ArrowRight, MapPin} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {styles} from './styles/HomeScreen.styles';
@@ -18,7 +19,7 @@ type Props = NativeStackScreenProps<any, 'Home'>;
 export default function HomeScreen({navigation}: Props) {
   const {signOut, user} = useAuth();
   const {activeGoal} = useGoalsContext();
-  const {isOnline, isSyncing, lastSyncTime, syncError, pendingRequestsCount, sync} = useOfflineSync({monitorConnectivity: false});
+  useOfflineSync({monitorConnectivity: false});
   const [menuVisible, setMenuVisible] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -241,6 +242,53 @@ export default function HomeScreen({navigation}: Props) {
     return Math.min(100, (activeGoal.current / activeGoal.target) * 100);
   }, [activeGoal.current, activeGoal.target]);
 
+  const sixMonthSpendingData = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({length: 6}, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}`,
+        label: date.toLocaleDateString('pt-BR', {month: 'short'}).replace('.', ''),
+        total: 0,
+        month: date.getMonth(),
+        year: date.getFullYear(),
+      };
+    });
+
+    for (const tx of transactions) {
+      const txDate = new Date(tx.transactionDate);
+      const txMonth = txDate.getUTCMonth();
+      const txYear = txDate.getUTCFullYear();
+      const target = months.find(item => item.month === txMonth && item.year === txYear);
+
+      if (!target) continue;
+
+      const amount = typeof tx.amount === 'number' ? tx.amount : parseFloat(tx.amount || '0');
+      if (!Number.isFinite(amount)) continue;
+
+      if (tx.installments > 1 && Array.isArray(tx.installmentDetails)) {
+        const matchingInstallments = tx.installmentDetails.filter(inst => {
+          const dueDate = new Date(inst.dueDate);
+          return dueDate.getUTCMonth() === txMonth && dueDate.getUTCFullYear() === txYear && inst.status === 'pending';
+        });
+
+        target.total += matchingInstallments.reduce((sum, inst) => {
+          const installmentAmount = typeof inst.amount === 'string' ? parseFloat(inst.amount) : Number(inst.amount);
+          return sum + (Number.isFinite(installmentAmount) ? installmentAmount : 0);
+        }, 0);
+        continue;
+      }
+
+      target.total += amount;
+    }
+
+    return months.map(month => ({
+      x: month.label,
+      y: Number(month.total.toFixed(2)),
+      label: new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(month.total),
+    }));
+  }, [transactions]);
+
   const getCardColor = (brand: string) => {
     const b = brand?.toLowerCase() || '';
     if (b.includes('visa')) return '#1434CB';
@@ -315,6 +363,17 @@ export default function HomeScreen({navigation}: Props) {
                 </Text>
                 <Text style={styles.progressMetaText}>{activeGoal.category} • prazo {activeGoal.deadline}</Text>
               </View>
+            </View>
+
+            <View style={styles.chartSection}>
+              <BarChartCard
+                title="Gastos dos últimos 6 meses"
+                subtitle="Visão rápida do fluxo de despesas"
+                data={sixMonthSpendingData}
+                xLabel="Mês"
+                yLabel="Valor"
+                height={320}
+              />
             </View>
 
             <View style={styles.mapCard}>

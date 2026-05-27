@@ -215,6 +215,10 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  chartSection: {
+    marginBottom: 16,
+  },
+
   mapCard: {
     backgroundColor: '#111827',
     borderRadius: 16,

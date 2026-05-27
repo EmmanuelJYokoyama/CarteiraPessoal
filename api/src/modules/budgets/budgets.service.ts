@@ -1,5 +1,6 @@
 import {db} from '@db/index';
 import {budgets} from '@/db/schema/budgets';
+import {budgetAlertEvents} from '@/db/schema/budgetAlertEvents';
 import {transactions, installments} from '@/db/schema/transactions';
 import {and, eq, gte, lte, sql} from 'drizzle-orm';
 import type {CreateBudgetInput, UpdateBudgetInput} from './budgets.schema';
@@ -40,10 +41,24 @@ export async function updateBudget(budgetId: string, userId: string, input: Upda
   if (input.periodEnd) updateData.periodEnd = new Date(input.periodEnd);
 
   const updated = await db.update(budgets).set(updateData).where(eq(budgets.id, budgetId)).returning();
+
+  const shouldResetAlerts = ['amount', 'category', 'cardId', 'periodStart', 'periodEnd'].some(key =>
+    Object.prototype.hasOwnProperty.call(input, key)
+  );
+
+  if (shouldResetAlerts) {
+    await db
+      .delete(budgetAlertEvents)
+      .where(and(eq(budgetAlertEvents.budgetId, budgetId), eq(budgetAlertEvents.userId, userId)));
+  }
+
   return Array.isArray(updated) ? updated[0] : updated;
 }
 
 export async function deleteBudget(budgetId: string, userId: string) {
+  await db
+    .delete(budgetAlertEvents)
+    .where(and(eq(budgetAlertEvents.budgetId, budgetId), eq(budgetAlertEvents.userId, userId)));
   await db.delete(budgets).where(eq(budgets.id, budgetId));
 }
 
@@ -143,13 +158,16 @@ export async function calculateBudgetProgress(budgetId: string, userId: string) 
   }
 
   const limit = Number(budget.amount);
-  const percent = limit === 0 ? 0 : Math.min(100, (totalSpent / limit) * 100);
+  const rawPercent = limit === 0 ? 0 : (totalSpent / limit) * 100;
+  const percent = Math.min(100, rawPercent);
 
   return {
     budget,
     totalSpent: totalSpent.toFixed(2),
     limit: limit.toFixed(2),
     percent: Number(percent.toFixed(2)),
+    rawPercent: Number(rawPercent.toFixed(2)),
+    isOverBudget: rawPercent > 100,
     remaining: (limit - totalSpent).toFixed(2),
   };
 }

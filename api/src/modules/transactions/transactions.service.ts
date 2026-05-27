@@ -2,6 +2,8 @@ import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
 import {eq, and, isNull, gte, lte, desc} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
+import {checkBudgetAlertCandidatesForUser} from '../budgets/budgetAlerts.service';
+import {sendBudgetAlerts} from '../budgets/budgetAlerts.notifications';
 
 // Helper function to convert database numeric fields to numbers for frontend
 function serializeTransaction(tx: any) {
@@ -29,7 +31,7 @@ export async function createTransaction(userId: string, input: CreateTransaction
   const installmentCount = input.installments || 1;
   const amountPerInstallment = (amount / installmentCount).toFixed(2);
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const newTransactionResult = await tx
       .insert(transactions)
       .values({
@@ -80,6 +82,9 @@ export async function createTransaction(userId: string, input: CreateTransaction
       installments: createdInstallments.map(serializeInstallment),
     };
   });
+
+  await notifyBudgetAlerts(userId);
+  return result;
 }
 
 export async function getTransactionsByUserId(userId: string) {
@@ -323,6 +328,7 @@ export async function updateTransaction(transactionId: string, userId: string, i
     ? updatedResult[0] 
     : updatedResult;
 
+  await notifyBudgetAlerts(userId);
   return serializeTransaction(updated);
 }
 
@@ -337,6 +343,8 @@ export async function deleteTransaction(transactionId: string, userId: string) {
   if (!transaction) throw new Error('TRANSACTION_NOT_FOUND');
 
   await db.delete(transactions).where(eq(transactions.id, transactionId));
+
+  await notifyBudgetAlerts(userId);
 }
 
 export async function payInstallment(installmentId: string, userId: string) {
@@ -395,5 +403,17 @@ export async function payInstallment(installmentId: string, userId: string) {
       .where(eq(transactions.id, installment.transactionId));
   }
 
+  await notifyBudgetAlerts(userId);
   return updated;
+}
+
+async function notifyBudgetAlerts(userId: string) {
+  try {
+    const notifications = await checkBudgetAlertCandidatesForUser(userId);
+    if (notifications.length > 0) {
+      await sendBudgetAlerts(notifications);
+    }
+  } catch (error) {
+    console.error('[TransactionService] Failed to evaluate budget alerts', error);
+  }
 }

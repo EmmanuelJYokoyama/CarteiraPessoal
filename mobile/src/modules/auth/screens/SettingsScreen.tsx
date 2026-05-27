@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {View, Text, Pressable, FlatList, Switch} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Lock, Info, Package, ChevronRight, ShieldAlert, FileWarning, Cloud} from 'lucide-react-native';
+import {Lock, Info, Package, ChevronRight, ShieldAlert, FileWarning, Cloud, PieChart} from 'lucide-react-native';
 import {getTelemetryConsent, setTelemetryConsent, logTelemetryConsentChange} from '@services/telemetry/firebaseTelemetry';
 import {useOfflineSync} from '@hooks/useOfflineSync';
 import {styles} from './styles/SettingsScreen.styles';
@@ -22,6 +22,7 @@ const SETTINGS_ITEMS: SettingsItem[] = [
   {id: '3', title: 'Versão', icon: Package, screen: null},
   {id: '4', title: 'Telemetry dashboard', icon: FileWarning, screen: 'TelemetryDiagnostics'},
   {id: '5', title: 'Backup na nuvem', icon: Cloud, screen: 'BackupSettings'},
+  {id: '6', title: 'Relatório por categoria', icon: PieChart, screen: 'CategoryReport'},
 ];
 
 export default function SettingsScreen({navigation}: Props) {

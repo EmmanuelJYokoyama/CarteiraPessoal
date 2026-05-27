@@ -1,7 +1,26 @@
 import {db} from '@db/index';
 import {transactions, installments} from '../../db/schema/transactions';
-import {eq, and, isNull, gte, lte} from 'drizzle-orm';
+import {eq, and, isNull, gte, lte, desc} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
+import {checkBudgetAlertCandidatesForUser} from '../budgets/budgetAlerts.service';
+import {sendBudgetAlerts} from '../budgets/budgetAlerts.notifications';
+
+// Helper function to convert database numeric fields to numbers for frontend
+function serializeTransaction(tx: any) {
+  return {
+    ...tx,
+    amount: Number(tx.amount),
+    latitude: tx.latitude ? Number(tx.latitude) : null,
+    longitude: tx.longitude ? Number(tx.longitude) : null,
+  };
+}
+
+function serializeInstallment(inst: any) {
+  return {
+    ...inst,
+    amount: Number(inst.amount),
+  };
+}
 
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
   const transactionDate = input.transactionDate instanceof Date 
@@ -12,7 +31,7 @@ export async function createTransaction(userId: string, input: CreateTransaction
   const installmentCount = input.installments || 1;
   const amountPerInstallment = (amount / installmentCount).toFixed(2);
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const newTransactionResult = await tx
       .insert(transactions)
       .values({
@@ -25,6 +44,7 @@ export async function createTransaction(userId: string, input: CreateTransaction
         category: input.category,
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,
+        location: input.location ?? null,
         status: 'pending',
         transactionDate,
       })
@@ -58,32 +78,76 @@ export async function createTransaction(userId: string, input: CreateTransaction
       : [createdInstallmentsResult];
 
     return {
-      transaction: newTransaction,
-      installments: createdInstallments,
+      transaction: serializeTransaction(newTransaction),
+      installments: createdInstallments.map(serializeInstallment),
     };
   });
+
+  await notifyBudgetAlerts(userId);
+  return result;
 }
 
 export async function getTransactionsByUserId(userId: string) {
+  return getAllTransactionsByUserId(userId);
+}
+
+export async function getPagedTransactionsByUserId(userId: string, skip: number, take: number) {
+  const pagedTransactions = await db.query.transactions.findMany({
+    where: and(
+      eq(transactions.userId, userId),
+      isNull(transactions.parentTransactionId)
+    ),
+    orderBy: [desc(transactions.transactionDate), desc(transactions.createdAt)],
+    offset: skip,
+    limit: take + 1,
+  });
+
+  const hasMore = pagedTransactions.length > take;
+  const visibleTransactions = hasMore ? pagedTransactions.slice(0, take) : pagedTransactions;
+
+  const transactionsWithInstallments = await Promise.all(
+    visibleTransactions.map(async (tx) => {
+      const txInstallments = await db.query.installments.findMany({
+        where: eq(installments.transactionId, tx.id),
+      });
+
+      return {
+        ...serializeTransaction(tx),
+        installmentDetails: txInstallments.map(serializeInstallment),
+      };
+    })
+  );
+
+  return {
+    items: transactionsWithInstallments,
+    pageInfo: {
+      skip,
+      take,
+      hasMore,
+    },
+  };
+}
+
+export async function getAllTransactionsByUserId(userId: string) {
   const userTransactions = await db.query.transactions.findMany({
     where: and(
       eq(transactions.userId, userId),
       isNull(transactions.parentTransactionId)
     ),
+    orderBy: [desc(transactions.transactionDate), desc(transactions.createdAt)],
   });
 
   console.log('[TransactionService] Found transactions:', userTransactions.length);
-  
-  // Enrich transactions with their installments
+
   const transactionsWithInstallments = await Promise.all(
     userTransactions.map(async (tx) => {
       const txInstallments = await db.query.installments.findMany({
         where: eq(installments.transactionId, tx.id),
       });
-      
+
       return {
-        ...tx,
-        installmentDetails: txInstallments,
+        ...serializeTransaction(tx),
+        installmentDetails: txInstallments.map(serializeInstallment),
       };
     })
   );
@@ -133,7 +197,7 @@ export async function findDuplicateTransactions(
       const score = [amountDifference <= amountTolerance, dayDifference <= 3, merchantMatch].filter(Boolean).length;
 
       return {
-        candidate,
+        candidate: serializeTransaction(candidate),
         matches,
         score,
         amountDifference,
@@ -200,8 +264,8 @@ export async function getTransactionById(transactionId: string, userId: string) 
   });
 
   return {
-    transaction,
-    installments: transactionInstallments,
+    transaction: serializeTransaction(transaction),
+    installments: transactionInstallments.map(serializeInstallment),
   };
 }
 
@@ -264,7 +328,8 @@ export async function updateTransaction(transactionId: string, userId: string, i
     ? updatedResult[0] 
     : updatedResult;
 
-  return updated;
+  await notifyBudgetAlerts(userId);
+  return serializeTransaction(updated);
 }
 
 export async function deleteTransaction(transactionId: string, userId: string) {
@@ -278,6 +343,8 @@ export async function deleteTransaction(transactionId: string, userId: string) {
   if (!transaction) throw new Error('TRANSACTION_NOT_FOUND');
 
   await db.delete(transactions).where(eq(transactions.id, transactionId));
+
+  await notifyBudgetAlerts(userId);
 }
 
 export async function payInstallment(installmentId: string, userId: string) {
@@ -336,5 +403,17 @@ export async function payInstallment(installmentId: string, userId: string) {
       .where(eq(transactions.id, installment.transactionId));
   }
 
+  await notifyBudgetAlerts(userId);
   return updated;
+}
+
+async function notifyBudgetAlerts(userId: string) {
+  try {
+    const notifications = await checkBudgetAlertCandidatesForUser(userId);
+    if (notifications.length > 0) {
+      await sendBudgetAlerts(notifications);
+    }
+  } catch (error) {
+    console.error('[TransactionService] Failed to evaluate budget alerts', error);
+  }
 }

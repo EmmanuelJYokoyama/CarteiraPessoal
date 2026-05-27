@@ -8,6 +8,7 @@ import {
   removePendingRequest,
 } from '@services/cache';
 import {isNetworkOnline} from '@services/connectivity';
+import {logSyncEvent} from '@services/telemetry/firebaseTelemetry';
 
 const DEFAULT_BASE_URL =
   Platform.OS === 'android' ? 'http://localhost:3000' : 'http://localhost:3000';
@@ -65,10 +66,19 @@ export async function syncPendingRequests(): Promise<{
       });
 
       await removePendingRequest(request.id);
+      void logSyncEvent('sync_pending_requests', 'success', {
+        method: request.method,
+        path: request.path,
+      });
       success++;
       console.log(`[Sync] ✅ ${request.method} ${request.path}`);
     } catch (error) {
       failed++;
+      void logSyncEvent('sync_pending_requests', 'failure', {
+        method: request.method,
+        path: request.path,
+        error_message: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
+      });
       console.error(`[Sync] ❌ ${request.method} ${request.path}:`, error);
     }
   }

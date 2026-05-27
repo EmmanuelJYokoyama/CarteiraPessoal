@@ -11,10 +11,31 @@ import {useOfflineSync} from '@hooks/useOfflineSync';
 import {usePermissionsOnboarding} from '@hooks/usePermissionsOnboarding';
 import {setTokenExpiredCallback} from '@services/api/client';
 import {PermissionsOnboardingScreen} from '@modules/auth/screens/PermissionsOnboardingScreen';
+import {AppErrorBoundary} from '@components/common/AppErrorBoundary';
+import {initializeTelemetry, logScreenView, setTelemetryUserId} from '@services/telemetry/firebaseTelemetry';
+
+function getActiveRouteName(state: unknown): string | undefined {
+  if (!state || typeof state !== 'object') {
+    return undefined;
+  }
+
+  const typedState = state as {index?: number; routes?: Array<{name?: string; state?: unknown}>};
+  const route = typedState.routes?.[typedState.index ?? 0];
+
+  if (!route) {
+    return undefined;
+  }
+
+  if (route.state) {
+    return getActiveRouteName(route.state);
+  }
+
+  return route.name;
+}
 
 function RootNavigator() {
-  const {isLoading, isSignedIn, signOut} = useAuth();
-  const {isOnline} = useOfflineSync();
+  const {isLoading, isSignedIn, signOut, user} = useAuth();
+  useOfflineSync();
   const {hasCompletedOnboarding, isLoading: onboardingLoading, markOnboardingAsCompleted} = usePermissionsOnboarding();
 
   useEffect(() => {
@@ -23,6 +44,14 @@ function RootNavigator() {
       signOut();
     });
   }, [signOut]);
+
+  useEffect(() => {
+    void initializeTelemetry();
+  }, []);
+
+  useEffect(() => {
+    void setTelemetryUserId(isSignedIn && user ? user.email : null);
+  }, [isSignedIn, user]);
 
   if (isLoading || onboardingLoading) {
     return (
@@ -48,15 +77,26 @@ function RootNavigator() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <PermissionsProvider>
-        <AuthProvider>
-          <GoalsProvider>
-            <NavigationContainer>
-              <RootNavigator />
-            </NavigationContainer>
-          </GoalsProvider>
-        </AuthProvider>
-      </PermissionsProvider>
+      <AppErrorBoundary>
+        <PermissionsProvider>
+          <AuthProvider>
+            <GoalsProvider>
+              <NavigationContainer
+                onReady={() => {
+                  void logScreenView('App');
+                }}
+                onStateChange={state => {
+                  const currentRouteName = getActiveRouteName(state);
+                  if (currentRouteName) {
+                    void logScreenView(currentRouteName);
+                  }
+                }}>
+                <RootNavigator />
+              </NavigationContainer>
+            </GoalsProvider>
+          </AuthProvider>
+        </PermissionsProvider>
+      </AppErrorBoundary>
     </SafeAreaProvider>
   );
 }

@@ -13,6 +13,7 @@ export const transactions = pgTable('transactions', {
   category: varchar('category', {length: 50}),
   latitude: numeric('latitude', {precision: 10, scale: 7}),
   longitude: numeric('longitude', {precision: 10, scale: 7}),
+  location: varchar('location', {length: 255}),
   status: varchar('status', {length: 20}).default('pending').notNull(),
   transactionDate: timestamp('transaction_date').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

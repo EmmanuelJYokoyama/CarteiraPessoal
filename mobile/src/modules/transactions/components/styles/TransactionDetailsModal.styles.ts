@@ -82,6 +82,7 @@ export const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     padding: 16,
     paddingBottom: 24,
@@ -91,6 +92,7 @@ export const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+    minWidth: '23%',
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 8,

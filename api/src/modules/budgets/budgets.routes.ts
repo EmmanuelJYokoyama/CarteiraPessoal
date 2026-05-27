@@ -1,5 +1,5 @@
 import {FastifyInstance} from 'fastify';
-import {createNewBudget, listBudgets, getBudgetHandler, updateBudgetHandler, deleteBudgetHandler, getBudgetProgressHandler} from './budgets.controller';
+import {createNewBudget, listBudgets, getBudgetHandler, updateBudgetHandler, deleteBudgetHandler, getBudgetProgressHandler, checkBudgetAlertsHandler} from './budgets.controller';
 
 export async function budgetsRoutes(app: FastifyInstance) {
   app.post('/budgets', createNewBudget);
@@ -8,4 +8,5 @@ export async function budgetsRoutes(app: FastifyInstance) {
   app.put('/budgets/:budgetId', updateBudgetHandler);
   app.delete('/budgets/:budgetId', deleteBudgetHandler);
   app.get('/budgets/:budgetId/progress', getBudgetProgressHandler);
+  app.post('/budgets/check-alerts', {onRequest: [app.authenticate]}, checkBudgetAlertsHandler);
 }

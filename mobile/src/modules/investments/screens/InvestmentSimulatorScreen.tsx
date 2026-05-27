@@ -15,6 +15,9 @@ export default function InvestmentSimulatorScreen() {
   const [months, setMonths] = useState(DEFAULT_MONTHS);
   const [showDetails, setShowDetails] = useState(true);
 
+  // Filter contributions for active goal only
+  const activeGoalContributions = contributions.filter(c => c.goalId === activeGoal.id);
+
   React.useEffect(() => {
     setPrincipal(String(activeGoal.current));
   }, [activeGoal.current]);
@@ -51,9 +54,11 @@ export default function InvestmentSimulatorScreen() {
   const formatPercent = (value: number) =>
     new Intl.NumberFormat('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(value);
 
-  const contributionsTotal = contributions.reduce((sum, item) => sum + item.amount, 0);
-  const visibleContributions = contributions.slice(0, 6);
-  const reserveProgress = Math.min(100, (activeGoal.current / activeGoal.target) * 100);
+  const contributionsTotal = activeGoalContributions.reduce((sum, item) => sum + item.amount, 0);
+  const visibleContributions = activeGoalContributions.slice(0, 6);
+  const reserveProgress = activeGoal.target > 0
+    ? Math.min(100, (activeGoal.current / activeGoal.target) * 100)
+    : 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -165,7 +170,7 @@ export default function InvestmentSimulatorScreen() {
             <View style={styles.resultMetricsRow}>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>Capital inicial</Text>
-                <Text style={styles.metricValue}>{formatCurrency(activeGoal.current)}</Text>
+                <Text style={styles.metricValue}>{formatCurrency(result.principal)}</Text>
               </View>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>Rendimento</Text>
@@ -223,7 +228,7 @@ export default function InvestmentSimulatorScreen() {
           <View style={styles.timelineCard}>
             <Text style={styles.sectionLabel}>Histórico de aportes</Text>
             <Text style={styles.timelineSummary}>
-              {formatCurrency(contributionsTotal)} distribuídos em {contributions.length} aportes
+              {formatCurrency(contributionsTotal)} distribuídos em {activeGoalContributions.length} aportes
             </Text>
             <View style={styles.timelineList}>
               {visibleContributions.length > 0 ? (

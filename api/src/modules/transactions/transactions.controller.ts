@@ -1,6 +1,9 @@
 import {FastifyRequest, FastifyReply} from 'fastify';
 import {createTransactionSchema, updateTransactionSchema, payInstallmentSchema, duplicateCheckSchema} from './transactions.schema';
-import {createTransaction, getTransactionsByUserId, getTransactionById, updateTransaction, deleteTransaction, payInstallment, findDuplicateTransactions} from './transactions.service';
+import {listTransactionsQuerySchema} from './transactions.list.schema';
+import {transactionSummaryQuerySchema} from './transactions.summary.schema';
+import {createTransaction, getPagedTransactionsByUserId, getTransactionsByUserId, getTransactionById, updateTransaction, deleteTransaction, payInstallment, findDuplicateTransactions} from './transactions.service';
+import {getTransactionSummary} from './transactions.summary.service';
 import type {AuthTokenPayload} from '../auth/auth.types';
 import {checkAndNotifyCardLimitAlert} from '@modules/cardLimitAlerts/cardLimitAlerts.notifications';
 import {getCardLimitStatus} from '@modules/cardLimitAlerts/cardLimitAlerts.service';
@@ -55,13 +58,42 @@ export async function listTransactions(req: FastifyRequest, reply: FastifyReply)
   const user = req.user as AuthTokenPayload;
 
   try {
+    const parsed = listTransactionsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return reply.status(400).send({error: parsed.error.flatten()});
+    }
+
     console.log('[Transactions] Fetching transactions for user:', user.userId);
-    const userTransactions = await getTransactionsByUserId(user.userId);
-    console.log('[Transactions] Found transactions:', userTransactions.length);
-    return reply.send(userTransactions);
-  } catch (error: any) {
+    const result = await getPagedTransactionsByUserId(user.userId, parsed.data.skip, parsed.data.take);
+    console.log('[Transactions] Found transactions:', result.items.length);
+    return reply.send(result);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to list transactions';
     console.error('[Transactions] Error:', error);
-    return reply.status(500).send({error: error.message});
+    return reply.status(500).send({error: message});
+  }
+}
+
+export async function getTransactionsSummary(req: FastifyRequest, reply: FastifyReply) {
+  try {
+    await req.jwtVerify();
+  } catch {
+    return reply.status(401).send({error: 'Unauthorized'});
+  }
+
+  const user = req.user as AuthTokenPayload;
+
+  try {
+    const parsed = transactionSummaryQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return reply.status(400).send({error: parsed.error.flatten()});
+    }
+
+    const summary = await getTransactionSummary(user.userId, parsed.data);
+    return reply.send(summary);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to build transactions summary';
+    return reply.status(500).send({error: message});
   }
 }
 

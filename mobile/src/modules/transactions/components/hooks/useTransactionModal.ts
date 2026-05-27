@@ -8,6 +8,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
   const [editedDescription, setEditedDescription] = useState('');
   const [editedAmount, setEditedAmount] = useState('');
   const [editedCategory, setEditedCategory] = useState('');
+  const [editedLocation, setEditedLocation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [showInstallmentPicker, setShowInstallmentPicker] = useState(false);
@@ -16,6 +17,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     setEditedDescription(transaction.description);
     setEditedAmount(transaction.amount.toString());
     setEditedCategory(transaction.category || '');
+    setEditedLocation(transaction.location || '');
   }, [transaction]);
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
         description: editedDescription,
         amount: editedAmount,
         category: editedCategory,
+        location: editedLocation || null,
       });
       await clearCache('GET:/transactions');
       setIsEditing(false);
@@ -101,7 +104,7 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     } finally {
       setIsLoading(false);
     }
-  }, [editedDescription, editedAmount, editedCategory, transaction.id, onUpdate, onClose]);
+  }, [editedDescription, editedAmount, editedCategory, editedLocation, transaction.id, onUpdate, onClose]);
 
   const handleDelete = useCallback(() => {
     Alert.alert(
@@ -141,6 +144,8 @@ export function useTransactionModal(transaction: Transaction, onUpdate: () => vo
     setEditedAmount,
     editedCategory,
     setEditedCategory,
+    editedLocation,
+    setEditedLocation,
     isLoading,
     syncState,
     handleComplete,

@@ -2,6 +2,8 @@ import {FastifyRequest, FastifyReply} from 'fastify';
 import {createBudgetSchema, updateBudgetSchema} from './budgets.schema';
 import {createBudget, getBudgetsByUserId, getBudgetById, updateBudget, deleteBudget, calculateBudgetProgress} from './budgets.service';
 import type {AuthTokenPayload} from '../auth/auth.types';
+import {checkBudgetAlertCandidatesForUser} from './budgetAlerts.service';
+import {sendBudgetAlerts} from './budgetAlerts.notifications';
 
 export async function createNewBudget(req: FastifyRequest, reply: FastifyReply) {
   try { await req.jwtVerify(); } catch { return reply.status(401).send({error: 'Unauthorized'}); }
@@ -73,6 +75,22 @@ export async function getBudgetProgressHandler(req: FastifyRequest, reply: Fasti
     return reply.send(progress);
   } catch (error: any) {
     if (error.message === 'BUDGET_NOT_FOUND') return reply.status(404).send({error: 'Budget not found'});
+    return reply.status(500).send({error: error.message});
+  }
+}
+
+export async function checkBudgetAlertsHandler(req: FastifyRequest, reply: FastifyReply) {
+  try { await req.jwtVerify(); } catch { return reply.status(401).send({error: 'Unauthorized'}); }
+  const user = req.user as AuthTokenPayload;
+
+  try {
+    const notifications = await checkBudgetAlertCandidatesForUser(user.userId);
+    if (notifications.length > 0) {
+      await sendBudgetAlerts(notifications);
+    }
+
+    return reply.send({notificationsChecked: notifications.length, notifications});
+  } catch (error: any) {
     return reply.status(500).send({error: error.message});
   }
 }

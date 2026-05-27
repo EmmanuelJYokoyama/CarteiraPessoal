@@ -12,6 +12,7 @@ type Goal = {
 
 type Contribution = {
   id: string;
+  goalId: string;
   amount: number;
   note: string;
   date: string;
@@ -19,42 +20,47 @@ type Contribution = {
 
 type GoalsContextType = {
   activeGoal: Goal;
+  allGoals: Goal[];
   contributions: Contribution[];
   isLoading: boolean;
+  setGoal: (goal: Omit<Goal, 'id'>) => void;
+  selectGoal: (goalId: string) => void;
+  deleteGoal: (goalId: string) => void;
   addContribution: (amount: number, note: string) => void;
+  updateContribution: (id: string, amount: number, note: string) => void;
+  deleteContribution: (id: string) => void;
 };
 
 const GOALS_STORAGE_KEY = '@goals_data';
 
 const defaultGoal: Goal = {
-  id: 'goal-1',
-  name: 'Reserva de emergência',
-  target: 10000,
-  current: 6700,
-  deadline: '30/08/2026',
-  category: 'Poupança',
+  id: 'goal-empty',
+  name: 'Sem meta definida',
+  target: 0,
+  current: 0,
+  deadline: '--/--/----',
+  category: 'Não definido',
 };
 
-const defaultContributions: Contribution[] = [
-  {id: 'c1', amount: 500, note: 'Salário', date: '08/05/2026'},
-  {id: 'c2', amount: 300, note: 'Renda extra', date: '05/05/2026'},
-  {id: 'c3', amount: 150, note: 'Sobra do mês', date: '28/04/2026'},
-  {id: 'c4', amount: 250, note: 'Venda de item', date: '18/04/2026'},
-  {id: 'c5', amount: 400, note: 'Bônus', date: '04/04/2026'},
-  {id: 'c6', amount: 100, note: 'Ajuste', date: '01/04/2026'},
-];
+const defaultContributions: Contribution[] = [];
 
 type StoredGoalsData = {
-  activeGoal: Goal;
+  allGoals: Goal[];
+  activeGoalId: string;
   contributions: Contribution[];
 };
 
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
 
 export function GoalsProvider({children}: {children: React.ReactNode}) {
-  const [activeGoal, setActiveGoal] = useState<Goal>(defaultGoal);
+  const [allGoals, setAllGoals] = useState<Goal[]>([]);
+  const [activeGoalId, setActiveGoalId] = useState<string>('goal-empty');
   const [contributions, setContributions] = useState<Contribution[]>(defaultContributions);
   const [isLoading, setIsLoading] = useState(true);
+
+  const activeGoal = useMemo(() => {
+    return allGoals.find(g => g.id === activeGoalId) || defaultGoal;
+  }, [allGoals, activeGoalId]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -62,8 +68,16 @@ export function GoalsProvider({children}: {children: React.ReactNode}) {
         const raw = await AsyncStorage.getItem(GOALS_STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<StoredGoalsData>;
-          if (parsed.activeGoal) {
-            setActiveGoal(parsed.activeGoal);
+          if (isLegacySeededGoalData(parsed)) {
+            setAllGoals([]);
+            setActiveGoalId('goal-empty');
+            setContributions([]);
+            return;
+          }
+
+          if (Array.isArray(parsed.allGoals) && parsed.allGoals.length > 0) {
+            setAllGoals(parsed.allGoals);
+            setActiveGoalId(parsed.activeGoalId || parsed.allGoals[0].id);
           }
           if (Array.isArray(parsed.contributions)) {
             setContributions(parsed.contributions);
@@ -88,7 +102,11 @@ export function GoalsProvider({children}: {children: React.ReactNode}) {
       try {
         await AsyncStorage.setItem(
           GOALS_STORAGE_KEY,
-          JSON.stringify({activeGoal, contributions} satisfies StoredGoalsData),
+          JSON.stringify({
+            allGoals,
+            activeGoalId,
+            contributions,
+          } satisfies StoredGoalsData),
         );
       } catch (error) {
         console.error('[GoalsContext] Failed to persist goals data', error);
@@ -96,27 +114,106 @@ export function GoalsProvider({children}: {children: React.ReactNode}) {
     };
 
     persist();
-  }, [activeGoal, contributions, isLoading]);
+  }, [allGoals, activeGoalId, contributions, isLoading]);
 
   const value = useMemo<GoalsContextType>(() => ({
     activeGoal,
+    allGoals,
     contributions,
     isLoading,
+    setGoal: goal => {
+      const newGoal: Goal = {
+        id: `goal-${Date.now()}`,
+        name: goal.name,
+        target: goal.target,
+        current: goal.current,
+        deadline: goal.deadline,
+        category: goal.category,
+      };
+      setAllGoals(current => [...current, newGoal]);
+      setActiveGoalId(newGoal.id);
+      setContributions(current => current.filter(c => c.goalId === newGoal.id));
+    },
+    selectGoal: goalId => {
+      setActiveGoalId(goalId);
+    },
+    deleteGoal: goalId => {
+      setAllGoals(current => current.filter(g => g.id !== goalId));
+      setContributions(current => current.filter(c => c.goalId !== goalId));
+      
+      if (activeGoalId === goalId) {
+        const remaining = allGoals.filter(g => g.id !== goalId);
+        if (remaining.length > 0) {
+          setActiveGoalId(remaining[0].id);
+        } else {
+          setActiveGoalId('goal-empty');
+        }
+      }
+    },
     addContribution: (amount: number, note: string) => {
       const contribution: Contribution = {
         id: `${Date.now()}`,
+        goalId: activeGoalId,
         amount,
         note,
         date: new Date().toLocaleDateString('pt-BR'),
       };
 
       setContributions(current => [contribution, ...current]);
-      setActiveGoal(current => ({
-        ...current,
-        current: current.current + amount,
-      }));
+      setAllGoals(current =>
+        current.map(g =>
+          g.id === activeGoalId
+            ? {
+                ...g,
+                current: Number.isFinite(g.current) ? g.current + amount : amount,
+              }
+            : g,
+        ),
+      );
     },
-  }), [activeGoal, contributions, isLoading]);
+    updateContribution: (id: string, amount: number, note: string) => {
+      setContributions(current => {
+        const oldContribution = current.find(c => c.id === id);
+        if (!oldContribution) return current;
+
+        const amountDiff = amount - oldContribution.amount;
+
+        setAllGoals(goals =>
+          goals.map(g =>
+            g.id === oldContribution.goalId
+              ? {
+                  ...g,
+                  current: Number.isFinite(g.current) ? g.current + amountDiff : amount,
+                }
+              : g,
+          ),
+        );
+
+        return current.map(c =>
+          c.id === id ? {...c, amount, note} : c,
+        );
+      });
+    },
+    deleteContribution: (id: string) => {
+      setContributions(current => {
+        const contribution = current.find(c => c.id === id);
+        if (!contribution) return current;
+
+        setAllGoals(goals =>
+          goals.map(g =>
+            g.id === contribution.goalId
+              ? {
+                  ...g,
+                  current: Math.max(0, g.current - contribution.amount),
+                }
+              : g,
+          ),
+        );
+
+        return current.filter(c => c.id !== id);
+      });
+    },
+  }), [activeGoal, allGoals, contributions, activeGoalId, isLoading]);
 
   return <GoalsContext.Provider value={value}>{children}</GoalsContext.Provider>;
 }
@@ -127,4 +224,25 @@ export function useGoalsContext() {
     throw new Error('useGoalsContext must be used within a GoalsProvider');
   }
   return context;
+}
+
+function isLegacySeededGoalData(data: Partial<StoredGoalsData>): boolean {
+  const goals = data.allGoals;
+  const contributions = data.contributions;
+
+  const hasLegacyGoal =
+    Array.isArray(goals) &&
+    goals.some(g =>
+      g.id === 'goal-1' &&
+      g.name === 'Reserva de emergência' &&
+      g.target === 10000 &&
+      g.current === 6700
+    );
+
+  const hasLegacyContributions =
+    Array.isArray(contributions) &&
+    contributions.length > 0 &&
+    contributions.every(item => /^c\d+$/.test(item.id));
+
+  return hasLegacyGoal || hasLegacyContributions;
 }

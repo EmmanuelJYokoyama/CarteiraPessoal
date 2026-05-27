@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {loginWithPin} from './api/pin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@contexts/AuthContext';
+import {logAuthEvent} from '@services/telemetry/firebaseTelemetry';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 5 * 60 * 1000;
@@ -64,7 +65,7 @@ export function usePinLogin() {
       return;
     }
 
-    const {isLocked: locked, lockoutTime: time, attempts: att} = await checkLockoutStatus();
+    const {isLocked: locked, lockoutTime: time} = await checkLockoutStatus();
     if (locked) {
       setError('Muitas tentativas. Tente novamente em 5 minutos.');
       setIsLocked(true);
@@ -79,6 +80,7 @@ export function usePinLogin() {
       const response = await loginWithPin({email, pin});
 
       if (response.success && response.token) {
+        void logAuthEvent('pin_login', 'success', {email_domain: email.includes('@') ? email.split('@')[1] : 'unknown'});
         await AsyncStorage.removeItem('@pin_attempts');
         await AsyncStorage.removeItem('@pin_lockout');
         await signIn(response.token, '', {
@@ -97,6 +99,9 @@ export function usePinLogin() {
       console.error('PIN Login Error:', err);
 
       const errorMsg = err.message || 'Erro ao fazer login';
+      void logAuthEvent('pin_login', 'failure', {
+        error_message: errorMsg.slice(0, 80),
+      });
       let displayError = errorMsg;
 
       if (

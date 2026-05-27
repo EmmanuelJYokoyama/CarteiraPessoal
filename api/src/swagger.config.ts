@@ -197,7 +197,7 @@ export const swaggerConfig = {
           summary: 'Listar transações',
           parameters: [
             { name: 'skip', in: 'query', schema: { type: 'integer' } },
-            { name: 'take', in: 'query', schema: { type: 'integer' } },
+            { name: 'take', in: 'query', schema: { type: 'integer', maximum: 20 } },
             { name: 'category', in: 'query', schema: { type: 'string' } },
           ],
           responses: {
@@ -227,6 +227,20 @@ export const swaggerConfig = {
           },
           responses: {
             '201': { description: 'Transação criada' },
+          },
+        },
+      },
+      '/transactions/summary': {
+        get: {
+          tags: ['Transações'],
+          summary: 'Resumo de transações',
+          description: 'Agrupa transações por categoria, mês e período do dia para relatórios',
+          parameters: [
+            { name: 'periodStart', in: 'query', schema: { type: 'string', format: 'date-time' } },
+            { name: 'periodEnd', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          ],
+          responses: {
+            '200': { description: 'Resumo consolidado de transações' },
           },
         },
       },

@@ -53,6 +53,71 @@ export const styles = StyleSheet.create({
     color: '#6b7280',
   },
 
+  syncCard: {
+    marginBottom: 16,
+    backgroundColor: '#111827',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+  },
+  syncHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  syncKicker: {
+    fontSize: 11,
+    color: '#60a5fa',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  syncTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  syncStatusBadge: {
+    fontSize: 11,
+    color: '#34d399',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    backgroundColor: 'rgba(52, 211, 153, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  syncDescription: {
+    marginTop: 10,
+    color: '#cbd5e1',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  syncErrorText: {
+    marginTop: 8,
+    color: '#fca5a5',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  syncActionButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: '#0f766e',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  syncActionButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
   welcomeText: {
     fontSize: 20,
     fontWeight: '700',
@@ -148,6 +213,10 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     color: '#cbd5e1',
     fontWeight: '500',
+  },
+
+  chartSection: {
+    marginBottom: 16,
   },
 
   mapCard: {

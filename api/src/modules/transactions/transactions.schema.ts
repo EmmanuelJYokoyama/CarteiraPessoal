@@ -26,6 +26,7 @@ export const createTransactionSchema = z.object({
   category: z.string().max(50).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  location: z.string().max(255).optional(),
   transactionDate: z.string().datetime().or(z.date()),
 });
 
@@ -58,6 +59,7 @@ export const updateTransactionSchema = z.object({
   status: z.enum(['pending', 'completed', 'cancelled']).optional(),
   latitude: z.number().min(-90).max(90).nullable().optional(),
   longitude: z.number().min(-180).max(180).nullable().optional(),
+  location: z.string().max(255).optional(),
 });
 
 export const payInstallmentSchema = z.object({

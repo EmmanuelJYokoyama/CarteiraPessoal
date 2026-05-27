@@ -2,8 +2,11 @@ import React, {useState, useEffect} from 'react';
 import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert, Platform, PermissionsAndroid, Linking} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Geolocation from '@react-native-community/geolocation';
-import {createTransaction, checkDuplicateTransactions} from '@services/api/transactions';
+import {createTransaction, checkDuplicateTransactions, suggestCategory, type CategorySuggestion} from '@services/api/transactions';
+import {API_BASE_URL} from '@services/api/client';
 import {listCards, Card} from '@services/api/cards';
+import {invalidateCache} from '@services/cache';
+import {recordCategoryLearning} from '@services/categorySuggestion';
 import {useCategories} from '../hooks/useCategories';
 import {styles} from './styles/AddTransactionForm.styles';
 
@@ -35,7 +38,12 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const [newCategoryColor, setNewCategoryColor] = useState('#2ED573');
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<DeviceLocation | null>(null);
+  const [locationName, setLocationName] = useState<string | null>(null);
   const [fetchingLocation, setFetchingLocation] = useState(false);
+  const [categorySuggestion, setCategorySuggestion] = useState<CategorySuggestion | null>(null);
+  const [suggestingCategory, setSuggestingCategory] = useState(false);
+
+  console.log('[AddTransactionForm] Renderizando. Description:', description, 'Sugestão:', categorySuggestion);
 
   useEffect(() => {
     loadCards();
@@ -46,6 +54,48 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       locationProvider: 'auto',
     });
   }, []);
+
+  // Sugerir categoria quando a descrição muda
+  useEffect(() => {
+    console.log('[UseEffect] Description mudou para:', description);
+    
+    async function fetchSuggestion() {
+      if (!description || description.trim().length < 3) {
+        console.log('[UseEffect] Description muito curta, limpando sugestão');
+        setCategorySuggestion(null);
+        return;
+      }
+
+      console.log('[UseEffect] Acionando sugestão para:', description);
+      setSuggestingCategory(true);
+      try {
+        const response = await suggestCategory(description);
+        console.log('[UseEffect] Resultado da sugestão:', response);
+        
+        // Use the top suggestion from the response
+        if (response.topSuggestion) {
+          setCategorySuggestion(response.topSuggestion);
+        } else {
+          setCategorySuggestion(null);
+        }
+      } catch (error) {
+        console.error('[UseEffect] Erro ao obter sugestão:', error);
+        setCategorySuggestion(null);
+      } finally {
+        setSuggestingCategory(false);
+      }
+    }
+
+    const debounceTimer = setTimeout(() => {
+      console.log('[UseEffect] Debounce finalizado, chamando fetchSuggestion');
+      fetchSuggestion();
+    }, 500); // Debounce de 500ms
+
+    return () => {
+      console.log('[UseEffect] Limpando timeout anterior');
+      clearTimeout(debounceTimer);
+    };
+  }, [description]);
 
   async function ensureLocationPermission() {
     if (Platform.OS === 'ios') {
@@ -103,6 +153,41 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         options,
       );
     });
+  }
+
+  async function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
+    try {
+      const url = `${API_BASE_URL}/location/address?latitude=${latitude}&longitude=${longitude}`;
+      
+      console.log('[AddTransactionForm] Chamando reverse geocoding:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.log('[AddTransactionForm] Response não OK, status:', response.status);
+        console.log('[AddTransactionForm] Continuando sem nome do local');
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('[AddTransactionForm] Endereço recebido:', data);
+      
+      // Prioridade: name > fullAddress > null
+      if (data.name) {
+        console.log('[AddTransactionForm] Endereço obtido:', data.name);
+        return data.name;
+      } else if (data.fullAddress) {
+        console.log('[AddTransactionForm] Endereço completo obtido:', data.fullAddress);
+        return data.fullAddress;
+      } else {
+        console.log('[AddTransactionForm] Nenhum nome de local encontrado na resposta');
+        return null;
+      }
+    } catch (error) {
+      console.error('[AddTransactionForm] Erro ao obter endereço:', error);
+      console.log('[AddTransactionForm] Continuando sem nome do local');
+      return null;
+    }
   }
 
   async function loadCards() {
@@ -188,6 +273,8 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
           maximumAge: 0,
         });
         setSelectedLocation(preciseLocation);
+        const locationName = await reverseGeocode(preciseLocation.latitude, preciseLocation.longitude);
+        setLocationName(locationName);
         return;
       } catch (preciseError) {
         console.warn('Falha em alta precisão, tentando modo balanceado:', preciseError);
@@ -200,6 +287,8 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
           maximumAge: 60000,
         });
         setSelectedLocation(fallbackLocation);
+        const locationName = await reverseGeocode(fallbackLocation.latitude, fallbackLocation.longitude);
+        setLocationName(locationName);
       } catch (fallbackError: any) {
         console.error('Erro ao obter localização atual:', fallbackError);
         Alert.alert(
@@ -217,16 +306,24 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   async function handleAddTransaction() {
     if (!validateForm()) return;
 
-    const payload = {
+    // Construir payload sem campos undefined/null desnecessários
+    const payload: any = {
       description: description.trim(),
       amount,
       category,
       installments: Number(installments),
-      cardId: selectedCard?.id,
       transactionDate: transactionDate.toISOString(),
-      latitude: selectedLocation?.latitude,
-      longitude: selectedLocation?.longitude,
     };
+
+    // Adicionar cartão apenas se estiver selecionado
+    if (selectedCard?.id) {
+      payload.cardId = selectedCard.id;
+    }
+
+    // Adicionar nome do lugar apenas se conseguiu fazer o reverse geocoding
+    if (locationName) {
+      payload.location = locationName;
+    }
 
     const saveTransaction = async () => {
       try {
@@ -235,12 +332,22 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
 
         await createTransaction(payload);
 
+        if (payload.category) {
+          await recordCategoryLearning(payload.description, payload.category);
+        }
+
+        // Invalidate budget cache if transaction has a category
+        if (payload.category) {
+          await invalidateCache('budgets');
+        }
+
         setDescription('');
         setAmount('');
         setCategory('');
         setInstallments('1');
         setTransactionDate(new Date());
         setSelectedLocation(null);
+        setLocationName(null);
         onSuccess?.();
       } catch (error: any) {
         const message = error.message || 'Erro ao registrar despesa';
@@ -333,6 +440,45 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
             onPress={() => setShowCategoryPicker(true)}>
             <Text style={styles.selectedCardText}>{category || 'Selecione uma categoria'}</Text>
           </Pressable>
+
+          {suggestingCategory && (
+            <View style={{marginTop: 8, paddingHorizontal: 12, paddingVertical: 8}}>
+              <ActivityIndicator size="small" color="#2ed573" />
+              <Text style={{color: '#2ed573', fontSize: 11, marginTop: 4}}>Buscando sugestão...</Text>
+            </View>
+          )}
+
+          {categorySuggestion && !suggestingCategory && (
+            <>
+              {console.log('[Render] Renderizando sugestão:', categorySuggestion)}
+              <Pressable
+                style={{
+                  marginTop: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: 'rgba(46, 213, 115, 0.2)',
+                  borderRadius: 6,
+                  borderLeftWidth: 4,
+                  borderLeftColor: '#2ed573',
+                  borderWidth: 1,
+                  borderColor: '#2ed573',
+                }}
+                onPress={() => {
+                  console.log('[Render] Aceitando sugestão:', categorySuggestion.name);
+                  setCategory(categorySuggestion.name);
+                }}>
+                <Text style={{color: '#2ed573', fontSize: 13, fontWeight: '700', marginBottom: 6}}>
+                  💡 Sugestão: {categorySuggestion.name}
+                </Text>
+                <Text style={{color: '#aaa', fontSize: 12}}>
+                  Score: {categorySuggestion.score}
+                </Text>
+                <Text style={{color: '#888', fontSize: 11, marginTop: 4, fontStyle: 'italic'}}>
+                  👉 Toque para aceitar
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         <View style={styles.inputGroup}>
@@ -389,17 +535,20 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
             <Text style={styles.selectedCardText}>
               {fetchingLocation
                 ? 'Capturando localização atual...'
-                : selectedLocation
-                  ? `${selectedLocation.latitude.toFixed(4)}, ${selectedLocation.longitude.toFixed(4)}`
+                : locationName
+                  ? locationName
                   : 'Usar localização atual do dispositivo'}
             </Text>
           </Pressable>
           <Text style={styles.locationHint}>
             A localização é capturada automaticamente pelo GPS do aparelho.
           </Text>
-          {selectedLocation ? (
+          {selectedLocation && locationName ? (
             <Pressable
-              onPress={() => setSelectedLocation(null)}
+              onPress={() => {
+                setSelectedLocation(null);
+                setLocationName(null);
+              }}
               style={{marginTop: 8}}>
               <Text style={{color: '#f1c40f', fontSize: 12, fontWeight: '600'}}>
                 Limpar localização

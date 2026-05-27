@@ -5,10 +5,14 @@ import SettingsScreen from '@modules/auth/screens/SettingsScreen';
 import SetPinScreen from '@modules/auth/screens/SetPinScreen';
 import CardsScreen from '@modules/cards/screens/CardsScreen';
 import TransactionsScreen from '@modules/transactions/screens/TransactionsScreen';
+import TransactionMapScreen from '@modules/transactions/screens/TransactionMapScreen';
 import ImportStatementScreen from '@modules/transactions/screens/ImportStatementScreen';
 import BudgetsScreen from '@modules/budgets/screens/BudgetsScreen';
 import GoalsScreen from '@modules/goals/screens/GoalsScreen';
 import InvestmentSimulatorScreen from '@modules/investments/screens/InvestmentSimulatorScreen';
+import TelemetryDiagnosticsScreen from '@modules/auth/screens/TelemetryDiagnosticsScreen';
+import BackupSettingsScreen from '@modules/auth/screens/BackupSettingsScreen';
+import CategoryReportScreen from '@modules/reports/screens/CategoryReportScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -32,6 +36,14 @@ export function AppNavigator() {
         name="Settings" 
         component={SettingsScreen}
       />
+      <Stack.Screen
+        name="TelemetryDiagnostics"
+        component={TelemetryDiagnosticsScreen}
+      />
+      <Stack.Screen
+        name="BackupSettings"
+        component={BackupSettingsScreen}
+      />
       <Stack.Screen 
         name="Cards" 
         component={CardsScreen}
@@ -39,6 +51,14 @@ export function AppNavigator() {
       <Stack.Screen 
         name="Transactions" 
         component={TransactionsScreen}
+      />
+      <Stack.Screen
+        name="CategoryReport"
+        component={CategoryReportScreen}
+      />
+      <Stack.Screen 
+        name="TransactionMap" 
+        component={TransactionMapScreen}
       />
       <Stack.Screen 
         name="ImportStatement" 

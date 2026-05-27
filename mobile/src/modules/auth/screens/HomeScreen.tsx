@@ -2,11 +2,15 @@ import React, {useState, useCallback, useMemo} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
+import Geolocation from '@react-native-community/geolocation';
 import {useAuth} from '@contexts/AuthContext';
 import {useGoalsContext} from '@contexts/GoalsContext';
-import {listTransactions, type Transaction} from '@services/api/transactions';
+import {requestPermission, PermissionType} from '@services/permissions';
+import {listAllTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
-import {TrendingDown, CreditCard, AlertCircle, ArrowRight} from 'lucide-react-native';
+import {useOfflineSync} from '@hooks/useOfflineSync';
+import {BarChartCard} from '@components/charts';
+import {TrendingDown, CreditCard, AlertCircle, ArrowRight, MapPin} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {styles} from './styles/HomeScreen.styles';
 
@@ -15,13 +19,19 @@ type Props = NativeStackScreenProps<any, 'Home'>;
 export default function HomeScreen({navigation}: Props) {
   const {signOut, user} = useAuth();
   const {activeGoal} = useGoalsContext();
+  useOfflineSync({monitorConnectivity: false});
   const [menuVisible, setMenuVisible] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{latitude: number; longitude: number} | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [addressName, setAddressName] = useState<string | null>(null);
 
   const initials = user?.name?.charAt(0)?.toUpperCase() || '👤';
 
+  // Carregar dados do dashboard quando a tela ganha foco
   useFocusEffect(
     useCallback(() => {
       loadDashboardData();
@@ -32,7 +42,7 @@ export default function HomeScreen({navigation}: Props) {
     try {
       setLoading(true);
       const [txs, cardsData] = await Promise.all([
-        listTransactions(),
+        listAllTransactions(),
         listCards(),
       ]);
       setTransactions(txs);
@@ -41,6 +51,116 @@ export default function HomeScreen({navigation}: Props) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getLocationErrorMessage = (code: number): string => {
+    switch (code) {
+      case 1:
+        return 'Permissão negada. Ative nas configurações do device.';
+      case 2:
+        return 'Posição indisponível. Ative o GPS do device.';
+      case 3:
+        return 'Timeout ao obter localização. Tente novamente.';
+      default:
+        return 'Erro ao obter localização. Tente novamente.';
+    }
+  };
+
+  const reverseGeocode = async (latitude: number, longitude: number) => {
+    try {
+      // Usa o endpoint do backend
+      const baseUrl = 'http://localhost:3000';
+      const url = `${baseUrl}/location/address?latitude=${latitude}&longitude=${longitude}`;
+      
+      console.log('[HomeScreen] Chamando endpoint:', url);
+      
+      const response = await fetch(url);
+      console.log('[HomeScreen] Status:', response.status);
+      
+      if (!response.ok) {
+        console.log('[HomeScreen] Response não OK, status:', response.status);
+        const errorText = await response.text();
+        console.log('[HomeScreen] Error response:', errorText);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('[HomeScreen] Full response:', JSON.stringify(data, null, 2));
+      
+      // Tenta extrair o nome de várias formas
+      let addressName = null;
+      
+      if (data.name) {
+        addressName = data.name;
+      } else if (data.address?.road) {
+        addressName = data.address.road;
+      } else if (data.address?.street) {
+        addressName = data.address.street;
+      } else if (data.address?.neighbourhood) {
+        addressName = data.address.neighbourhood;
+      } else if (data.address?.city) {
+        addressName = data.address.city;
+      } else if (data.fullAddress) {
+        addressName = data.fullAddress.split(',')[0];
+      }
+      
+      if (addressName) {
+        setAddressName(addressName);
+        console.log('[HomeScreen] Endereço extraído:', addressName);
+      } else {
+        console.log('[HomeScreen] Nenhum endereço encontrado na resposta');
+        setAddressName(null);
+      }
+    } catch (error) {
+      console.error('[HomeScreen] Erro ao obter endereço:', error);
+      console.error('[HomeScreen] Error type:', typeof error);
+      if (error instanceof Error) {
+        console.error('[HomeScreen] Error message:', error.message);
+        console.error('[HomeScreen] Error stack:', error.stack);
+      }
+      setAddressName(null);
+    }
+  };
+
+  const requestLocationPermission = async () => {
+    try {
+      setLocationLoading(true);
+      setLocationError(null);
+
+      // Solicita permissão de localização
+      const result = await requestPermission(PermissionType.LOCATION);
+
+      if (result.granted) {
+        // Se permitiu, obtém localização
+        Geolocation.getCurrentPosition(
+          (position) => {
+            const {latitude, longitude} = position.coords;
+            setUserLocation({latitude, longitude});
+            setLocationLoading(false);
+            console.log('[HomeScreen] Localização obtida:', latitude, longitude);
+            reverseGeocode(latitude, longitude);
+          },
+          (error: any) => {
+            console.error('[HomeScreen] Erro ao obter localização:', error.code, error.message);
+            const errorMsg = getLocationErrorMessage(error.code);
+            setLocationError(errorMsg);
+            setLocationLoading(false);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 30000,
+            maximumAge: 300000,
+          }
+        );
+      } else {
+        setLocationLoading(false);
+        setLocationError('Permissão de localização negada');
+      }
+    } catch (error) {
+      console.error('[HomeScreen] Erro ao solicitar permissão:', error);
+      setLocationError('Erro ao solicitar permissão');
+      setLocationLoading(false);
     }
   };
 
@@ -53,8 +173,14 @@ export default function HomeScreen({navigation}: Props) {
   const currentMonth = now.getUTCMonth();
   const currentYear = now.getUTCFullYear();
 
+  // Only count non-installment transactions in this month
   const monthlyTransactions = transactions.filter(tx => {
     try {
+      // Only include transactions without installments (installments === 1)
+      if (tx.installments > 1) {
+        return false; // Skip installment transactions - we'll count them via installmentDetails
+      }
+      
       // Parse the date - transactionDate is always a string
       const date = new Date(tx.transactionDate);
       
@@ -73,7 +199,8 @@ export default function HomeScreen({navigation}: Props) {
   // Get installments that are due this month
   const monthlyInstallments: Array<{amount: string; dueDate: string}> = [];
   transactions.forEach(tx => {
-    if (tx.installmentDetails && Array.isArray(tx.installmentDetails)) {
+    // Only process transactions that have installments (installments > 1)
+    if (tx.installments > 1 && tx.installmentDetails && Array.isArray(tx.installmentDetails)) {
       tx.installmentDetails.forEach(inst => {
         try {
           const dueDate = new Date(inst.dueDate);
@@ -115,18 +242,52 @@ export default function HomeScreen({navigation}: Props) {
     return Math.min(100, (activeGoal.current / activeGoal.target) * 100);
   }, [activeGoal.current, activeGoal.target]);
 
-  const latestLocationTransaction = useMemo(() => {
-    const withLocation = transactions
-      .filter(tx => tx.latitude != null && tx.longitude != null)
-      .slice()
-      .sort((left, right) => new Date(right.transactionDate).getTime() - new Date(left.transactionDate).getTime());
+  const sixMonthSpendingData = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({length: 6}, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}`,
+        label: date.toLocaleDateString('pt-BR', {month: 'short'}).replace('.', ''),
+        total: 0,
+        month: date.getMonth(),
+        year: date.getFullYear(),
+      };
+    });
 
-    return withLocation[0] || null;
+    for (const tx of transactions) {
+      const txDate = new Date(tx.transactionDate);
+      const txMonth = txDate.getUTCMonth();
+      const txYear = txDate.getUTCFullYear();
+      const target = months.find(item => item.month === txMonth && item.year === txYear);
+
+      if (!target) continue;
+
+      const amount = typeof tx.amount === 'number' ? tx.amount : parseFloat(tx.amount || '0');
+      if (!Number.isFinite(amount)) continue;
+
+      if (tx.installments > 1 && Array.isArray(tx.installmentDetails)) {
+        const matchingInstallments = tx.installmentDetails.filter(inst => {
+          const dueDate = new Date(inst.dueDate);
+          return dueDate.getUTCMonth() === txMonth && dueDate.getUTCFullYear() === txYear && inst.status === 'pending';
+        });
+
+        target.total += matchingInstallments.reduce((sum, inst) => {
+          const installmentAmount = typeof inst.amount === 'string' ? parseFloat(inst.amount) : Number(inst.amount);
+          return sum + (Number.isFinite(installmentAmount) ? installmentAmount : 0);
+        }, 0);
+        continue;
+      }
+
+      target.total += amount;
+    }
+
+    return months.map(month => ({
+      x: month.label,
+      y: Number(month.total.toFixed(2)),
+      label: new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(month.total),
+    }));
   }, [transactions]);
-
-  const locationLatitude = latestLocationTransaction?.latitude != null ? Number(latestLocationTransaction.latitude) : null;
-  const locationLongitude = latestLocationTransaction?.longitude != null ? Number(latestLocationTransaction.longitude) : null;
-  const hasLocation = Number.isFinite(locationLatitude) && Number.isFinite(locationLongitude);
 
   const getCardColor = (brand: string) => {
     const b = brand?.toLowerCase() || '';
@@ -161,6 +322,8 @@ export default function HomeScreen({navigation}: Props) {
           <Text style={styles.welcomeName}>Olá, {user?.name?.split(' ')[0]}! 👋</Text>
           <Text style={styles.welcomeSubtitle}>Veja seu resumo financeiro</Text>
         </View>
+
+        {/* Offline sync card moved to Settings */}
 
         {loading ? (
           <View style={{justifyContent: 'center', alignItems: 'center', paddingTop: 40}}>
@@ -202,31 +365,84 @@ export default function HomeScreen({navigation}: Props) {
               </View>
             </View>
 
+            <View style={styles.chartSection}>
+              <BarChartCard
+                title="Gastos dos últimos 6 meses"
+                subtitle="Visão rápida do fluxo de despesas"
+                data={sixMonthSpendingData}
+                xLabel="Mês"
+                yLabel="Valor"
+                height={320}
+              />
+            </View>
+
             <View style={styles.mapCard}>
               <View style={styles.mapCardHeader}>
                 <View>
-                  <Text style={styles.mapCardKicker}>Localização da despesa</Text>
+                  <Text style={styles.mapCardKicker}>Sua Localização</Text>
                   <Text style={styles.mapCardTitle}>
-                    {latestLocationTransaction ? latestLocationTransaction.description : 'Sem despesa localizada'}
+                    {locationLoading ? 'Buscando...' : userLocation ? (addressName || `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`) : 'Desativada'}
                   </Text>
                 </View>
-                {hasLocation ? (
-                  <Text style={styles.mapCardStatus}>Última registrada</Text>
-                ) : null}
+                <MapPin size={24} color={userLocation ? '#2ed573' : '#999'} />
               </View>
 
-              <View style={styles.mapEmptyState}>
-                <Text style={styles.mapEmptyStateText}>
-                  Mapa desativado temporariamente para teste.
-                </Text>
-                {hasLocation ? (
-                  <Text style={styles.mapEmptyStateText}>
-                    Última posição: {locationLatitude?.toFixed(5)}, {locationLongitude?.toFixed(5)}
-                  </Text>
+              <View style={{padding: 16, backgroundColor: locationLoading ? 'rgba(52, 152, 219, 0.1)' : userLocation ? 'rgba(46, 213, 115, 0.1)' : 'rgba(159, 159, 159, 0.1)', borderRadius: 8}}>
+                {locationLoading ? (
+                  <View style={{alignItems: 'center'}}>
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                    <Text style={{color: '#3b82f6', fontSize: 12, marginTop: 8}}>
+                      Obtendo sua localização...
+                    </Text>
+                  </View>
+                ) : userLocation ? (
+                  <View>
+                    <Text style={{color: '#2ed573', fontSize: 13, fontWeight: '600', marginBottom: 8}}>
+                      ✓ Localização ativa
+                    </Text>
+                    {addressName && (
+                      <Text style={{color: '#333', fontSize: 13, fontWeight: '500', marginBottom: 6}}>
+                        {addressName}
+                      </Text>
+                    )}
+                    <Text style={{color: '#999', fontSize: 11, marginBottom: 2}}>
+                      Lat: {userLocation.latitude.toFixed(6)}
+                    </Text>
+                    <Text style={{color: '#999', fontSize: 11}}>
+                      Lon: {userLocation.longitude.toFixed(6)}
+                    </Text>
+                  </View>
+                ) : locationError ? (
+                  <View>
+                    <Text style={{color: '#ff6b6b', fontSize: 12, fontWeight: '600', marginBottom: 10}}>
+                      ⚠️ {locationError}
+                    </Text>
+                    <Pressable
+                      onPress={requestLocationPermission}
+                      style={{
+                        backgroundColor: '#2563eb',
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderRadius: 6,
+                      }}>
+                      <Text style={{color: '#fff', fontSize: 12, fontWeight: '600', textAlign: 'center'}}>
+                        Tentar novamente
+                      </Text>
+                    </Pressable>
+                  </View>
                 ) : (
-                  <Text style={styles.mapEmptyStateText}>
-                    Registre uma despesa com localização para ver as coordenadas aqui.
-                  </Text>
+                  <Pressable
+                    onPress={requestLocationPermission}
+                    style={{
+                      backgroundColor: '#2563eb',
+                      paddingVertical: 10,
+                      paddingHorizontal: 12,
+                      borderRadius: 6,
+                    }}>
+                    <Text style={{color: '#fff', fontSize: 13, fontWeight: '600', textAlign: 'center'}}>
+                      Ativar localização
+                    </Text>
+                  </Pressable>
                 )}
               </View>
             </View>

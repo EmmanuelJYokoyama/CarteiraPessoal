@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {View, Text, Pressable, FlatList, Switch} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Lock, Info, Package, ChevronRight, ShieldAlert, FileWarning, Cloud, PieChart} from 'lucide-react-native';
+import {Lock, Info, Package, ChevronRight, ShieldAlert, FileWarning, Cloud, PieChart, BarChart as BarChartIcon, Camera} from 'lucide-react-native';
 import {getTelemetryConsent, setTelemetryConsent, logTelemetryConsentChange} from '@services/telemetry/firebaseTelemetry';
 import {useOfflineSync} from '@hooks/useOfflineSync';
 import {styles} from './styles/SettingsScreen.styles';
@@ -16,6 +16,8 @@ interface SettingsItem {
   screen: string | null;
 }
 
+const NoIcon: React.FC<{size: number; color: string}> = () => null;
+
 const SETTINGS_ITEMS: SettingsItem[] = [
   {id: '1', title: 'Configurar PIN', icon: Lock, screen: 'SetPin'},
   {id: '2', title: 'Sobre', icon: Info, screen: null},
@@ -23,6 +25,8 @@ const SETTINGS_ITEMS: SettingsItem[] = [
   {id: '4', title: 'Telemetry dashboard', icon: FileWarning, screen: 'TelemetryDiagnostics'},
   {id: '5', title: 'Backup na nuvem', icon: Cloud, screen: 'BackupSettings'},
   {id: '6', title: 'Relatório por categoria', icon: PieChart, screen: 'CategoryReport'},
+  {id: '7', title: 'Fluxo de caixa', icon: NoIcon, screen: 'CashFlow'},
+  {id: '8', title: 'Leitor de boleto', icon: Camera, screen: 'BoletoScanner'},
 ];
 
 export default function SettingsScreen({navigation}: Props) {

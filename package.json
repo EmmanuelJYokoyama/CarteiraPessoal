@@ -12,6 +12,8 @@
     "concurrently": "^8.0.0"
   },
   "dependencies": {
+    "@zxing/library": "^0.21.3",
+    "react-native-camera": "^4.2.1",
     "twilio": "^5.13.0"
   }
 }

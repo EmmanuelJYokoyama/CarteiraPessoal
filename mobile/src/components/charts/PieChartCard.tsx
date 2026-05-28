@@ -11,9 +11,11 @@ type Props = ChartCardProps & {
 };
 
 export function PieChartCard({title, subtitle, data, innerRadius = 52, height = 280}: Props) {
+  const chartHeight = Math.max(180, height - 72);
+
   return (
     <ChartCard title={title} subtitle={subtitle} height={height}>
-      <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+      <View style={{flex: 1}}>
         <PolarChart
           data={data.map((entry, index) => ({
             label: String(entry.label ?? entry.x),
@@ -23,9 +25,12 @@ export function PieChartCard({title, subtitle, data, innerRadius = 52, height = 
           colorKey="color"
           labelKey="label"
           valueKey="value"
-          canvasStyle={{height}}>
-          <Pie.Chart innerRadius={innerRadius} size={Math.min(220, height - 50)}>
-            {() => <Pie.Slice animate={{type: 'timing', duration: 700}} />}
+          containerStyle={{width: '100%', height: chartHeight}}
+          canvasStyle={{width: '100%', height: chartHeight}}>
+          <Pie.Chart innerRadius={innerRadius} size={chartHeight}>
+            {({slice}) => (
+              <Pie.Slice animate={{type: 'timing', duration: 700}} color={slice.color} />
+            )}
           </Pie.Chart>
         </PolarChart>
       </View>

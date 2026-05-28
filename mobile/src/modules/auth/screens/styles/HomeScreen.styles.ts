@@ -53,6 +53,71 @@ export const styles = StyleSheet.create({
     color: '#6b7280',
   },
 
+  scannerCard: {
+    marginBottom: 16,
+    backgroundColor: '#e0f2fe',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  scannerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scannerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#38bdf8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  scannerHeaderText: {
+    flex: 1,
+  },
+  scannerKicker: {
+    fontSize: 11,
+    color: '#0369a1',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  scannerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    lineHeight: 22,
+  },
+  scannerDescription: {
+    marginTop: 10,
+    color: '#334155',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  scannerChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  scannerChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: '#7dd3fc',
+  },
+  scannerChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#075985',
+  },
+
   syncCard: {
     marginBottom: 16,
     backgroundColor: '#111827',
@@ -411,7 +476,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -419,6 +485,8 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 
   backdrop: {

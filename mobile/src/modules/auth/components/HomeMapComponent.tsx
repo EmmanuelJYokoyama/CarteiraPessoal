@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {View, Text, ActivityIndicator, Pressable} from 'react-native';
 import {RotateCcw} from 'lucide-react-native';
 import MapView, {Marker} from 'react-native-maps';
-import Geolocation from '@react-native-community/geolocation';
+import { Platform, PermissionsAndroid } from 'react-native';
 
 interface UserLocation {
   latitude: number;

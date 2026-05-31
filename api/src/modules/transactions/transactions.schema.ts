@@ -1,27 +1,25 @@
 import {z} from 'zod';
 
+const currencyCodeSchema = z.string().trim().regex(/^[A-Za-z]{3}$/, 'Moeda inválida');
+
+const amountStringSchema = z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Valor deve ser maior que zero').transform(val => {
+  let normalized = val.trim();
+
+  if (normalized.includes('.') && normalized.includes(',')) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (normalized.includes(',') && !normalized.includes('.')) {
+    normalized = normalized.replace(',', '.');
+  }
+
+  const parsed = Number(normalized);
+  return parsed.toFixed(2);
+});
+
 export const createTransactionSchema = z.object({
   cardId: z.string().uuid().optional(),
   description: z.string().min(1, 'Descrição obrigatória').max(255),
-  amount: z.string()
-    .refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Valor deve ser maior que zero')
-    .transform(val => {
-      // Normalize the amount value
-      let normalized = val.trim();
-      
-      // If contains both . and ,, it's likely Brazilian format (1.500,00)
-      if (normalized.includes('.') && normalized.includes(',')) {
-        normalized = normalized.replace(/\./g, '').replace(',', '.');
-      } 
-      // If only comma, it's likely decimal separator (150,50)
-      else if (normalized.includes(',') && !normalized.includes('.')) {
-        normalized = normalized.replace(',', '.');
-      }
-      
-      const parsed = Number(normalized);
-      // Return as string with up to 2 decimal places
-      return parsed.toFixed(2);
-    }),
+  amount: amountStringSchema,
+  currency: currencyCodeSchema.optional(),
   installments: z.number().int().min(1, 'Mínimo 1 parcela').default(1),
   category: z.string().max(50).optional(),
   latitude: z.number().min(-90).max(90).optional(),
@@ -32,29 +30,8 @@ export const createTransactionSchema = z.object({
 
 export const updateTransactionSchema = z.object({
   description: z.string().min(1).max(255).optional(),
-  amount: z.string()
-    .optional()
-    .refine(val => !val || (!isNaN(Number(val)) && Number(val) > 0), 'Valor deve ser maior que zero')
-    .transform(val => {
-      if (!val) return undefined;
-      // Normalize the amount value
-      // Handle formats: 150, 150.5, 150,50, 1.500,00, 1,500.00
-      let normalized = val.trim();
-      
-      // If contains both . and ,, it's likely Brazilian format (1.500,00)
-      if (normalized.includes('.') && normalized.includes(',')) {
-        // Brazilian format: remove dots (thousands), replace comma with dot
-        normalized = normalized.replace(/\./g, '').replace(',', '.');
-      } 
-      // If only comma, it's likely decimal separator (150,50)
-      else if (normalized.includes(',') && !normalized.includes('.')) {
-        normalized = normalized.replace(',', '.');
-      }
-      
-      const parsed = Number(normalized);
-      // Return as string with up to 2 decimal places
-      return parsed.toFixed(2);
-    }),
+  amount: amountStringSchema.optional(),
+  currency: currencyCodeSchema.optional(),
   category: z.string().max(50).optional(),
   status: z.enum(['pending', 'completed', 'cancelled']).optional(),
   latitude: z.number().min(-90).max(90).nullable().optional(),
@@ -69,6 +46,7 @@ export const payInstallmentSchema = z.object({
 export const duplicateCheckSchema = z.object({
   description: z.string().min(1, 'Descrição obrigatória').max(255),
   amount: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Valor deve ser maior que zero'),
+  currency: currencyCodeSchema.optional(),
   transactionDate: z.string().datetime().or(z.date()),
   cardId: z.string().uuid().optional(),
 });

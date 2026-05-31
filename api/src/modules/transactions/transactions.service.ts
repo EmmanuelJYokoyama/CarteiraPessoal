@@ -4,12 +4,15 @@ import {eq, and, isNull, gte, lte, desc} from 'drizzle-orm';
 import type {CreateTransactionInput, UpdateTransactionInput, PayInstallmentInput, DuplicateCheckInput} from './transactions.schema';
 import {checkBudgetAlertCandidatesForUser} from '../budgets/budgetAlerts.service';
 import {sendBudgetAlerts} from '../budgets/budgetAlerts.notifications';
+import {convertCurrencyToBrl, normalizeCurrencyCode} from '../exchangeRates/exchangeRates.service';
 
 // Helper function to convert database numeric fields to numbers for frontend
 function serializeTransaction(tx: any) {
   return {
     ...tx,
     amount: Number(tx.amount),
+    originalAmount: tx.originalAmount != null ? Number(tx.originalAmount) : null,
+    exchangeRate: tx.exchangeRate != null ? Number(tx.exchangeRate) : null,
     latitude: tx.latitude ? Number(tx.latitude) : null,
     longitude: tx.longitude ? Number(tx.longitude) : null,
   };
@@ -27,9 +30,11 @@ export async function createTransaction(userId: string, input: CreateTransaction
     ? input.transactionDate 
     : new Date(input.transactionDate);
 
+  const currency = normalizeCurrencyCode(input.currency);
   const amount = Number(input.amount);
+  const money = await resolveMoney(amount, currency);
   const installmentCount = input.installments || 1;
-  const amountPerInstallment = (amount / installmentCount).toFixed(2);
+  const amountPerInstallment = (money.amount / installmentCount).toFixed(2);
 
   const result = await db.transaction(async (tx) => {
     const newTransactionResult = await tx
@@ -38,7 +43,10 @@ export async function createTransaction(userId: string, input: CreateTransaction
         userId,
         cardId: input.cardId,
         description: input.description,
-        amount: amount.toString(),
+        amount: money.amount.toFixed(2),
+        originalAmount: money.originalAmount.toFixed(2),
+        currency: money.currency,
+        exchangeRate: money.exchangeRate.toFixed(6),
         installments: installmentCount,
         installmentsPaid: 0,
         category: input.category,
@@ -160,7 +168,7 @@ export async function findDuplicateTransactions(
   input: DuplicateCheckInput
 ) {
   const rawDate = input.transactionDate instanceof Date ? input.transactionDate : new Date(input.transactionDate);
-  const targetAmount = Number(input.amount);
+  const targetAmount = await resolveComparableAmount(Number(input.amount), normalizeCurrencyCode(input.currency));
   const normalizedDescription = normalizeText(input.description);
 
   const startDate = new Date(rawDate);
@@ -292,12 +300,17 @@ export async function updateTransaction(transactionId: string, userId: string, i
     updateData.longitude = input.longitude ?? null;
   }
 
-  // If amount is provided, convert to string and update all installments proportionally
-  if (input.amount) {
-    const newAmount = Number(input.amount);
-    const oldAmount = Number(transaction.amount);
-    
-    updateData.amount = newAmount.toString();
+  const moneyUpdateNeeded = Boolean(input.amount || input.currency);
+
+  if (moneyUpdateNeeded) {
+    const effectiveCurrency = normalizeCurrencyCode(input.currency ?? transaction.currency ?? 'BRL');
+    const sourceAmount = Number(input.amount ?? transaction.originalAmount ?? transaction.amount);
+    const money = await resolveMoney(sourceAmount, effectiveCurrency);
+
+    updateData.amount = money.amount.toFixed(2);
+    updateData.originalAmount = money.originalAmount.toFixed(2);
+    updateData.currency = money.currency;
+    updateData.exchangeRate = money.exchangeRate.toFixed(6);
 
     // Update all installments proportionally
     const existingInstallments = await db.query.installments.findMany({
@@ -305,7 +318,7 @@ export async function updateTransaction(transactionId: string, userId: string, i
     });
 
     if (existingInstallments.length > 0) {
-      const newAmountPerInstallment = (newAmount / existingInstallments.length).toFixed(2);
+      const newAmountPerInstallment = (money.amount / existingInstallments.length).toFixed(2);
       
       for (const installment of existingInstallments) {
         await db
@@ -416,4 +429,32 @@ async function notifyBudgetAlerts(userId: string) {
   } catch (error) {
     console.error('[TransactionService] Failed to evaluate budget alerts', error);
   }
+}
+
+async function resolveMoney(amount: number, currency: string) {
+  if (currency === 'BRL') {
+    return {
+      amount,
+      originalAmount: amount,
+      currency,
+      exchangeRate: 1,
+    };
+  }
+
+  const conversion = await convertCurrencyToBrl(amount, currency);
+  return {
+    amount: conversion.convertedAmount,
+    originalAmount: amount,
+    currency,
+    exchangeRate: conversion.conversionRate,
+  };
+}
+
+async function resolveComparableAmount(amount: number, currency: string) {
+  if (currency === 'BRL') {
+    return amount;
+  }
+
+  const conversion = await convertCurrencyToBrl(amount, currency);
+  return conversion.convertedAmount;
 }

@@ -17,6 +17,8 @@ import { statementsRoutes } from '@modules/statements/statements.routes';
 import { budgetsRoutes } from '@modules/budgets/budgets.routes';
 import { locationRoutes } from '@modules/location/location.routes';
 import { swaggerConfig, swaggerUIConfig } from '@/swagger.config';
+import {exchangeRatesRoutes} from '@modules/exchangeRates/exchangeRates.routes';
+import { reportsRoutes } from '@modules/reports/reports.routes';
 
 dotenv.config();
 
@@ -61,6 +63,8 @@ app.register(cardLimitAlertsRoutes);
 app.register(statementsRoutes);
 app.register(budgetsRoutes);
 app.register(locationRoutes);
+app.register(exchangeRatesRoutes);
+app.register(reportsRoutes);
 
 app.get('/health', async (req, reply) => {
   reply.send({status: 'ok', timestamp: new Date().toISOString()});

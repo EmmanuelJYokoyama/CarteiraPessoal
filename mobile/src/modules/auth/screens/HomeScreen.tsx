@@ -2,15 +2,16 @@ import React, {useState, useCallback, useMemo} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
-import Geolocation from '@react-native-community/geolocation';
+import { Platform, PermissionsAndroid } from 'react-native';
 import {useAuth} from '@contexts/AuthContext';
 import {useGoalsContext} from '@contexts/GoalsContext';
 import {requestPermission, PermissionType} from '@services/permissions';
 import {listAllTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
+import {API_BASE_URL} from '@services/api/client';
 import {useOfflineSync} from '@hooks/useOfflineSync';
 import {BarChartCard} from '@components/charts';
-import {TrendingDown, CreditCard, AlertCircle, ArrowRight, MapPin, PieChart as PieChartIcon, ScanLine} from 'lucide-react-native';
+import {TrendingDown, CreditCard, AlertCircle, MapPin, PieChart as PieChartIcon} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {styles} from './styles/HomeScreen.styles';
 
@@ -70,8 +71,7 @@ export default function HomeScreen({navigation}: Props) {
   const reverseGeocode = async (latitude: number, longitude: number) => {
     try {
       // Usa o endpoint do backend
-      const baseUrl = 'http://localhost:3000';
-      const url = `${baseUrl}/location/address?latitude=${latitude}&longitude=${longitude}`;
+      const url = `${API_BASE_URL}/location/address?latitude=${latitude}&longitude=${longitude}`;
       
       console.log('[HomeScreen] Chamando endpoint:', url);
       
@@ -382,37 +382,6 @@ export default function HomeScreen({navigation}: Props) {
                 height={320}
               />
             </View>
-
-            <Pressable
-              style={styles.scannerCard}
-              onPress={() => navigation.navigate('BoletoScanner')}>
-              <View style={styles.scannerHeaderRow}>
-                <View style={styles.scannerIcon}>
-                  <ScanLine size={22} color="#0f172a" />
-                </View>
-                <View style={styles.scannerHeaderText}>
-                  <Text style={styles.scannerKicker}>Leitor de boleto</Text>
-                  <Text style={styles.scannerTitle}>Escaneie a linha digitável ou o código de barras</Text>
-                </View>
-                <ArrowRight size={18} color="#94a3b8" />
-              </View>
-
-              <Text style={styles.scannerDescription}>
-                Veja o valor do boleto, a linha digitável e a data de vencimento sem sair da Home.
-              </Text>
-
-              <View style={styles.scannerChipsRow}>
-                <View style={styles.scannerChip}>
-                  <Text style={styles.scannerChipText}>Linha digitável</Text>
-                </View>
-                <View style={styles.scannerChip}>
-                  <Text style={styles.scannerChipText}>Valor</Text>
-                </View>
-                <View style={styles.scannerChip}>
-                  <Text style={styles.scannerChipText}>Vencimento</Text>
-                </View>
-              </View>
-            </Pressable>
 
             <View style={styles.mapCard}>
               <View style={styles.mapCardHeader}>

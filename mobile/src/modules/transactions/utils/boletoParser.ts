@@ -16,7 +16,6 @@ export type BoletoParseResult = {
     barcodeDvValid: boolean;
     fieldDVsValid: boolean;
   };
-  supportedZxingFormats: string[];
 };
 
 const BOLETO_BASE_DATE_UTC = Date.UTC(1997, 9, 7);
@@ -164,7 +163,6 @@ export function parseBoletoCode(input: string): BoletoParseResult {
       barcodeDvValid,
       fieldDVsValid,
     },
-    supportedZxingFormats: ['ITF', 'CODE_128'],
   };
 }
 

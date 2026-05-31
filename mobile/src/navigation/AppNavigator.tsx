@@ -14,7 +14,7 @@ import TelemetryDiagnosticsScreen from '@modules/auth/screens/TelemetryDiagnosti
 import BackupSettingsScreen from '@modules/auth/screens/BackupSettingsScreen';
 import CategoryReportScreen from '@modules/reports/screens/CategoryReportScreen';
 import CashFlowScreen from '@modules/reports/screens/CashFlowScreen';
-import BoletoScannerScreen from '@modules/transactions/screens/BoletoScannerScreen';
+import PdfViewerScreen from '@modules/reports/screens/PdfViewerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -63,8 +63,8 @@ export function AppNavigator() {
         component={CashFlowScreen}
       />
       <Stack.Screen
-        name="BoletoScanner"
-        component={BoletoScannerScreen}
+        name="PdfViewer"
+        component={PdfViewerScreen}
       />
       <Stack.Screen 
         name="TransactionMap" 

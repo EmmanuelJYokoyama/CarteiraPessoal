@@ -11,7 +11,6 @@ PERMISSIONS=(
   "android.permission.READ_SMS"
   "android.permission.RECEIVE_SMS"
   "android.permission.READ_CONTACTS"
-  "android.permission.CAMERA"
 )
 
 # Cores para output
@@ -48,7 +47,6 @@ check_permissions() {
   
   local location_fine=$(adb shell pm dump $PACKAGE_NAME | grep "android.permission.ACCESS_FINE_LOCATION" | grep "granted")
   local location_coarse=$(adb shell pm dump $PACKAGE_NAME | grep "android.permission.ACCESS_COARSE_LOCATION" | grep "granted")
-  local camera=$(adb shell pm dump $PACKAGE_NAME | grep "android.permission.CAMERA" | grep "granted")
   local sms=$(adb shell pm dump $PACKAGE_NAME | grep "android.permission.SEND_SMS" | grep "granted")
   
   if [ ! -z "$location_fine" ] && [ ! -z "$location_coarse" ]; then
@@ -61,12 +59,6 @@ check_permissions() {
     echo -e "${GREEN}✓ SMS: CONCEDIDA${NC}"
   else
     echo -e "${RED}✗ SMS: NEGADA${NC}"
-  fi
-  
-  if [ ! -z "$camera" ]; then
-    echo -e "${GREEN}✓ Câmera: CONCEDIDA${NC}"
-  else
-    echo -e "${RED}✗ Câmera: NEGADA${NC}"
   fi
   echo ""
 }

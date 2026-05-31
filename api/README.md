@@ -47,11 +47,22 @@ npm install
 
 ## 🗄️ Banco de Dados
 
+### Supabase
+
+Para o Supabase, use a connection string do pooler quando estiver em rede IPv4:
+
+```env
+DATABASE_URL=postgresql://postgres.[YOUR-PASSWORD]@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+```
+
+Se preferir usar a conexão direta do host do projeto, mantenha o `DATABASE_URL` apontando para o host do banco.
+
 ### Setup Inicial
 
 ```bash
 npm run db:generate  # Gerar migrations
-npm run db:push     # Aplicar ao banco
+npm run db:migrate   # Aplicar ao banco
+npm run db:seed      # Popular dados iniciais
 ```
 
 ### Gerenciar Banco

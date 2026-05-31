@@ -1,4 +1,3 @@
-import {Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getCachedResponse,
@@ -10,8 +9,7 @@ import {
 import {isNetworkOnline} from '@services/connectivity';
 import {logSyncEvent} from '@services/telemetry/firebaseTelemetry';
 
-const DEFAULT_BASE_URL =
-  Platform.OS === 'android' ? 'http://localhost:3000' : 'http://localhost:3000';
+const DEFAULT_BASE_URL = 'https://carteirapessoal.onrender.com';
 
 const REQUEST_TIMEOUT = 30000;
 

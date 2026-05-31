@@ -9,8 +9,7 @@ import {
 import {isNetworkOnline} from '@services/connectivity';
 import {logSyncEvent} from '@services/telemetry/firebaseTelemetry';
 
-// const DEFAULT_BASE_URL = 'https://carteirapessoal.onrender.com';
-const DEFAULT_BASE_URL = 'localhost:3000';
+const DEFAULT_BASE_URL = 'https://carteirapessoal.onrender.com';
 
 const REQUEST_TIMEOUT = 30000;
 

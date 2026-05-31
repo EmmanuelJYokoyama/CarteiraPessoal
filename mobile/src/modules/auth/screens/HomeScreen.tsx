@@ -2,7 +2,18 @@ import React, {useState, useCallback, useMemo} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
-import { Platform, PermissionsAndroid } from 'react-native';
+
+// Try to use native geolocation library if linked, else fall back to globalThis
+const GeoLibScreen: any = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('react-native-geolocation-service');
+  } catch (e) {
+    return null;
+  }
+})();
+
+const Geolocation: any = GeoLibScreen ?? (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
 import {useAuth} from '@contexts/AuthContext';
 import {useGoalsContext} from '@contexts/GoalsContext';
 import {requestPermission, PermissionType} from '@services/permissions';
@@ -11,7 +22,7 @@ import {listCards, type Card} from '@services/api/cards';
 import {API_BASE_URL} from '@services/api/client';
 import {useOfflineSync} from '@hooks/useOfflineSync';
 import {BarChartCard} from '@components/charts';
-import {TrendingDown, CreditCard, AlertCircle, MapPin, PieChart as PieChartIcon} from 'lucide-react-native';
+import {TrendingDown, CreditCard, AlertCircle, MapPin, PieChart as PieChartIcon, ArrowRight} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {styles} from './styles/HomeScreen.styles';
 
@@ -134,7 +145,7 @@ export default function HomeScreen({navigation}: Props) {
       if (result.granted) {
         // Se permitiu, obtém localização
         Geolocation.getCurrentPosition(
-          (position) => {
+          (position: { coords: { latitude: any; longitude: any; }; }) => {
             const {latitude, longitude} = position.coords;
             setUserLocation({latitude, longitude});
             setLocationLoading(false);

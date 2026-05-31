@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert, Platform, PermissionsAndroid, Linking} from 'react-native';
+const Geolocation: any = (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {createTransaction, checkDuplicateTransactions, suggestCategory, type CategorySuggestion, type CreateTransactionPayload} from '@services/api/transactions';
 import {API_BASE_URL} from '@services/api/client';
@@ -150,16 +151,16 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
 
   function getCurrentPosition(options: Parameters<typeof Geolocation.getCurrentPosition>[2]) {
     return new Promise<DeviceLocation>((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => reject(error),
-        options,
-      );
+        Geolocation.getCurrentPosition(
+          (position: any) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          (error: any) => reject(error),
+          options,
+        );
     });
   }
 

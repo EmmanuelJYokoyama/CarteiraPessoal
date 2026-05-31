@@ -2,8 +2,9 @@ import {Platform} from 'react-native';
 
 const HEALTH_URL =
   Platform.OS === 'android'
-    ? 'https://carteirapessoal.onrender.com/health'
-    : 'https://carteirapessoal.onrender.com/health';
+    // ? 'https://carteirapessoal.onrender.com/health'
+    ? 'http://localhost:3000/health'
+    : 'localhost:3000/health';
 
 let isOnline = true;
 let listeners: Array<(online: boolean) => void> = [];

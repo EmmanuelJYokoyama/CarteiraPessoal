@@ -411,7 +411,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -419,6 +420,8 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 
   backdrop: {

@@ -1,14 +1,20 @@
 import React, {useState, useEffect} from 'react';
 import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert, Platform, PermissionsAndroid, Linking} from 'react-native';
+const Geolocation: any = (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Geolocation from '@react-native-community/geolocation';
-import {createTransaction, checkDuplicateTransactions, suggestCategory, type CategorySuggestion} from '@services/api/transactions';
+import {createTransaction, checkDuplicateTransactions, suggestCategory, type CategorySuggestion, type CreateTransactionPayload} from '@services/api/transactions';
 import {API_BASE_URL} from '@services/api/client';
 import {listCards, Card} from '@services/api/cards';
 import {invalidateCache} from '@services/cache';
 import {recordCategoryLearning} from '@services/categorySuggestion';
 import {useCategories} from '../hooks/useCategories';
 import {styles} from './styles/AddTransactionForm.styles';
+
+const currencyOptions = [
+  {code: 'BRL', label: 'Real brasileiro'},
+  {code: 'USD', label: 'Dólar americano'},
+  {code: 'EUR', label: 'Euro'},
+];
 
 type DeviceLocation = {
   latitude: number;
@@ -23,6 +29,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const {categories, addCategory} = useCategories();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('BRL');
   const [category, setCategory] = useState('');
   const [installments, setInstallments] = useState('1');
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -31,6 +38,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const [loading, setLoading] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
@@ -42,6 +50,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const [fetchingLocation, setFetchingLocation] = useState(false);
   const [categorySuggestion, setCategorySuggestion] = useState<CategorySuggestion | null>(null);
   const [suggestingCategory, setSuggestingCategory] = useState(false);
+  const selectedCurrency = currencyOptions.find(option => option.code === currency) ?? currencyOptions[0];
 
   console.log('[AddTransactionForm] Renderizando. Description:', description, 'Sugestão:', categorySuggestion);
 
@@ -142,16 +151,16 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
 
   function getCurrentPosition(options: Parameters<typeof Geolocation.getCurrentPosition>[2]) {
     return new Promise<DeviceLocation>((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => reject(error),
-        options,
-      );
+        Geolocation.getCurrentPosition(
+          (position: any) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          (error: any) => reject(error),
+          options,
+        );
     });
   }
 
@@ -243,6 +252,10 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       setErrorMessage('Valor deve ser um número maior que zero');
       return false;
     }
+    if (!currency.trim() || !/^[A-Za-z]{3}$/.test(currency.trim())) {
+      setErrorMessage('Moeda deve ter 3 letras, como BRL ou USD');
+      return false;
+    }
     if (!category) {
       setErrorMessage('Selecione uma categoria');
       return false;
@@ -307,9 +320,10 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
     if (!validateForm()) return;
 
     // Construir payload sem campos undefined/null desnecessários
-    const payload: any = {
+    const payload: CreateTransactionPayload = {
       description: description.trim(),
       amount,
+      currency: currency.trim().toUpperCase(),
       category,
       installments: Number(installments),
       transactionDate: transactionDate.toISOString(),
@@ -343,6 +357,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
 
         setDescription('');
         setAmount('');
+        setCurrency('BRL');
         setCategory('');
         setInstallments('1');
         setTransactionDate(new Date());
@@ -365,6 +380,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       const duplicateCheck = await checkDuplicateTransactions({
         description: payload.description,
         amount: payload.amount,
+        currency: payload.currency,
         transactionDate: payload.transactionDate,
         cardId: payload.cardId,
       });
@@ -421,7 +437,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Valor</Text>
+          <Text style={styles.label}>Valor da despesa</Text>
           <TextInput
             style={styles.input}
             placeholder="0.00"
@@ -434,17 +450,33 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         </View>
 
         <View style={styles.inputGroup}>
+          <Text style={styles.label}>Moeda da despesa</Text>
+          <Pressable
+            style={styles.selectedCardContainer}
+            onPress={() => setShowCurrencyPicker(true)}
+            disabled={loading}>
+            <View>
+              <Text style={styles.selectorTitle}>{selectedCurrency.label}</Text>
+              <Text style={styles.selectorSubtitle}>{selectedCurrency.code} • cotação oficial do BCB</Text>
+            </View>
+          </Pressable>
+          <Text style={styles.fieldHint}>
+            Escolha apenas Real, Dólar ou Euro.
+          </Text>
+        </View>
+
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Categoria</Text>
           <Pressable
             style={styles.selectedCardContainer}
             onPress={() => setShowCategoryPicker(true)}>
-            <Text style={styles.selectedCardText}>{category || 'Selecione uma categoria'}</Text>
+            <Text style={styles.selectorTitle}>{category || 'Selecione uma categoria'}</Text>
           </Pressable>
 
           {suggestingCategory && (
             <View style={{marginTop: 8, paddingHorizontal: 12, paddingVertical: 8}}>
               <ActivityIndicator size="small" color="#2ed573" />
-              <Text style={{color: '#2ed573', fontSize: 11, marginTop: 4}}>Buscando sugestão...</Text>
+              <Text style={styles.suggestionMeta}>Buscando sugestão...</Text>
             </View>
           )}
 
@@ -452,30 +484,15 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
             <>
               {console.log('[Render] Renderizando sugestão:', categorySuggestion)}
               <Pressable
-                style={{
-                  marginTop: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  backgroundColor: 'rgba(46, 213, 115, 0.2)',
-                  borderRadius: 6,
-                  borderLeftWidth: 4,
-                  borderLeftColor: '#2ed573',
-                  borderWidth: 1,
-                  borderColor: '#2ed573',
-                }}
+                style={styles.suggestionCard}
                 onPress={() => {
                   console.log('[Render] Aceitando sugestão:', categorySuggestion.name);
                   setCategory(categorySuggestion.name);
                 }}>
-                <Text style={{color: '#2ed573', fontSize: 13, fontWeight: '700', marginBottom: 6}}>
-                  💡 Sugestão: {categorySuggestion.name}
-                </Text>
-                <Text style={{color: '#aaa', fontSize: 12}}>
-                  Score: {categorySuggestion.score}
-                </Text>
-                <Text style={{color: '#888', fontSize: 11, marginTop: 4, fontStyle: 'italic'}}>
-                  👉 Toque para aceitar
-                </Text>
+                <Text style={styles.suggestionTitle}>Sugestão automática</Text>
+                <Text style={styles.suggestionValue}>{categorySuggestion.name}</Text>
+                <Text style={styles.suggestionMeta}>Score {categorySuggestion.score}</Text>
+                <Text style={styles.suggestionHint}>Toque para aplicar esta categoria</Text>
               </Pressable>
             </>
           )}
@@ -499,28 +516,22 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
               {selectedCard ? (
                 <View>
                   <Text
-                    style={{
-                      color: '#2ed573',
-                      fontSize: 12,
-                      fontWeight: '600',
-                      marginBottom: 4,
-                      textTransform: 'uppercase',
-                    }}>
+                    style={styles.selectedCardBrand}>
                     {selectedCard.brand.toUpperCase()}
                   </Text>
-                  <Text style={styles.selectedCardText}>
+                  <Text style={styles.selectorTitle}>
                     {selectedCard.name}
                   </Text>
-                  <Text style={{color: '#999', fontSize: 11, marginTop: 4}}>
+                  <Text style={styles.selectorSubtitle}>
                     •••• {selectedCard.lastFourDigits}
                   </Text>
                 </View>
               ) : (
-                <Text style={styles.selectedCardText}>Nenhum cartão</Text>
+                <Text style={styles.selectorTitle}>Nenhum cartão</Text>
               )}
             </Pressable>
           ) : (
-            <Text style={{color: '#999', fontSize: 14}}>
+            <Text style={styles.fieldHint}>
               Nenhum cartão disponível
             </Text>
           )}
@@ -532,7 +543,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
             style={styles.selectedCardContainer}
             onPress={handleGetCurrentLocation}
             disabled={fetchingLocation || loading}>
-            <Text style={styles.selectedCardText}>
+            <Text style={styles.selectorTitle}>
               {fetchingLocation
                 ? 'Capturando localização atual...'
                 : locationName
@@ -540,7 +551,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
                   : 'Usar localização atual do dispositivo'}
             </Text>
           </Pressable>
-          <Text style={styles.locationHint}>
+          <Text style={styles.fieldHint}>
             A localização é capturada automaticamente pelo GPS do aparelho.
           </Text>
           {selectedLocation && locationName ? (
@@ -550,7 +561,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
                 setLocationName(null);
               }}
               style={{marginTop: 8}}>
-              <Text style={{color: '#f1c40f', fontSize: 12, fontWeight: '600'}}>
+              <Text style={styles.warningText}>
                 Limpar localização
               </Text>
             </Pressable>
@@ -563,7 +574,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
             <Pressable
               style={styles.dateButton}
               onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.dateButtonText}>{transactionDate.toLocaleDateString('pt-BR')}</Text>
+                <Text style={styles.dateButtonText}>{transactionDate.toLocaleDateString('pt-BR')}</Text>
             </Pressable>
           </View>
 
@@ -618,11 +629,47 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         </View>
       </Modal>
 
+      <Modal visible={showCurrencyPicker} transparent animationType="slide">
+        <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end'}}>
+          <View style={{backgroundColor: '#1a1a1a', borderTopLeftRadius: 12, borderTopRightRadius: 12}}>
+            <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+              <Text style={styles.modalTitle}>Selecionar moeda</Text>
+              <Pressable onPress={() => setShowCurrencyPicker(false)}>
+                <Text style={styles.modalCloseText}>×</Text>
+              </Pressable>
+            </View>
+
+            {currencyOptions.map(option => (
+              <Pressable
+                key={option.code}
+                style={[
+                  styles.currencyPickerItem,
+                  currency === option.code ? styles.currencyPickerItemSelected : null,
+                ]}
+                onPress={() => {
+                  setCurrency(option.code);
+                  setShowCurrencyPicker(false);
+                }}>
+                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <View>
+                    <Text style={styles.currencyPickerItemText}>{option.label}</Text>
+                    <Text style={styles.currencyPickerItemSubtext}>{option.code}</Text>
+                  </View>
+                  {currency === option.code ? (
+                    <Text style={styles.currencyPickerCheck}>✓</Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showCardPicker} transparent animationType="slide">
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end'}}>
           <View style={{backgroundColor: '#1a1a1a', borderTopLeftRadius: 12, borderTopRightRadius: 12}}>
             <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333'}}>
-              <Text style={{color: '#fff', fontSize: 18, fontWeight: '700'}}>Selecionar Cartão</Text>
+              <Text style={styles.modalTitle}>Selecionar cartão</Text>
             </View>
             <FlatList
               data={[{id: 'none', name: 'Nenhum cartão', brand: ''} as any, ...cards]}
@@ -691,15 +738,15 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end'}}>
           <View style={{backgroundColor: '#1a1a1a', borderTopLeftRadius: 12, borderTopRightRadius: 12, maxHeight: '80%'}}>
             <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-              <Text style={{color: '#fff', fontSize: 18, fontWeight: '700'}}>Selecionar Categoria</Text>
+              <Text style={styles.modalTitle}>Selecionar categoria</Text>
               <Pressable onPress={() => setShowCategoryPicker(false)}>
-                <Text style={{color: '#999', fontSize: 24}}>×</Text>
+                <Text style={styles.modalCloseText}>×</Text>
               </Pressable>
             </View>
             
             {showNewCategoryInput ? (
               <View style={{padding: 16, borderBottomWidth: 1, borderBottomColor: '#333'}}>
-                <Text style={{color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 12}}>Nova Categoria</Text>
+                <Text style={styles.modalSectionTitle}>Nova categoria</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Nome da categoria"
@@ -781,7 +828,7 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
                 backgroundColor: 'rgba(46, 213, 115, 0.1)',
               }}
               onPress={() => setShowNewCategoryInput(true)}>
-              <Text style={{color: '#2ed573', fontSize: 16, fontWeight: '600', textAlign: 'center'}}>
+              <Text style={styles.actionLinkText}>
                 + Adicionar Nova Categoria
               </Text>
             </Pressable>

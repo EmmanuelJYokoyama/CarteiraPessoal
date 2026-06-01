@@ -1,8 +1,21 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, ActivityIndicator, Pressable} from 'react-native';
+import {View, Text, ActivityIndicator, Pressable, Platform, PermissionsAndroid} from 'react-native';
 import {RotateCcw} from 'lucide-react-native';
 import MapView, {Marker} from 'react-native-maps';
-import Geolocation from '@react-native-community/geolocation';
+
+// Try to use native geolocation library if linked, else fall back to globalThis
+const GeoLib: any = (() => {
+  try {
+    // require at runtime to avoid bundler errors when package is not installed
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('react-native-geolocation-service');
+  } catch (e) {
+    return null;
+  }
+})();
+
+const Geolocation: any = GeoLib ?? (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
+// Platform/Permissions can be used later if needed
 
 interface UserLocation {
   latitude: number;
@@ -20,15 +33,54 @@ export function HomeMapComponent({height = 250, onLocationChange}: HomeMapCompon
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getCurrentLocation();
+    (async () => {
+      // On Android, request runtime permission first
+      if (Platform.OS === 'android') {
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Permissão de localização',
+              message: 'Precisamos da sua localização para mostrar no mapa.',
+              buttonPositive: 'Permitir',
+              buttonNegative: 'Agora não',
+            },
+          );
+
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            setError('Permissão de localização negada');
+            setLoading(false);
+            // set default location (São Paulo)
+            const defaultLocation = {latitude: -23.5505, longitude: -46.6333};
+            setUserLocation(defaultLocation);
+            onLocationChange?.(defaultLocation);
+            return;
+          }
+        } catch (err) {
+          console.warn('Erro ao pedir permissão de localização Android', err);
+        }
+      } else if (Platform.OS === 'ios') {
+        // if iOS and using a native lib, request authorization if available
+        try {
+          Geolocation?.requestAuthorization?.();
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      getCurrentLocation();
+    })();
   }, []);
 
   const getCurrentLocation = () => {
     setLoading(true);
     setError(null);
 
-    Geolocation.getCurrentPosition(
-      (position) => {
+    // Use GeoLib's getCurrentPosition if available for better Android support
+    const getPos = GeoLib?.getCurrentPosition ? GeoLib.getCurrentPosition.bind(GeoLib) : Geolocation.getCurrentPosition.bind(Geolocation);
+
+    getPos(
+      (position: any) => {
         const {latitude, longitude} = position.coords;
         const location = {latitude, longitude};
         setUserLocation(location);
@@ -38,7 +90,7 @@ export function HomeMapComponent({height = 250, onLocationChange}: HomeMapCompon
 
         console.log('[HomeMap] Localização obtida:', location);
       },
-      (error) => {
+      (error: any) => {
         console.error('[HomeMap] Erro ao obter localização:', error);
         setLoading(false);
 

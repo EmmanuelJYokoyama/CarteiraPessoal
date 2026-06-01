@@ -3,6 +3,10 @@ import {View, Text, FlatList, Pressable, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import {Upload} from 'lucide-react-native';
+import {useAuth} from '@contexts/AuthContext';
+import {API_BASE_URL} from '@services/api/client';
+import {downloadPdfReport} from '@services/reports';
+import {ActivityIndicator as AI} from 'react-native';
 import {AddTransactionForm} from '../components/AddTransactionForm';
 import {TransactionDetailsModal} from '../components/TransactionDetailsModal';
 import {TransactionListItem} from '../components/TransactionListItem';
@@ -20,6 +24,8 @@ export default function TransactionsScreen({navigation}: Props) {
   const [showForm, setShowForm] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const {userToken} = useAuth();
+  const [exporting, setExporting] = useState(false);
 
   // Remover formatadores que agora estão no componente
   const memoizedTransactions = useMemo(() => transactions, [transactions]);
@@ -123,6 +129,37 @@ export default function TransactionsScreen({navigation}: Props) {
                   <Text style={{color: '#3498db', textAlign: 'center', fontWeight: '600'}}>
                     Importar
                   </Text>
+                </Pressable>
+                <Pressable
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    backgroundColor: 'rgba(46, 204, 113, 0.12)',
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#2ecc71',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                  onPress={async () => {
+                    try {
+                      setExporting(true);
+                      const path = await downloadPdfReport(API_BASE_URL, userToken ?? '', {});
+                      setExporting(false);
+                      navigation.navigate('PdfViewer', {path});
+                    } catch (err) {
+                      console.error('Failed to export PDF', err);
+                      setExporting(false);
+                    }
+                  }}>
+                  {exporting ? (
+                    <AI size={18} color="#2ecc71" />
+                  ) : (
+                    <Text style={{color: '#2ecc71', textAlign: 'center', fontWeight: '600'}}>Exportar PDF</Text>
+                  )}
                 </Pressable>
 
               </View>

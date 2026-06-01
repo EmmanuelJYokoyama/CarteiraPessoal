@@ -38,6 +38,8 @@
 	<string>Precisamos da sua localização para mostrar onde a despesa foi registrada no mapa.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Precisamos da sua localização para mostrar onde a despesa foi registrada no mapa.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Precisamos da sua câmera para ler códigos de barras de boletos e outros documentos.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

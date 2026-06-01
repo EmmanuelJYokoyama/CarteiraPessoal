@@ -13,6 +13,8 @@ import InvestmentSimulatorScreen from '@modules/investments/screens/InvestmentSi
 import TelemetryDiagnosticsScreen from '@modules/auth/screens/TelemetryDiagnosticsScreen';
 import BackupSettingsScreen from '@modules/auth/screens/BackupSettingsScreen';
 import CategoryReportScreen from '@modules/reports/screens/CategoryReportScreen';
+import CashFlowScreen from '@modules/reports/screens/CashFlowScreen';
+import PdfViewerScreen from '@modules/reports/screens/PdfViewerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -55,6 +57,14 @@ export function AppNavigator() {
       <Stack.Screen
         name="CategoryReport"
         component={CategoryReportScreen}
+      />
+      <Stack.Screen
+        name="CashFlow"
+        component={CashFlowScreen}
+      />
+      <Stack.Screen
+        name="PdfViewer"
+        component={PdfViewerScreen}
       />
       <Stack.Screen 
         name="TransactionMap" 

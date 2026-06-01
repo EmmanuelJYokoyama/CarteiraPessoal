@@ -6,6 +6,7 @@ export type CreateTransactionPayload = {
   cardId?: string;
   description: string;
   amount: string;
+  currency?: string;
   installments?: number;
   category?: string;
   latitude?: number;
@@ -18,6 +19,7 @@ export type CreateTransactionPayload = {
 export type DuplicateCheckPayload = {
   description: string;
   amount: string;
+  currency?: string;
   transactionDate: string;
   cardId?: string;
 };
@@ -28,6 +30,9 @@ export type Transaction = {
   cardId?: string;
   description: string;
   amount: number;
+  originalAmount?: number | null;
+  currency?: string;
+  exchangeRate?: number | null;
   installments: number;
   installmentsPaid: number;
   category?: string;
@@ -97,6 +102,7 @@ export async function createTransaction(payload: CreateTransactionPayload) {
     void logTransactionEvent('create', 'success', {
       has_category: Boolean(payload.category),
       has_location: Boolean(payload.location),
+      has_currency: Boolean(payload.currency && payload.currency !== 'BRL'),
       installment_count: payload.installments ?? 1,
     });
 
@@ -105,6 +111,7 @@ export async function createTransaction(payload: CreateTransactionPayload) {
     void logTransactionEvent('create', 'failure', {
       has_category: Boolean(payload.category),
       has_location: Boolean(payload.location),
+      has_currency: Boolean(payload.currency && payload.currency !== 'BRL'),
       error_message: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
     });
     throw error;

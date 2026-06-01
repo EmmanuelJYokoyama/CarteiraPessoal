@@ -15,9 +15,6 @@
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
-    <!-- Permissão de Câmera -->
-    <uses-permission android:name="android.permission.CAMERA" />
-
     <!-- Permissão de Leitura de Contatos (opcional, útil para SMS) -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 

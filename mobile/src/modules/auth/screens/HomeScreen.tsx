@@ -2,15 +2,27 @@ import React, {useState, useCallback, useMemo} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
-import Geolocation from '@react-native-community/geolocation';
+
+// Try to use native geolocation library if linked, else fall back to globalThis
+const GeoLibScreen: any = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('react-native-geolocation-service');
+  } catch (e) {
+    return null;
+  }
+})();
+
+const Geolocation: any = GeoLibScreen ?? (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
 import {useAuth} from '@contexts/AuthContext';
 import {useGoalsContext} from '@contexts/GoalsContext';
 import {requestPermission, PermissionType} from '@services/permissions';
 import {listAllTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
+import {API_BASE_URL} from '@services/api/client';
 import {useOfflineSync} from '@hooks/useOfflineSync';
 import {BarChartCard} from '@components/charts';
-import {TrendingDown, CreditCard, AlertCircle, ArrowRight, MapPin} from 'lucide-react-native';
+import {TrendingDown, CreditCard, AlertCircle, MapPin, PieChart as PieChartIcon, ArrowRight} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {styles} from './styles/HomeScreen.styles';
 
@@ -70,8 +82,7 @@ export default function HomeScreen({navigation}: Props) {
   const reverseGeocode = async (latitude: number, longitude: number) => {
     try {
       // Usa o endpoint do backend
-      const baseUrl = 'http://localhost:3000';
-      const url = `${baseUrl}/location/address?latitude=${latitude}&longitude=${longitude}`;
+      const url = `${API_BASE_URL}/location/address?latitude=${latitude}&longitude=${longitude}`;
       
       console.log('[HomeScreen] Chamando endpoint:', url);
       
@@ -134,7 +145,7 @@ export default function HomeScreen({navigation}: Props) {
       if (result.granted) {
         // Se permitiu, obtém localização
         Geolocation.getCurrentPosition(
-          (position) => {
+          (position: { coords: { latitude: any; longitude: any; }; }) => {
             const {latitude, longitude} = position.coords;
             setUserLocation({latitude, longitude});
             setLocationLoading(false);
@@ -302,14 +313,21 @@ export default function HomeScreen({navigation}: Props) {
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.header}>
         <Text style={styles.appTitle}>CARTEIRA PESSOAL</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <Pressable
+            onPress={() => navigation.navigate('CategoryReport')}
+            style={{padding: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)', marginRight: 8}}>
+            <PieChartIcon size={18} color="#fff" />
+          </Pressable>
 
-        <Pressable
-          onPress={() => setMenuVisible(true)}
-          style={styles.avatarButton}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-        </Pressable>
+          <Pressable
+            onPress={() => setMenuVisible(true)}
+            style={styles.avatarButton}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          </Pressable>
+        </View>
       </SafeAreaView>
 
       <ScrollView
@@ -562,12 +580,20 @@ export default function HomeScreen({navigation}: Props) {
                 style={[styles.actionButton, {backgroundColor: '#f3f4f6'}]}
                 onPress={() => navigation.navigate('Cards')}>
                 <Text
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
                   style={[
                     styles.actionButtonText,
                     {color: '#000'},
                   ]}>
                   Adicionar Cartão
                 </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.actionButton, {backgroundColor: '#10b981'}]}
+                onPress={() => navigation.navigate('CategoryReport')}>
+                <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.actionButtonText, {color: '#fff'}]}>Relatório por categoria</Text>
               </Pressable>
             </View>
           </>
@@ -641,6 +667,15 @@ export default function HomeScreen({navigation}: Props) {
                   navigation.navigate('Investments');
                 }}>
                 <Text style={styles.menuItemText}>Simulador de investimento</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('CashFlow');
+                }}>
+                <Text style={styles.menuItemText}>Fluxo de caixa</Text>
               </Pressable>
 
               <Pressable

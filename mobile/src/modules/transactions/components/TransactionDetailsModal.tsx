@@ -107,12 +107,22 @@ export function TransactionDetailsModal({
 
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Valor</Text>
-                  <Text style={styles.value}>
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    }).format(transaction.amount)}
-                  </Text>
+                  <View>
+                    <Text style={styles.value}>
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(transaction.amount)}
+                    </Text>
+                    {transaction.currency && transaction.currency !== 'BRL' && transaction.originalAmount != null ? (
+                      <Text style={[styles.value, {fontSize: 12, color: '#9a9a9a', marginTop: 4}]}> 
+                        Original: {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: transaction.currency,
+                        }).format(transaction.originalAmount)}
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
 
                 <View style={styles.detailRow}>

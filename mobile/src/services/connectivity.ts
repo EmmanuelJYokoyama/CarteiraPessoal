@@ -11,17 +11,17 @@ let unsubscribeInterval: (() => void) | null = null;
 function initConnectivityCheck() {
   const checkConnectivity = async () => {
     try {
+      // Se já sabemos que estamos offline via sistema, não precisamos forçar fetch
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
+      const timeout = setTimeout(() => controller.abort(), 10000); // Timeout mais curto para não prender o app
 
-      console.log(`[Connectivity] Checking health at ${HEALTH_URL}`);
       const response = await fetch(HEALTH_URL, {signal: controller.signal});
       clearTimeout(timeout);
 
       const wasOnline = isOnline;
-      isOnline = response.ok;
-
-      console.log(`[Connectivity] Health check response: ${response.status}, Online: ${isOnline}`);
+      // Só mudamos para online se o servidor responder 200. 
+      // Se der erro 500, o servidor está lá, então "estamos" online.
+      isOnline = response.status >= 200 && response.status < 500;
 
       if (wasOnline !== isOnline) {
         console.log(`[Connectivity] Online: ${isOnline}`);
@@ -37,16 +37,14 @@ function initConnectivityCheck() {
         console.log('[Connectivity] Health check error (unknown)', error);
       }
 
-      // Se falhou o acesso ao localhost, assumimos que estamos offline ou o servidor caiu
-      if (isOnline) {
-        isOnline = false;
-        console.log('[Connectivity] Online: false');
-        notifyListeners(false);
-      }
+      // Em caso de erro de rede (DNS, Timeout), mantemos o estado anterior por um tempo
+      // para evitar que a interface fique piscando "Offline"
+      // notifyListeners(false); // Removido o aviso agressivo
     }
   };
 
-  const interval = setInterval(checkConnectivity, 10000);
+  // Verifica a cada 30 segundos em vez de 10
+  const interval = setInterval(checkConnectivity, 30000);
   checkConnectivity();
 
   return () => clearInterval(interval);

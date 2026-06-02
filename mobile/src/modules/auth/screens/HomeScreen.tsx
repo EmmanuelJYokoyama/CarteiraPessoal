@@ -40,8 +40,8 @@ export default function HomeScreen({navigation}: Props) {
         listAllTransactions(),
         listCards(),
       ]);
-      setTransactions(txs);
-      setCards(cardsData);
+      if (txs) setTransactions(txs);
+      if (cardsData) setCards(cardsData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {

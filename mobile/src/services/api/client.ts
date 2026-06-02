@@ -129,12 +129,13 @@ async function makeRequest<T>(
 
   // Check if we're offline and should queue the request
   if (!isOnline && !PUBLIC_ENDPOINTS.includes(path) && !fullOptions.skipQueue) {
-    console.log(`[API] Offline, queueing: ${fullOptions.method} ${path}`);
-    await addPendingRequest({
-      method: fullOptions.method,
-      path,
-      body: fullOptions.body,
-    });
+    if (fullOptions.method !== 'GET') {
+      await addPendingRequest({
+        method: fullOptions.method,
+        path,
+        body: fullOptions.body,
+      });
+    }
     throw new Error('Offline - request queued');
   }
 
@@ -282,7 +283,16 @@ async function makeRequest<T>(
       clearTimeout(timeoutId);
     }
   } catch (error) {
-    console.error('[API] Error:', error);
+    // Tenta recuperar do cache se a rede falhar totalmente
+    if (fullOptions.method === 'GET') {
+      const fallbackCached = await getCachedResponse<T>(cacheKey);
+      if (fallbackCached) {
+        console.log(`[API] Network failed, using stale cache for: ${path}`);
+        return fallbackCached;
+      }
+    }
+
+    console.log('[API] Request failed:', path);
 
     if (error instanceof Error) {
       if (error.name === 'AbortError') {

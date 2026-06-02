@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "214051762982",
+    "project_id": "carteirapessoal-492a2",
+    "storage_bucket": "carteirapessoal-492a2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:214051762982:android:9c023fc610c92c871a07e7",
+        "android_client_info": {
+          "package_name": "com.carteirapessoal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTVWabftDb81zmSAFzNrSvP2VVcZAtZ9E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,8 @@ import {db} from '@db/index';
 import {categories} from '@db/schema/categories';
 import {eq, and} from 'drizzle-orm';
 import type {CreateCategoryInput, UpdateCategoryInput} from './categories.schema';
+import {DEFAULT_CATEGORIES} from './categories.constants';
+import type {Category} from '@db/schema/categories';
 
 export async function createCategory(userId: string, input: CreateCategoryInput) {
   const newCategory = await db
@@ -16,11 +18,24 @@ export async function createCategory(userId: string, input: CreateCategoryInput)
   return newCategory[0];
 }
 
-export async function getCategoriesByUserId(userId: string) {
+export async function getCategoriesByUserId(userId: string): Promise<Category[]> {
   const userCategories = await db
     .select()
     .from(categories)
     .where(eq(categories.userId, userId));
+
+  // Se o usuário não tem nenhuma categoria, retorna as categorias padrão como "virtuais"
+  // (não salvas no BD, mas sempre disponíveis)
+  if (userCategories.length === 0) {
+    return DEFAULT_CATEGORIES.map((cat) => ({
+      id: `default-${cat.name.toLowerCase().replace(/\s+/g, '-')}`,
+      userId,
+      name: cat.name,
+      color: cat.color,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })) as Category[];
+  }
 
   return userCategories;
 }

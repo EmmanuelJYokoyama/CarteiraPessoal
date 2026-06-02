@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "target": "esnext",
     "module": "commonjs",
     "lib": ["esnext"],
@@ -9,6 +9,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
+    "types": ["jest"],
     "baseUrl": ".",
     "paths": {
       "@contexts/*": ["src/contexts/*"],

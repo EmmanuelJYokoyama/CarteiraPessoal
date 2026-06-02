@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {
-  MapPin,
   MessageSquare,
   Camera,
   Check,
@@ -28,14 +27,6 @@ interface PermissionItem {
 }
 
 const PERMISSIONS_FLOW: PermissionItem[] = [
-  {
-    type: PermissionType.LOCATION,
-    name: 'Localização',
-    icon: <MapPin size={32} color="#3498db" />,
-    description:
-      'Encontre caixas eletrônicos próximos e ofertas regionalizadas',
-    required: false,
-  },
   {
     type: PermissionType.SMS,
     name: 'SMS',
@@ -62,9 +53,8 @@ export function PermissionsOnboardingScreen({
   const {requestPermission} = usePermissionsContext();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [permissionStates, setPermissionStates] = useState<
-    Record<PermissionType, boolean>
+    Partial<Record<PermissionType, boolean>>
   >({
-    [PermissionType.LOCATION]: false,
     [PermissionType.SMS]: false,
     [PermissionType.CAMERA]: false,
   });
@@ -75,7 +65,7 @@ export function PermissionsOnboardingScreen({
 
   const currentPermission = PERMISSIONS_FLOW[currentIndex];
   const isLastPermission = currentIndex === PERMISSIONS_FLOW.length - 1;
-  const isGranted = permissionStates[currentPermission.type];
+  const isGranted = !!permissionStates[currentPermission.type];
 
   const handleRequestPermission = async () => {
     try {

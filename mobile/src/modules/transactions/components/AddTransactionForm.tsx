@@ -1,9 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {View, TextInput, Text, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, Alert, Platform, PermissionsAndroid, Linking} from 'react-native';
-const Geolocation: any = (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {createTransaction, checkDuplicateTransactions, suggestCategory, type CategorySuggestion, type CreateTransactionPayload} from '@services/api/transactions';
-import {API_BASE_URL} from '@services/api/client';
+import {apiRequest} from '@services/api/client';
 import {listCards, Card} from '@services/api/cards';
 import {invalidateCache} from '@services/cache';
 import {recordCategoryLearning} from '@services/categorySuggestion';
@@ -15,11 +14,6 @@ const currencyOptions = [
   {code: 'USD', label: 'Dólar americano'},
   {code: 'EUR', label: 'Euro'},
 ];
-
-type DeviceLocation = {
-  latitude: number;
-  longitude: number;
-};
 
 interface AddTransactionFormProps {
   onSuccess?: () => void;
@@ -45,9 +39,6 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#2ED573');
   const [creatingCategory, setCreatingCategory] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<DeviceLocation | null>(null);
-  const [locationName, setLocationName] = useState<string | null>(null);
-  const [fetchingLocation, setFetchingLocation] = useState(false);
   const [categorySuggestion, setCategorySuggestion] = useState<CategorySuggestion | null>(null);
   const [suggestingCategory, setSuggestingCategory] = useState(false);
   const selectedCurrency = currencyOptions.find(option => option.code === currency) ?? currencyOptions[0];
@@ -56,12 +47,6 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
 
   useEffect(() => {
     loadCards();
-
-    Geolocation.setRNConfiguration({
-      skipPermissionRequests: false,
-      authorizationLevel: 'whenInUse',
-      locationProvider: 'auto',
-    });
   }, []);
 
   // Sugerir categoria quando a descrição muda
@@ -105,99 +90,6 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
       clearTimeout(debounceTimer);
     };
   }, [description]);
-
-  async function ensureLocationPermission() {
-    if (Platform.OS === 'ios') {
-      Geolocation.requestAuthorization();
-      return true;
-    }
-
-    const finePermission = PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
-
-    try {
-      const hasFine = await PermissionsAndroid.check(finePermission);
-      if (hasFine) {
-        return true;
-      }
-
-      const result = await PermissionsAndroid.request(finePermission, {
-        title: 'Permissão de localização',
-        message: 'Precisamos da sua localização atual para registrar onde a despesa ocorreu.',
-        buttonPositive: 'Permitir',
-        buttonNegative: 'Agora não',
-      });
-
-      if (result === PermissionsAndroid.RESULTS.GRANTED) {
-        return true;
-      }
-
-      if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-        Alert.alert(
-          'Permissão bloqueada',
-          'A localização está bloqueada para este app. Ative nas configurações do dispositivo.',
-          [
-            {text: 'Cancelar', style: 'cancel'},
-            {text: 'Abrir configurações', onPress: () => Linking.openSettings()},
-          ],
-        );
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Erro ao solicitar permissão de localização:', error);
-      return false;
-    }
-  }
-
-  function getCurrentPosition(options: Parameters<typeof Geolocation.getCurrentPosition>[2]) {
-    return new Promise<DeviceLocation>((resolve, reject) => {
-        Geolocation.getCurrentPosition(
-          (position: any) => {
-            resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          },
-          (error: any) => reject(error),
-          options,
-        );
-    });
-  }
-
-  async function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
-    try {
-      const url = `${API_BASE_URL}/location/address?latitude=${latitude}&longitude=${longitude}`;
-      
-      console.log('[AddTransactionForm] Chamando reverse geocoding:', url);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        console.log('[AddTransactionForm] Response não OK, status:', response.status);
-        console.log('[AddTransactionForm] Continuando sem nome do local');
-        return null;
-      }
-
-      const data = await response.json();
-      console.log('[AddTransactionForm] Endereço recebido:', data);
-      
-      // Prioridade: name > fullAddress > null
-      if (data.name) {
-        console.log('[AddTransactionForm] Endereço obtido:', data.name);
-        return data.name;
-      } else if (data.fullAddress) {
-        console.log('[AddTransactionForm] Endereço completo obtido:', data.fullAddress);
-        return data.fullAddress;
-      } else {
-        console.log('[AddTransactionForm] Nenhum nome de local encontrado na resposta');
-        return null;
-      }
-    } catch (error) {
-      console.error('[AddTransactionForm] Erro ao obter endereço:', error);
-      console.log('[AddTransactionForm] Continuando sem nome do local');
-      return null;
-    }
-  }
 
   async function loadCards() {
     try {
@@ -269,53 +161,6 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
     return true;
   }
 
-  async function handleGetCurrentLocation() {
-    try {
-      setFetchingLocation(true);
-
-      const granted = await ensureLocationPermission();
-      if (!granted) {
-        Alert.alert('Permissão negada', 'Ative a localização para registrar a despesa com a posição atual.');
-        return;
-      }
-
-      try {
-        const preciseLocation = await getCurrentPosition({
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        });
-        setSelectedLocation(preciseLocation);
-        const locationName = await reverseGeocode(preciseLocation.latitude, preciseLocation.longitude);
-        setLocationName(locationName);
-        return;
-      } catch (preciseError) {
-        console.warn('Falha em alta precisão, tentando modo balanceado:', preciseError);
-      }
-
-      try {
-        const fallbackLocation = await getCurrentPosition({
-          enableHighAccuracy: false,
-          timeout: 20000,
-          maximumAge: 60000,
-        });
-        setSelectedLocation(fallbackLocation);
-        const locationName = await reverseGeocode(fallbackLocation.latitude, fallbackLocation.longitude);
-        setLocationName(locationName);
-      } catch (fallbackError: any) {
-        console.error('Erro ao obter localização atual:', fallbackError);
-        Alert.alert(
-          'Falha ao obter localização',
-          fallbackError?.code === 1
-            ? 'Permissão de localização negada no sistema. Verifique as permissões do app nas configurações.'
-            : 'Não foi possível capturar a localização atual do dispositivo.',
-        );
-      }
-    } finally {
-      setFetchingLocation(false);
-    }
-  }
-
   async function handleAddTransaction() {
     if (!validateForm()) return;
 
@@ -332,11 +177,6 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
     // Adicionar cartão apenas se estiver selecionado
     if (selectedCard?.id) {
       payload.cardId = selectedCard.id;
-    }
-
-    // Adicionar nome do lugar apenas se conseguiu fazer o reverse geocoding
-    if (locationName) {
-      payload.location = locationName;
     }
 
     const saveTransaction = async () => {
@@ -361,8 +201,6 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         setCategory('');
         setInstallments('1');
         setTransactionDate(new Date());
-        setSelectedLocation(null);
-        setLocationName(null);
         onSuccess?.();
       } catch (error: any) {
         const message = error.message || 'Erro ao registrar despesa';
@@ -535,37 +373,6 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
               Nenhum cartão disponível
             </Text>
           )}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Localização da despesa</Text>
-          <Pressable
-            style={styles.selectedCardContainer}
-            onPress={handleGetCurrentLocation}
-            disabled={fetchingLocation || loading}>
-            <Text style={styles.selectorTitle}>
-              {fetchingLocation
-                ? 'Capturando localização atual...'
-                : locationName
-                  ? locationName
-                  : 'Usar localização atual do dispositivo'}
-            </Text>
-          </Pressable>
-          <Text style={styles.fieldHint}>
-            A localização é capturada automaticamente pelo GPS do aparelho.
-          </Text>
-          {selectedLocation && locationName ? (
-            <Pressable
-              onPress={() => {
-                setSelectedLocation(null);
-                setLocationName(null);
-              }}
-              style={{marginTop: 8}}>
-              <Text style={styles.warningText}>
-                Limpar localização
-              </Text>
-            </Pressable>
-          ) : null}
         </View>
 
         <View style={styles.rowContainer}>

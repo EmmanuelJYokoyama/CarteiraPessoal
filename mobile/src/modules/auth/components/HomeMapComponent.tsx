@@ -1,179 +1,165 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, ActivityIndicator, Pressable, Platform, PermissionsAndroid} from 'react-native';
-import {RotateCcw} from 'lucide-react-native';
-import MapView, {Marker} from 'react-native-maps';
+// import React, {useEffect, useState} from 'react';
+// import {View, Text, ActivityIndicator, Pressable, Platform, PermissionsAndroid} from 'react-native';
 
-// Try to use native geolocation library if linked, else fall back to globalThis
-const GeoLib: any = (() => {
-  try {
-    // require at runtime to avoid bundler errors when package is not installed
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('react-native-geolocation-service');
-  } catch (e) {
-    return null;
-  }
-})();
+// interface HomeMapComponentProps {
+//   height?: number;
+//   onLocationChange?: (location: UserLocation) => void;
+// }
 
-const Geolocation: any = GeoLib ?? (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
-// Platform/Permissions can be used later if needed
+// export function HomeMapComponent({height = 250, onLocationChange}: HomeMapComponentProps) {
+//   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState<string | null>(null);
 
-interface UserLocation {
-  latitude: number;
-  longitude: number;
-}
+//   useEffect(() => {
+//     (async () => {
+//       // On Android, request runtime permission first
+//       if (Platform.OS === 'android') {
+//         try {
+//           const granted = await PermissionsAndroid.request(
+//             PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+//             {
+//               title: 'Permissão de localização',
+//               message: 'Precisamos da sua localização para mostrar no mapa.',
+//               buttonPositive: 'Permitir',
+//               buttonNegative: 'Agora não',
+//             },
+//           );
 
-interface HomeMapComponentProps {
-  height?: number;
-  onLocationChange?: (location: UserLocation) => void;
-}
+//           if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+//             setError('Permissão de localização negada');
+//             setLoading(false);
+//             // set default location (São Paulo)
+//             const defaultLocation = {latitude: -23.5505, longitude: -46.6333};
+//             setUserLocation(defaultLocation);
+//             onLocationChange?.(defaultLocation);
+//             return;
+//           }
+//         } catch (err) {
+//           console.warn('Erro ao pedir permissão de localização Android', err);
+//         }
+//       } else if (Platform.OS === 'ios') {
+//         // if iOS and using a native lib, request authorization if available
+//         try {
+//           await Geolocation.requestAuthorization('whenInUse');
+//         } catch (e) {
+//           // ignore
+//         }
+//       }
 
-export function HomeMapComponent({height = 250, onLocationChange}: HomeMapComponentProps) {
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+//       getCurrentLocation();
+//     })();
+//   }, []);
 
-  useEffect(() => {
-    (async () => {
-      // On Android, request runtime permission first
-      if (Platform.OS === 'android') {
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-            {
-              title: 'Permissão de localização',
-              message: 'Precisamos da sua localização para mostrar no mapa.',
-              buttonPositive: 'Permitir',
-              buttonNegative: 'Agora não',
-            },
-          );
+//   const getCurrentLocation = () => {
+//     setLoading(true);
+//     setError(null);
 
-          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-            setError('Permissão de localização negada');
-            setLoading(false);
-            // set default location (São Paulo)
-            const defaultLocation = {latitude: -23.5505, longitude: -46.6333};
-            setUserLocation(defaultLocation);
-            onLocationChange?.(defaultLocation);
-            return;
-          }
-        } catch (err) {
-          console.warn('Erro ao pedir permissão de localização Android', err);
-        }
-      } else if (Platform.OS === 'ios') {
-        // if iOS and using a native lib, request authorization if available
-        try {
-          Geolocation?.requestAuthorization?.();
-        } catch (e) {
-          // ignore
-        }
-      }
+//     try {
+//       Geolocation.getCurrentPosition(
+//         (position: any) => {
+//           const {latitude, longitude} = position.coords;
+//           const location = {latitude, longitude};
+//           setUserLocation(location);
+//           setError(null);
+//           setLoading(false);
+//           onLocationChange?.(location);
 
-      getCurrentLocation();
-    })();
-  }, []);
+//           console.log('[HomeMap] Localização obtida:', location);
+//         },
+//         (error: any) => {
+//           console.error('[HomeMap] Erro ao obter localização:', error);
+//           setLoading(false);
 
-  const getCurrentLocation = () => {
-    setLoading(true);
-    setError(null);
+//           // Se não conseguir localização, usar São Paulo como padrão
+//           const defaultLocation = {latitude: -23.5505, longitude: -46.6333};
+//           setUserLocation(defaultLocation);
+//           onLocationChange?.(defaultLocation);
 
-    // Use GeoLib's getCurrentPosition if available for better Android support
-    const getPos = GeoLib?.getCurrentPosition ? GeoLib.getCurrentPosition.bind(GeoLib) : Geolocation.getCurrentPosition.bind(Geolocation);
+//           // Mostrar erro apenas se não for "No location provider available"
+//           if (error.code !== 2) {
+//             setError(error.message);
+//           }
+//         },
+//         {
+//           enableHighAccuracy: true,
+//           timeout: 20000,
+//           maximumAge: 60000,
+//           distanceFilter: 10
+//         }
+//       );
+//     } catch (error) {
+//       console.error('[HomeMap] getCurrentPosition lançou erro:', error);
+//       const defaultLocation = {latitude: -23.5505, longitude: -46.6333};
+//       setUserLocation(defaultLocation);
+//       onLocationChange?.(defaultLocation);
+//       setLoading(false);
+//       setError(null);
+//     }
+//   };
 
-    getPos(
-      (position: any) => {
-        const {latitude, longitude} = position.coords;
-        const location = {latitude, longitude};
-        setUserLocation(location);
-        setError(null);
-        setLoading(false);
-        onLocationChange?.(location);
+//   if (loading) {
+//     return (
+//       <View style={{height, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center'}}>
+//         <ActivityIndicator size="large" color="#3b82f6" />
+//         <Text style={{color: '#6b7280', marginTop: 12, fontSize: 14}}>
+//           Obtendo localização...
+//         </Text>
+//       </View>
+//     );
+//   }
 
-        console.log('[HomeMap] Localização obtida:', location);
-      },
-      (error: any) => {
-        console.error('[HomeMap] Erro ao obter localização:', error);
-        setLoading(false);
+//   if (error) {
+//     return (
+//       <View style={{height, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16}}>
+//         <Text style={{color: '#dc2626', marginBottom: 12, fontSize: 13, textAlign: 'center', fontWeight: '600'}}>
+//           ⚠️ Erro ao obter localização
+//         </Text>
+//         <Text style={{color: '#991b1b', fontSize: 12, textAlign: 'center', marginBottom: 12}}>
+//           {error}
+//         </Text>
+//         <Pressable
+//           onPress={getCurrentLocation}
+//           style={{
+//             flexDirection: 'row',
+//             alignItems: 'center',
+//             backgroundColor: '#2563eb',
+//             paddingHorizontal: 12,
+//             paddingVertical: 8,
+//             borderRadius: 6,
+//           }}>
+//           <RotateCcw size={16} color="#fff" />
+//           <Text style={{color: '#fff', fontSize: 12, marginLeft: 6, fontWeight: '600'}}>
+//             Tentar novamente
+//           </Text>
+//         </Pressable>
+//       </View>
+//     );
+//   }
 
-        // Se não conseguir localização, usar São Paulo como padrão
-        const defaultLocation = {latitude: -23.5505, longitude: -46.6333};
-        setUserLocation(defaultLocation);
-        onLocationChange?.(defaultLocation);
-
-        // Mostrar erro apenas se não for "No location provider available"
-        if (error.code !== 2) {
-          setError(error.message);
-        }
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 20000,
-        maximumAge: 60000,
-      }
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={{height, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center'}}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={{color: '#6b7280', marginTop: 12, fontSize: 14}}>
-          Obtendo localização...
-        </Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={{height, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16}}>
-        <Text style={{color: '#dc2626', marginBottom: 12, fontSize: 13, textAlign: 'center', fontWeight: '600'}}>
-          ⚠️ Erro ao obter localização
-        </Text>
-        <Text style={{color: '#991b1b', fontSize: 12, textAlign: 'center', marginBottom: 12}}>
-          {error}
-        </Text>
-        <Pressable
-          onPress={getCurrentLocation}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: '#2563eb',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 6,
-          }}>
-          <RotateCcw size={16} color="#fff" />
-          <Text style={{color: '#fff', fontSize: 12, marginLeft: 6, fontWeight: '600'}}>
-            Tentar novamente
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{height, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f4f6'}}>
-      {userLocation && (
-        <MapView
-          style={{flex: 1}}
-          initialRegion={{
-            latitude: userLocation.latitude,
-            longitude: userLocation.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-          showsUserLocation={true}
-          followsUserLocation={true}
-          loadingEnabled={true}>
+//   return (
+//     <View style={{height, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f4f6'}}>
+//       {userLocation && (
+//         <MapView
+//           style={{flex: 1}}
+//           initialRegion={{
+//             latitude: userLocation.latitude,
+//             longitude: userLocation.longitude,
+//             latitudeDelta: 0.01,
+//             longitudeDelta: 0.01,
+//           }}
+//           showsUserLocation={true}
+//           followsUserLocation={true}
+//           loadingEnabled={true}>
           
-          {/* Marcador do usuário */}
-          <Marker
-            coordinate={{latitude: userLocation.latitude, longitude: userLocation.longitude}}
-            title="Sua Localização"
-            description={`${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`}
-          />
-        </MapView>
-      )}
-    </View>
-  );
-}
+//           {/* Marcador do usuário */}
+//           <Marker
+//             coordinate={{latitude: userLocation.latitude, longitude: userLocation.longitude}}
+//             title="Sua Localização"
+//             description={`${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`}
+//           />
+//         </MapView>
+//       )}
+//     </View>
+//   );
+// }

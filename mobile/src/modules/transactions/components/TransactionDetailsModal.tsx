@@ -1,9 +1,8 @@
 import React from 'react';
 import {View, Text, Modal, Pressable, ScrollView, TextInput, ActivityIndicator} from 'react-native';
-import {CheckCircle, Edit2, Trash2, X, MapPin} from 'lucide-react-native';
+import {CheckCircle, Edit2, Trash2, X} from 'lucide-react-native';
 import {Transaction} from '@services/api/transactions';
 import {useTransactionModal} from './hooks/useTransactionModal';
-import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import {styles} from './styles/TransactionDetailsModal.styles';
 
 interface TransactionDetailsModalProps {
@@ -11,15 +10,13 @@ interface TransactionDetailsModalProps {
   transaction: Transaction | null;
   onClose: () => void;
   onUpdate: () => void;
-  onShowMap?: () => void;
 }
 
 export function TransactionDetailsModal({
   visible,
   transaction,
   onClose,
-  onUpdate,
-  onShowMap,
+  onUpdate
 }: TransactionDetailsModalProps) {
   if (!transaction) return null;
 
@@ -32,8 +29,6 @@ export function TransactionDetailsModal({
     setEditedAmount,
     editedCategory,
     setEditedCategory,
-    editedLocation,
-    setEditedLocation,
     isLoading,
     syncState,
     handleComplete,
@@ -68,18 +63,6 @@ export function TransactionDetailsModal({
     const formatted = formatAmountInput(text);
     setEditedAmount(formatted);
   };
-
-  const latitude = transaction.latitude != null ? Number(transaction.latitude) : null;
-  const longitude = transaction.longitude != null ? Number(transaction.longitude) : null;
-  const hasLocation = latitude !== null && longitude !== null && Number.isFinite(latitude) && Number.isFinite(longitude);
-
-  console.log('[TransactionDetailsModal] Location check:', {
-    transactionLatitude: transaction.latitude,
-    transactionLongitude: transaction.longitude,
-    latitude,
-    longitude,
-    hasLocation,
-  });
 
   React.useEffect(() => {
     syncState();
@@ -136,41 +119,6 @@ export function TransactionDetailsModal({
                     {new Date(transaction.transactionDate).toLocaleDateString('pt-BR')}
                   </Text>
                 </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={styles.label}>Localização</Text>
-                  {transaction.location ? (
-                    <Text style={styles.value}>{transaction.location}</Text>
-                  ) : (
-                    <Text style={styles.value}>Sem localização registrada</Text>
-                  )}
-                </View>
-
-                {hasLocation && latitude !== null && longitude !== null ? (
-                  <View style={styles.mapSection}>
-                    <Text style={styles.label}>Mapa da despesa</Text>
-                    <View style={styles.mapContainer}>
-                      <MapView
-                        provider={PROVIDER_GOOGLE}
-                        style={styles.map}
-                        initialRegion={{
-                          latitude,
-                          longitude,
-                          latitudeDelta: 0.012,
-                          longitudeDelta: 0.012,
-                        }}>
-                        <Marker
-                          coordinate={{
-                            latitude,
-                            longitude,
-                          }}
-                          title={transaction.description}
-                          description={transaction.category || 'Despesa registrada'}
-                        />
-                      </MapView>
-                    </View>
-                  </View>
-                ) : null}
 
                 {transaction.installments > 1 && (
                   <>
@@ -308,18 +256,6 @@ export function TransactionDetailsModal({
                     editable={!isLoading}
                   />
                 </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Localização (Opcional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={editedLocation}
-                    onChangeText={setEditedLocation}
-                    placeholder="Ex: Rua Principal, São Paulo"
-                    placeholderTextColor="#666"
-                    editable={!isLoading}
-                  />
-                </View>
               </View>
             )}
           </ScrollView>
@@ -360,16 +296,6 @@ export function TransactionDetailsModal({
                   <Edit2 size={18} color="#0a0a0a" />
                   <Text style={styles.buttonText}>Editar</Text>
                 </Pressable>
-
-                {hasLocation && onShowMap && (
-                  <Pressable
-                    style={[styles.button, {backgroundColor: 'rgba(52, 152, 219, 0.9)'}]}
-                    onPress={onShowMap}
-                    disabled={isLoading}>
-                    <MapPin size={18} color="#0a0a0a" />
-                    <Text style={styles.buttonText}>Mapa</Text>
-                  </Pressable>
-                )}
 
                 <Pressable
                   style={[styles.button, styles.deleteButton]}

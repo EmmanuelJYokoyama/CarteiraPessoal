@@ -2,27 +2,14 @@ import React, {useState, useCallback, useMemo} from 'react';
 import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
-
-// Try to use native geolocation library if linked, else fall back to globalThis
-const GeoLibScreen: any = (() => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('react-native-geolocation-service');
-  } catch (e) {
-    return null;
-  }
-})();
-
-const Geolocation: any = GeoLibScreen ?? (globalThis as any).Geolocation ?? (globalThis as any).navigator?.geolocation;
 import {useAuth} from '@contexts/AuthContext';
 import {useGoalsContext} from '@contexts/GoalsContext';
-import {requestPermission, PermissionType} from '@services/permissions';
+import {apiRequest} from '@services/api/client';
 import {listAllTransactions, type Transaction} from '@services/api/transactions';
 import {listCards, type Card} from '@services/api/cards';
-import {API_BASE_URL} from '@services/api/client';
 import {useOfflineSync} from '@hooks/useOfflineSync';
 import {BarChartCard} from '@components/charts';
-import {TrendingDown, CreditCard, AlertCircle, MapPin, PieChart as PieChartIcon, ArrowRight} from 'lucide-react-native';
+import {TrendingDown, CreditCard, AlertCircle, PieChart as PieChartIcon, ArrowRight} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {styles} from './styles/HomeScreen.styles';
 
@@ -36,10 +23,6 @@ export default function HomeScreen({navigation}: Props) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userLocation, setUserLocation] = useState<{latitude: number; longitude: number} | null>(null);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [addressName, setAddressName] = useState<string | null>(null);
 
   const initials = user?.name?.charAt(0)?.toUpperCase() || '👤';
 
@@ -63,115 +46,6 @@ export default function HomeScreen({navigation}: Props) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getLocationErrorMessage = (code: number): string => {
-    switch (code) {
-      case 1:
-        return 'Permissão negada. Ative nas configurações do device.';
-      case 2:
-        return 'Posição indisponível. Ative o GPS do device.';
-      case 3:
-        return 'Timeout ao obter localização. Tente novamente.';
-      default:
-        return 'Erro ao obter localização. Tente novamente.';
-    }
-  };
-
-  const reverseGeocode = async (latitude: number, longitude: number) => {
-    try {
-      // Usa o endpoint do backend
-      const url = `${API_BASE_URL}/location/address?latitude=${latitude}&longitude=${longitude}`;
-      
-      console.log('[HomeScreen] Chamando endpoint:', url);
-      
-      const response = await fetch(url);
-      console.log('[HomeScreen] Status:', response.status);
-      
-      if (!response.ok) {
-        console.log('[HomeScreen] Response não OK, status:', response.status);
-        const errorText = await response.text();
-        console.log('[HomeScreen] Error response:', errorText);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('[HomeScreen] Full response:', JSON.stringify(data, null, 2));
-      
-      // Tenta extrair o nome de várias formas
-      let addressName = null;
-      
-      if (data.name) {
-        addressName = data.name;
-      } else if (data.address?.road) {
-        addressName = data.address.road;
-      } else if (data.address?.street) {
-        addressName = data.address.street;
-      } else if (data.address?.neighbourhood) {
-        addressName = data.address.neighbourhood;
-      } else if (data.address?.city) {
-        addressName = data.address.city;
-      } else if (data.fullAddress) {
-        addressName = data.fullAddress.split(',')[0];
-      }
-      
-      if (addressName) {
-        setAddressName(addressName);
-        console.log('[HomeScreen] Endereço extraído:', addressName);
-      } else {
-        console.log('[HomeScreen] Nenhum endereço encontrado na resposta');
-        setAddressName(null);
-      }
-    } catch (error) {
-      console.error('[HomeScreen] Erro ao obter endereço:', error);
-      console.error('[HomeScreen] Error type:', typeof error);
-      if (error instanceof Error) {
-        console.error('[HomeScreen] Error message:', error.message);
-        console.error('[HomeScreen] Error stack:', error.stack);
-      }
-      setAddressName(null);
-    }
-  };
-
-  const requestLocationPermission = async () => {
-    try {
-      setLocationLoading(true);
-      setLocationError(null);
-
-      // Solicita permissão de localização
-      const result = await requestPermission(PermissionType.LOCATION);
-
-      if (result.granted) {
-        // Se permitiu, obtém localização
-        Geolocation.getCurrentPosition(
-          (position: { coords: { latitude: any; longitude: any; }; }) => {
-            const {latitude, longitude} = position.coords;
-            setUserLocation({latitude, longitude});
-            setLocationLoading(false);
-            console.log('[HomeScreen] Localização obtida:', latitude, longitude);
-            reverseGeocode(latitude, longitude);
-          },
-          (error: any) => {
-            console.error('[HomeScreen] Erro ao obter localização:', error.code, error.message);
-            const errorMsg = getLocationErrorMessage(error.code);
-            setLocationError(errorMsg);
-            setLocationLoading(false);
-          },
-          {
-            enableHighAccuracy: false,
-            timeout: 30000,
-            maximumAge: 300000,
-          }
-        );
-      } else {
-        setLocationLoading(false);
-        setLocationError('Permissão de localização negada');
-      }
-    } catch (error) {
-      console.error('[HomeScreen] Erro ao solicitar permissão:', error);
-      setLocationError('Erro ao solicitar permissão');
-      setLocationLoading(false);
     }
   };
 
@@ -392,77 +266,6 @@ export default function HomeScreen({navigation}: Props) {
                 yLabel="Valor"
                 height={320}
               />
-            </View>
-
-            <View style={styles.mapCard}>
-              <View style={styles.mapCardHeader}>
-                <View>
-                  <Text style={styles.mapCardKicker}>Sua Localização</Text>
-                  <Text style={styles.mapCardTitle}>
-                    {locationLoading ? 'Buscando...' : userLocation ? (addressName || `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`) : 'Desativada'}
-                  </Text>
-                </View>
-                <MapPin size={24} color={userLocation ? '#2ed573' : '#999'} />
-              </View>
-
-              <View style={{padding: 16, backgroundColor: locationLoading ? 'rgba(52, 152, 219, 0.1)' : userLocation ? 'rgba(46, 213, 115, 0.1)' : 'rgba(159, 159, 159, 0.1)', borderRadius: 8}}>
-                {locationLoading ? (
-                  <View style={{alignItems: 'center'}}>
-                    <ActivityIndicator size="small" color="#3b82f6" />
-                    <Text style={{color: '#3b82f6', fontSize: 12, marginTop: 8}}>
-                      Obtendo sua localização...
-                    </Text>
-                  </View>
-                ) : userLocation ? (
-                  <View>
-                    <Text style={{color: '#2ed573', fontSize: 13, fontWeight: '600', marginBottom: 8}}>
-                      ✓ Localização ativa
-                    </Text>
-                    {addressName && (
-                      <Text style={{color: '#333', fontSize: 13, fontWeight: '500', marginBottom: 6}}>
-                        {addressName}
-                      </Text>
-                    )}
-                    <Text style={{color: '#999', fontSize: 11, marginBottom: 2}}>
-                      Lat: {userLocation.latitude.toFixed(6)}
-                    </Text>
-                    <Text style={{color: '#999', fontSize: 11}}>
-                      Lon: {userLocation.longitude.toFixed(6)}
-                    </Text>
-                  </View>
-                ) : locationError ? (
-                  <View>
-                    <Text style={{color: '#ff6b6b', fontSize: 12, fontWeight: '600', marginBottom: 10}}>
-                      ⚠️ {locationError}
-                    </Text>
-                    <Pressable
-                      onPress={requestLocationPermission}
-                      style={{
-                        backgroundColor: '#2563eb',
-                        paddingVertical: 8,
-                        paddingHorizontal: 12,
-                        borderRadius: 6,
-                      }}>
-                      <Text style={{color: '#fff', fontSize: 12, fontWeight: '600', textAlign: 'center'}}>
-                        Tentar novamente
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <Pressable
-                    onPress={requestLocationPermission}
-                    style={{
-                      backgroundColor: '#2563eb',
-                      paddingVertical: 10,
-                      paddingHorizontal: 12,
-                      borderRadius: 6,
-                    }}>
-                    <Text style={{color: '#fff', fontSize: 13, fontWeight: '600', textAlign: 'center'}}>
-                      Ativar localização
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
             </View>
 
             {pendingInstallments > 0 && (

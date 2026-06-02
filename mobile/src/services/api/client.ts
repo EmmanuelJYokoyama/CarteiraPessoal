@@ -34,6 +34,7 @@ type RequestOptions = {
   cacheTTL?: number;
   skipCache?: boolean;
   skipQueue?: boolean;
+  responseType?: 'json' | 'blob' | 'text';
 };
 
 // Old implementation - to be replaced
@@ -97,7 +98,7 @@ export const apiRequest = Object.assign(apiRequestMain, {
   get: <T,>(path: string, options?: Partial<RequestOptions>) =>
     makeRequest<T>(path, {...(options || {}), method: 'GET'} as RequestOptions),
   post: <T,>(path: string, body?: unknown, options?: Partial<RequestOptions>) =>
-    makeRequest<T>(path, {...(options || {}), method: 'POST', body} as RequestOptions),
+    makeRequest<T>(path, {...(options || {}), method: 'POST', body, ...options} as RequestOptions),
   put: <T,>(path: string, body?: unknown, options?: Partial<RequestOptions>) =>
     makeRequest<T>(path, {...(options || {}), method: 'PUT', body} as RequestOptions),
   patch: <T,>(path: string, body?: unknown, options?: Partial<RequestOptions>) =>
@@ -138,7 +139,9 @@ async function makeRequest<T>(
   }
 
   try {
-    const url = `${API_BASE_URL}${path}`;
+    // Ensure path begins with '/'
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const url = `${API_BASE_URL}${normalizedPath}`;
     const token = await AsyncStorage.getItem('@access_token');
 
     const headers: Record<string, string> = {
@@ -246,12 +249,25 @@ async function makeRequest<T>(
         }
       }
 
-      const data = (await response.json()) as Record<string, unknown>;
-
       if (!response.ok) {
-        const message =
-          typeof data.error === 'string' ? data.error : `Error ${response.status}`;
+        const errorData = (await response.json().catch(() => ({}))) as any;
+        const message = errorData.error || `Error ${response.status}`;
         throw new Error(message);
+      }
+
+      let data: any;
+      const type = fullOptions.responseType || 'json';
+
+      switch (type) {
+        case 'blob':
+          data = await response.blob();
+          break;
+        case 'text':
+          data = await response.text();
+          break;
+        default:
+          data = await response.json();
+          break;
       }
 
       if (

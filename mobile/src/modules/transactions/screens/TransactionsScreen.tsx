@@ -1,5 +1,5 @@
 import React, {useState, useCallback, useMemo} from 'react';
-import {View, Text, FlatList, Pressable, ActivityIndicator} from 'react-native';
+import {View, Text, FlatList, Pressable, ActivityIndicator, Alert} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import {Upload} from 'lucide-react-native';
@@ -147,11 +147,24 @@ export default function TransactionsScreen({navigation}: Props) {
                   onPress={async () => {
                     try {
                       setExporting(true);
-                      const path = await downloadPdfReport(API_BASE_URL, userToken ?? '', {});
+                      
+                      // Definir período do mês atual como padrão para evitar erro 500 no backend
+                      const now = new Date();
+                      const startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString();
+                      const endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)).toISOString();
+
+                      console.log('[ExportPDF] Solicitando período:', {startDate, endDate});
+
+                      const path = await downloadPdfReport(API_BASE_URL, userToken ?? '', {
+                        startDate,
+                        endDate
+                      });
                       setExporting(false);
                       navigation.navigate('PdfViewer', {path});
                     } catch (err) {
-                      console.error('Failed to export PDF', err);
+                      const message = err instanceof Error ? err.message : 'Erro interno no servidor';
+                      Alert.alert('Erro na Exportação', `Não foi possível gerar o PDF: ${message}\n\nVerifique se a API está rodando corretamente.`);
+                      console.error('[ExportPDF] Error details:', err);
                       setExporting(false);
                     }
                   }}>
@@ -219,12 +232,6 @@ export default function TransactionsScreen({navigation}: Props) {
         transaction={selectedTransaction}
         onClose={() => setShowDetailsModal(false)}
         onUpdate={handleTransactionDeleted}
-        onShowMap={() => {
-          if (selectedTransaction?.latitude && selectedTransaction?.longitude) {
-            setShowDetailsModal(false);
-            navigation.navigate('TransactionMap', {transaction: selectedTransaction});
-          }
-        }}
       />
     </SafeAreaView>
   );

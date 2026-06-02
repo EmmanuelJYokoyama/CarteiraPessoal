@@ -13,8 +13,6 @@ function serializeTransaction(tx: any) {
     amount: Number(tx.amount),
     originalAmount: tx.originalAmount != null ? Number(tx.originalAmount) : null,
     exchangeRate: tx.exchangeRate != null ? Number(tx.exchangeRate) : null,
-    latitude: tx.latitude ? Number(tx.latitude) : null,
-    longitude: tx.longitude ? Number(tx.longitude) : null,
   };
 }
 
@@ -50,9 +48,6 @@ export async function createTransaction(userId: string, input: CreateTransaction
         installments: installmentCount,
         installmentsPaid: 0,
         category: input.category,
-        latitude: input.latitude ?? null,
-        longitude: input.longitude ?? null,
-        location: input.location ?? null,
         status: 'pending',
         transactionDate,
       })
@@ -291,14 +286,6 @@ export async function updateTransaction(transactionId: string, userId: string, i
     ...input,
     updatedAt: new Date(),
   };
-
-  if (Object.prototype.hasOwnProperty.call(input, 'latitude')) {
-    updateData.latitude = input.latitude ?? null;
-  }
-
-  if (Object.prototype.hasOwnProperty.call(input, 'longitude')) {
-    updateData.longitude = input.longitude ?? null;
-  }
 
   const moneyUpdateNeeded = Boolean(input.amount || input.currency);
 

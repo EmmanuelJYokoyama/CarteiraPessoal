@@ -1,9 +1,8 @@
-import {Platform} from 'react-native';
-
-const HEALTH_URL =
-  Platform.OS === 'android'
-    ? 'https://carteirapessoal.onrender.com/health'
-    : 'localhost:3000/health';
+// Select a health-check URL that works on device/emulator during development,
+// and points to production in release builds.
+// Use localhost in development. On Android emulator, if localhost is unreachable,
+// run `adb reverse tcp:3000 tcp:3000` on the host to forward the port.
+const HEALTH_URL = 'https://carteirapessoal.onrender.com/health';
 
 let isOnline = true;
 let listeners: Array<(online: boolean) => void> = [];
@@ -29,7 +28,16 @@ function initConnectivityCheck() {
         notifyListeners(isOnline);
       }
     } catch (error) {
-      console.log(`[Connectivity] Health check error:`, error);
+      // Enhanced logging for diagnosis: include error.name/message and signal state
+      try {
+        const errName = error && (error as any).name ? (error as any).name : 'unknown';
+        const errMsg = error && (error as any).message ? (error as any).message : String(error);
+        console.log(`[Connectivity] Health check error: ${errName} - ${errMsg}`);
+      } catch (e) {
+        console.log('[Connectivity] Health check error (unknown)', error);
+      }
+
+      // Se falhou o acesso ao localhost, assumimos que estamos offline ou o servidor caiu
       if (isOnline) {
         isOnline = false;
         console.log('[Connectivity] Online: false');

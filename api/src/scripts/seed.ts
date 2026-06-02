@@ -3,7 +3,6 @@ import bcrypt from 'bcrypt';
 import {db} from '@db/index';
 import {users} from '@db/schema/users';
 import {userSettings} from '@db/schema/userSettings';
-import {categories} from '@db/schema/categories';
 import {cards} from '@db/schema/cards';
 import {budgets} from '@db/schema/budgets';
 import {transactions} from '@db/schema/transactions';
@@ -18,17 +17,6 @@ const demoEmail = process.env.SEED_USER_EMAIL || 'demo@carteirapessoal.local';
 const demoPassword = process.env.SEED_USER_PASSWORD || '123456';
 const demoName = process.env.SEED_USER_NAME || 'Usuário Demo';
 
-const defaultCategories = [
-  {name: 'Alimentação', color: '#2ED573'},
-  {name: 'Transporte', color: '#1E90FF'},
-  {name: 'Moradia', color: '#FF7F50'},
-  {name: 'Lazer', color: '#FF6B81'},
-  {name: 'Saúde', color: '#7BED9F'},
-  {name: 'Educação', color: '#70A1FF'},
-  {name: 'Assinaturas', color: '#5352ED'},
-  {name: 'Outros', color: '#A4B0BE'},
-];
-
 async function main() {
   const passwordHash = await bcrypt.hash(demoPassword, 10);
 
@@ -37,7 +25,6 @@ async function main() {
   await db.delete(transactions).where(eq(transactions.userId, demoUserId));
   await db.delete(budgets).where(eq(budgets.userId, demoUserId));
   await db.delete(cards).where(eq(cards.userId, demoUserId));
-  await db.delete(categories).where(eq(categories.userId, demoUserId));
 
   await db.insert(users).values({
     id: demoUserId,
@@ -69,14 +56,6 @@ async function main() {
       locale: 'pt-BR',
     },
   });
-
-  await db.insert(categories).values(
-    defaultCategories.map(category => ({
-      userId: demoUserId,
-      name: category.name,
-      color: category.color,
-    })),
-  );
 
   console.log('Seed concluído com sucesso para o usuário demo:', demoUserId);
 }

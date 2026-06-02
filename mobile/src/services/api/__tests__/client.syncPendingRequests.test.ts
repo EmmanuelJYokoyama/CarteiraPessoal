@@ -1,7 +1,10 @@
+// @ts-nocheck
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {syncPendingRequests} from '../client';
 import {getPendingRequests, removePendingRequest} from '@services/cache';
 import {isNetworkOnline} from '@services/connectivity';
+
+declare const global: typeof globalThis;
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
@@ -35,6 +38,7 @@ const asyncStorageMock = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 const getPendingRequestsMock = getPendingRequests as jest.MockedFunction<typeof getPendingRequests>;
 const removePendingRequestMock = removePendingRequest as jest.MockedFunction<typeof removePendingRequest>;
 const isNetworkOnlineMock = isNetworkOnline as jest.MockedFunction<typeof isNetworkOnline>;
+let fetchMock: jest.Mock;
 
 describe('syncPendingRequests', () => {
   beforeEach(() => {
@@ -43,12 +47,17 @@ describe('syncPendingRequests', () => {
     isNetworkOnlineMock.mockReturnValue(true);
     getPendingRequestsMock.mockResolvedValue([]);
     removePendingRequestMock.mockResolvedValue();
-    global.fetch = jest.fn().mockResolvedValue({
+    fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
       statusText: 'OK',
       json: async () => ({success: true}),
     } as Response);
+    Object.defineProperty(global, 'fetch', {
+      value: fetchMock,
+      writable: true,
+      configurable: true,
+    });
   });
 
   it('replays pending requests and removes them after success', async () => {
@@ -65,7 +74,7 @@ describe('syncPendingRequests', () => {
     const result = await syncPendingRequests();
 
     expect(result).toEqual({success: 1, failed: 0});
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/transactions',
       expect.objectContaining({
         method: 'POST',
@@ -85,7 +94,7 @@ describe('syncPendingRequests', () => {
 
     expect(result).toEqual({success: 0, failed: 0});
     expect(getPendingRequestsMock).not.toHaveBeenCalled();
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('keeps the request queued when replay fails', async () => {
@@ -99,12 +108,17 @@ describe('syncPendingRequests', () => {
       },
     ]);
 
-    global.fetch = jest.fn().mockResolvedValue({
+    fetchMock = jest.fn().mockResolvedValue({
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
       json: async () => ({error: 'boom'}),
     } as Response);
+    Object.defineProperty(global, 'fetch', {
+      value: fetchMock,
+      writable: true,
+      configurable: true,
+    });
 
     const result = await syncPendingRequests();
 

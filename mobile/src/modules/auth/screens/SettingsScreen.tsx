@@ -23,9 +23,8 @@ const SETTINGS_ITEMS: SettingsItem[] = [
   {id: '2', title: 'Sobre', icon: Info, screen: null},
   {id: '3', title: 'Versão', icon: Package, screen: null},
   {id: '4', title: 'Telemetry dashboard', icon: FileWarning, screen: 'TelemetryDiagnostics'},
-  {id: '5', title: 'Backup na nuvem', icon: Cloud, screen: 'BackupSettings'},
-  {id: '6', title: 'Relatório por categoria', icon: PieChart, screen: 'CategoryReport'},
-  {id: '7', title: 'Fluxo de caixa', icon: NoIcon, screen: 'CashFlow'},
+  {id: '5', title: 'Relatório por categoria', icon: PieChart, screen: 'CategoryReport'},
+  {id: '6', title: 'Fluxo de caixa', icon: NoIcon, screen: 'CashFlow'},
 ];
 
 export default function SettingsScreen({navigation}: Props) {

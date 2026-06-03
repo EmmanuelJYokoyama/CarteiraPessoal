@@ -13,6 +13,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {MoreHorizontal, Plus} from 'lucide-react-native';
 import {Icon} from '@components/common/Icon';
 import {useGoalsContext} from '@contexts/GoalsContext';
+import {formatCurrency, formatDate, maskDate} from '@utils/formatters';
 import {styles} from './styles/GoalsScreen.styles';
 
 export default function GoalsScreen() {
@@ -56,9 +57,6 @@ export default function GoalsScreen() {
   const contributionTotal = activeGoalContributions.reduce((sum, item) => sum + item.amount, 0);
 
   const progressColor = progress >= 100 ? '#ef4444' : progress >= 75 ? '#f59e0b' : '#2ed573';
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(value);
 
   function handleAddContribution() {
     if (!hasGoal) {
@@ -233,7 +231,7 @@ export default function GoalsScreen() {
             <View style={styles.goalFooterRow}>
               <View>
                 <Text style={styles.footerLabel}>Prazo</Text>
-                <Text style={styles.footerValue}>{goal.deadline}</Text>
+                <Text style={styles.footerValue}>{formatDate(goal.deadline)}</Text>
               </View>
               <View style={styles.footerPill}>
                 <Icon name="check" size={14} color="#2ed573" />
@@ -377,7 +375,7 @@ export default function GoalsScreen() {
             <Text style={styles.inputLabel}>Prazo</Text>
             <TextInput
               value={goalDeadline}
-              onChangeText={setGoalDeadline}
+              onChangeText={text => setGoalDeadline(maskDate(text))}
               placeholder="Ex: 30/12/2026"
               placeholderTextColor="#666"
               style={styles.input}
@@ -437,7 +435,7 @@ export default function GoalsScreen() {
                   if (hasGoal) {
                     setGoalName(goal.name);
                     setGoalTarget(String(goal.target));
-                    setGoalCurrent(String(goal.current));
+                    setGoalCurrent(String(goal.current || '0'));
                     setGoalDeadline(goal.deadline);
                     setGoalCategory(goal.category);
                     setShowGoalModal(true);
@@ -487,7 +485,7 @@ export default function GoalsScreen() {
                     </Text>
                   </View>
                   <Text style={{color: '#999', fontSize: 12}}>
-                    {g.current.toFixed(2)} de {g.target.toFixed(2)} • {g.category}
+                    {formatCurrency(g.current)} de {formatCurrency(g.target)} • {g.category}
                   </Text>
                 </Pressable>
               ))}

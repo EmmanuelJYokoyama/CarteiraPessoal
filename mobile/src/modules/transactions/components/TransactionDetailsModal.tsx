@@ -4,6 +4,7 @@ import {CheckCircle, Edit2, Trash2, X} from 'lucide-react-native';
 import {Transaction} from '@services/api/transactions';
 import {useTransactionModal} from './hooks/useTransactionModal';
 import {styles} from './styles/TransactionDetailsModal.styles';
+import {formatCurrency, formatDate} from '@utils/formatters';
 
 interface TransactionDetailsModalProps {
   visible: boolean;
@@ -92,17 +93,11 @@ export function TransactionDetailsModal({
                   <Text style={styles.label}>Valor</Text>
                   <View>
                     <Text style={styles.value}>
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format(transaction.amount)}
+                      {formatCurrency(transaction.amount)}
                     </Text>
                     {transaction.currency && transaction.currency !== 'BRL' && transaction.originalAmount != null ? (
                       <Text style={[styles.value, {fontSize: 12, color: '#9a9a9a', marginTop: 4}]}> 
-                        Original: {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: transaction.currency,
-                        }).format(transaction.originalAmount)}
+                        Original: {formatCurrency(transaction.originalAmount)}
                       </Text>
                     ) : null}
                   </View>
@@ -116,7 +111,7 @@ export function TransactionDetailsModal({
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Data</Text>
                   <Text style={styles.value}>
-                    {new Date(transaction.transactionDate).toLocaleDateString('pt-BR')}
+                    {formatDate(transaction.transactionDate)}
                   </Text>
                 </View>
 
@@ -176,8 +171,7 @@ export function TransactionDetailsModal({
                                 fontSize: 12,
                                 marginTop: 4,
                               }}>
-                              Valor: R${' '}
-                              {parseFloat(installment.amount).toFixed(2)}
+                              Valor: {formatCurrency(installment.amount)}
                             </Text>
                             <Text
                               style={{
@@ -186,9 +180,7 @@ export function TransactionDetailsModal({
                                 marginTop: 2,
                               }}>
                               Vencimento:{' '}
-                              {new Date(
-                                installment.dueDate,
-                              ).toLocaleDateString('pt-BR')}
+                              {formatDate(installment.dueDate)}
                             </Text>
                           </View>
                         ))}
@@ -374,13 +366,10 @@ export function TransactionDetailsModal({
                           Parcela {installment.installmentNumber}
                         </Text>
                         <Text style={{color: '#999', fontSize: 12}}>
-                          R$ {parseFloat(installment.amount).toFixed(2)}
+                          {formatCurrency(installment.amount)}
                         </Text>
                         <Text style={{color: '#999', fontSize: 12}}>
-                          Vencimento:{' '}
-                          {new Date(
-                            installment.dueDate,
-                          ).toLocaleDateString('pt-BR')}
+                          Vencimento: {formatDate(installment.dueDate)}
                         </Text>
                       </View>
                       {isLoading ? (

@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {createTransaction, checkDuplicateTransactions, suggestCategory, type CategorySuggestion, type CreateTransactionPayload} from '@services/api/transactions';
 import {apiRequest} from '@services/api/client';
 import {listCards, Card} from '@services/api/cards';
+import {checkThresholdsAndNotify} from '@services/backgroundTasks';
 import {invalidateCache} from '@services/cache';
 import {recordCategoryLearning} from '@services/categorySuggestion';
 import {useCategories} from '../hooks/useCategories';
@@ -194,6 +195,9 @@ export function AddTransactionForm({onSuccess}: AddTransactionFormProps) {
         if (payload.category) {
           await invalidateCache('budgets');
         }
+
+        // Verifica limites de orçamento e metas após o lançamento bem-sucedido
+        void checkThresholdsAndNotify();
 
         setDescription('');
         setAmount('');

@@ -1,5 +1,5 @@
-import React, {useState, useCallback, useMemo} from 'react';
-import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator} from 'react-native';
+import React, {useState, useCallback, useMemo, useEffect} from 'react';
+import {View, Text, Pressable, Modal, ScrollView, ActivityIndicator, Platform, PermissionsAndroid} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import {useAuth} from '@contexts/AuthContext';
@@ -9,8 +9,10 @@ import {listAllTransactions, type Transaction} from '@services/api/transactions'
 import {listCards, type Card} from '@services/api/cards';
 import {useOfflineSync} from '@hooks/useOfflineSync';
 import {BarChartCard} from '@components/charts';
+import {scheduleNotifications} from '@services/backgroundTasks';
 import {TrendingDown, CreditCard, AlertCircle, PieChart as PieChartIcon, ArrowRight} from 'lucide-react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {formatCurrency, formatDate} from '@utils/formatters';
 import {styles} from './styles/HomeScreen.styles';
 
 type Props = NativeStackScreenProps<any, 'Home'>;
@@ -32,6 +34,23 @@ export default function HomeScreen({navigation}: Props) {
       loadDashboardData();
     }, []),
   );
+
+  // Configurar notificações de fundo
+  useEffect(() => {
+    const initNotifications = async () => {
+      if (Platform.OS === 'android') {
+        // Pedir permissão no Android 13+ (API 33)
+        if (Number(Platform.Version) >= 33) {
+          await PermissionsAndroid.request(
+            'android.permission.POST_NOTIFICATIONS' as any,
+          );
+        }
+        // Agendar a tarefa no WorkManager
+        scheduleNotifications();
+      }
+    };
+    initNotifications();
+  }, []);
 
   const loadDashboardData = async () => {
     try {
@@ -170,7 +189,7 @@ export default function HomeScreen({navigation}: Props) {
     return months.map(month => ({
       x: month.label,
       y: Number(month.total.toFixed(2)),
-      label: new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(month.total),
+      label: formatCurrency(month.total),
     }));
   }, [transactions]);
 
@@ -229,7 +248,7 @@ export default function HomeScreen({navigation}: Props) {
                 <Text style={styles.cardTitle}>Despesas do Mês</Text>
               </View>
               <Text style={styles.amountText}>
-                R$ {monthlyTotal.toFixed(2)}
+                {formatCurrency(monthlyTotal)}
               </Text>
               <Text style={styles.cardSubtitle}>
                 {monthlyTransactions.length} transações{monthlyInstallments.length > 0 ? ` + ${monthlyInstallments.length} parcelas` : ''}
@@ -251,9 +270,9 @@ export default function HomeScreen({navigation}: Props) {
 
               <View style={styles.progressMetaRow}>
                 <Text style={styles.progressMetaText}>
-                  {new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(activeGoal.current)} de {new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(activeGoal.target)}
+                  {formatCurrency(activeGoal.current)} de {formatCurrency(activeGoal.target)}
                 </Text>
-                <Text style={styles.progressMetaText}>{activeGoal.category} • prazo {activeGoal.deadline}</Text>
+                <Text style={styles.progressMetaText}>{activeGoal.category} • prazo {formatDate(activeGoal.deadline, 'Sem prazo')}</Text>
               </View>
             </View>
 
@@ -353,7 +372,7 @@ export default function HomeScreen({navigation}: Props) {
                     </View>
                     <View style={{alignItems: 'flex-end'}}>
                       <Text style={styles.txAmount}>
-                        R$ {(typeof tx.amount === 'number' ? tx.amount : parseFloat(tx.amount || '0')).toFixed(2)}
+                        {formatCurrency(tx.amount)}
                       </Text>
                       <Text
                         style={[

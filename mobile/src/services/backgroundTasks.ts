@@ -95,7 +95,7 @@ export const resetAlertCache = async () => {
   const keys = await AsyncStorage.getAllKeys();
   const alertKeys = keys.filter(key => key.startsWith('@alert_sent_'));
   if (alertKeys.length > 0) {
-    await AsyncStorage.multiRemove(alertKeys);
+    await Promise.all(alertKeys.map(key => AsyncStorage.removeItem(key)));
   }
   console.log('[BackgroundTasks] Cache de alertas limpo.');
 };

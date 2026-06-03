@@ -79,6 +79,30 @@ export async function getBudgetProgressHandler(req: FastifyRequest, reply: Fasti
   }
 }
 
+export async function getBudgetsStatusHandler(req: FastifyRequest, reply: FastifyReply) {
+  try { await req.jwtVerify(); } catch { return reply.status(401).send({error: 'Unauthorized'}); }
+  const user = req.user as AuthTokenPayload;
+
+  try {
+    const userBudgets = await getBudgetsByUserId(user.userId);
+    const status = await Promise.all(
+      userBudgets.map(async (budget) => {
+        const progress = await calculateBudgetProgress(budget.id, user.userId);
+        return {
+          id: budget.id,
+          name: budget.name,
+          current: Number(progress.totalSpent),
+          target: Number(progress.limit),
+          type: 'budget'
+        };
+      })
+    );
+    return reply.send(status);
+  } catch (error: any) {
+    return reply.status(500).send({error: error.message});
+  }
+}
+
 export async function checkBudgetAlertsHandler(req: FastifyRequest, reply: FastifyReply) {
   try { await req.jwtVerify(); } catch { return reply.status(401).send({error: 'Unauthorized'}); }
   const user = req.user as AuthTokenPayload;

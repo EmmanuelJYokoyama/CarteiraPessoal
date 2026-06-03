@@ -9,5 +9,5 @@ export async function budgetsRoutes(app: FastifyInstance) {
   app.put('/budgets/:budgetId', updateBudgetHandler);
   app.delete('/budgets/:budgetId', deleteBudgetHandler);
   app.get('/budgets/:budgetId/progress', getBudgetProgressHandler);
-  app.post('/budgets/check-alerts', {onRequest: [app.authenticate]}, checkBudgetAlertsHandler);
+  app.post('/budgets/check-alerts', checkBudgetAlertsHandler);
 }
